@@ -1,0 +1,183 @@
+/* cybersmith.css */
+
+.taller-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr 300px;
+  width: 100%;
+  gap: var(--space-4);
+  height: calc(100vh - 150px);
+  min-height: 600px;
+}
+
+/* Panel Izquierdo: Inventario */
+.inventario {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-y: auto;
+}
+
+.pieza {
+  background: var(--bg-body);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  cursor: grab;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.pieza:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.pieza:active {
+  cursor: grabbing;
+}
+
+.pieza img {
+  max-width: 100%;
+  max-height: 80px;
+  display: block;
+  margin: 0 auto;
+}
+
+.pieza.used {
+  opacity: 0.3;
+  pointer-events: none;
+  filter: grayscale(100%);
+}
+
+/* Centro: Placa Base (Dropzones) */
+.mesa-trabajo {
+  background: #111;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.motherboard-bg {
+  width: 90%;
+  height: 90%;
+  position: relative;
+  background-image: url('../assets/motherboard.svg');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Zonas donde soltar */
+.dropzone {
+  position: absolute;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.dropzone.drag-over {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--accent);
+}
+
+.dropzone.filled {
+  border-style: solid;
+  border-color: var(--success);
+  background: rgba(46, 160, 67, 0.1);
+  color: transparent; /* hide text when filled */
+}
+
+.dropzone.filled img {
+  max-width: 90%;
+  max-height: 90%;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Posicionamiento específico de las dropzones sobre la placa base */
+/* (Asumiendo viewBox de la placa base 800x600 y porcentajes) */
+#drop-cpu { top: 25%; left: 31%; width: 18%; height: 25%; }
+#drop-ram1 { top: 20%; left: 56%; width: 4%; height: 33%; }
+#drop-ram2 { top: 20%; left: 61%; width: 4%; height: 33%; }
+#drop-gpu { top: 66%; left: 18%; width: 37%; height: 5%; }
+#drop-psu { top: 25%; left: 85%; width: 5%; height: 20%; }
+#drop-hdd1 { top: 66%; left: 81%; width: 6%; height: 6%; }
+#drop-hdd2 { top: 75%; left: 81%; width: 6%; height: 6%; }
+
+/* Periféricos (Panel I/O izquierdo) */
+#drop-keyboard { top: 20%; left: 0%; width: 14%; height: 7%; border-color: #ff00ff; color: #ff00ff; }
+#drop-mouse { top: 28%; left: 0%; width: 14%; height: 7%; border-color: #00ffff; color: #00ffff; }
+#drop-monitor { top: 38%; left: 0%; width: 14%; height: 9%; border-color: #ffff00; color: #ffff00; }
+
+/* Panel Derecho: Info y Diagnóstico */
+.diagnostico {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor {
+  background: #000;
+  border: 2px solid #333;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  color: #39ff14;
+  flex-grow: 1;
+  text-shadow: 0 0 5px rgba(57, 255, 20, 0.5);
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+}
+
+.monitor h3 {
+  color: #fff;
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+
+.status-line {
+  margin-bottom: 5px;
+}
+.status-line.error { color: #ff4444; }
+.status-line.ok { color: #39ff14; }
+
+.btn-boot {
+  margin-top: var(--space-4);
+  width: 100%;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.blink {
+  animation: blink 1s step-end infinite;
+}

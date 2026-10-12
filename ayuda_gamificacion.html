@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyR ClassHub — Ayuda Gamificación</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
+  <link rel="stylesheet" href="css/common/design-system.css">
+  <link rel="stylesheet" href="css/common/reset.css">
+  <link rel="stylesheet" href="css/common/layout.css">
+  <link rel="stylesheet" href="css/common/components.css">
+</head>
+<body class="page">
+  <div id="app-header"></div>
+  <main class="page-content">
+    <div class="container">
+      <header class="dashboard-header">
+        <a href="javascript:history.back()" class="btn btn-outline" style="margin-bottom: 20px;">← Volver</a>
+        <h1 style="color:var(--primary); font-size: 2.5rem; margin-bottom: 10px;">🏆 Guía de Gamificación</h1>
+        <p class="section-desc">Descubre cómo ganar puntos de experiencia (XP) y desbloquear medallas en Computación y Robótica.</p>
+      </header>
+      
+      <!-- Ligas y XP -->
+      <section class="card" style="margin-bottom: var(--space-5); padding: var(--space-4);">
+        <h2>📈 El Sistema de XP y Ligas</h2>
+        <p>A lo largo del curso, todas las actividades te otorgan <strong>XP (Puntos de Experiencia)</strong>. A medida que acumules XP, subirás en el ranking y ascenderás de Liga, desde la <em>Liga Bronce</em> hasta la <em>Liga Maestro</em>.</p>
+      </section>
+
+      <!-- Tests y Exámenes -->
+      <section class="card" style="margin-bottom: var(--space-5); padding: var(--space-4);">
+        <h2>📝 Exámenes y Tests de Repaso</h2>
+        
+        <h3 style="color: var(--primary);">Exámenes (Evaluados por el docente)</h3>
+        <ul>
+          <li><strong>+5 XP</strong> simplemente por realizarlo y entregarlo.</li>
+          <li><strong>+5 XP</strong> adicionales si sacas un 5 o más (aprobado).</li>
+          <li><strong>+5 XP</strong> adicionales si sacas más de un 9 (sobresaliente).</li>
+        </ul>
+        <p><em>(Total máximo: 15 XP por examen)</em></p>
+        
+        <h3 style="color: var(--primary); margin-top: 20px;">Tests de Repaso de cada Bloque</h3>
+        <div style="background:var(--error-light, #ffebee); padding: 10px; border-left: 4px solid var(--error); margin-bottom: 10px;">
+          <strong>Importante:</strong> Si sacas <strong>menos de un 3</strong> en un test de repaso, ganarás <strong>0 XP</strong> en esa evaluación. ¡Esfuérzate y lee bien las preguntas!
+        </div>
+        <ul>
+          <li><strong>La primera vez que lo haces:</strong> Funciona igual que un examen, puedes llevarte hasta 15 XP (5 por jugar, +5 por aprobar, +5 por >9).</li>
+          <li><strong>Repeticiones:</strong>
+            <ul>
+              <li>Ganas <strong>2 XP</strong> de base por repetirlo (siempre que saques al menos un 3).</li>
+              <li>Si apruebas por <strong>primera vez</strong>, sumas <strong>+5 XP</strong>. Si ya lo habías aprobado antes y vuelves a aprobar, sumas <strong>+1 XP</strong>.</li>
+              <li>Si sacas más de 9 por <strong>primera vez</strong>, sumas <strong>+5 XP</strong>. Si ya habías sacado más de 9 antes y lo vuelves a hacer, sumas <strong>+1 XP</strong>.</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Juegos -->
+      <section class="card" style="margin-bottom: var(--space-5); padding: var(--space-4);">
+        <h2>🎮 Juegos Interactivos</h2>
+        <p>Jugar a los minijuegos interactivos de CyR Hub es una forma estupenda de ganar XP, pero el sistema está preparado para evitar que acumules puntos infinitos simplemente repitiendo partidas mediocres.</p>
+        <ul>
+          <li><strong>Premio de Consolación:</strong> Siempre ganarás <strong>5 XP</strong> garantizados por completar una partida de cualquier juego, independientemente de tu resultado.</li>
+          <li><strong>Superar tus Propios Récords:</strong> La verdadera XP la consigues <strong>batiendo tus marcas personales</strong>. Si logras una puntuación más alta que tu anterior récord, el sistema calcula la XP generada por esa nueva marca (mediante una curva progresiva) y te ingresa la diferencia de forma justa. ¡Esforzarte en mejorar tu récord es la clave!</li>
+          <li><strong>Tope de 750 XP por Juego:</strong> Para fomentar que pruebes todos los minijuegos y evitar desequilibrios en la liga, la experiencia que puedes extraer de la puntuación en un mismo juego está estrictamente limitada a <strong>750 XP</strong>. Una vez alcances ese límite acumulado, el juego no te dará más puntos base por jugar. (¡Pero ojo, las Medallas van aparte y saltan este límite!).</li>
+        </ul>
+      </section>
+
+      <!-- Medallas -->
+      <section class="card" style="margin-bottom: var(--space-5); padding: var(--space-4);">
+        <h2>🏅 Medallas</h2>
+        <p>El sistema cuenta con decenas de medallas que puedes desbloquear cumpliendo misiones o logros concretos. Algunas son públicas y otras son "secretas" (solo verás que existen pero no cómo ganarlas hasta que las desbloquees).</p>
+        
+        <h3 style="color: var(--primary);">Por Progresión y XP</h3>
+        <ul>
+          <li><strong>Novato Digital, Aprendiz, Veterano, Maestro, Cibernauta:</strong> Se otorgan automáticamente al alcanzar ciertas cantidades de XP (ej. 500 XP, 2.000 XP, 30.000 XP).</li>
+        </ul>
+        
+        <h3 style="color: var(--primary); margin-top: 15px;">Por cada Juego y Récords</h3>
+        <p>¡Superarte a ti mismo tiene premio! Todos los juegos cuentan ahora con un <strong>sistema de progresión por medallas</strong> (ej. Bronce, Plata, Oro, Diamante, etc.).</p>
+        <ul>
+          <li><strong>Participación:</strong> Obtienes una medalla con solo completar tu primera partida en cualquier minijuego.</li>
+          <li><strong>Hitos y Récords:</strong> A medida que alcances ciertas puntuaciones (ej. superar 500, 1000, 2000 puntos) irás desbloqueando nuevas medallas cada vez más prestigiosas.</li>
+          <li><strong>¡XP Extra!</strong> Cada vez que desbloquees una medalla de récord por primera vez, el sistema te recompensará con una gran cantidad de <strong>XP de bonificación</strong> (desde +50 XP en los primeros niveles hasta +1000 XP por las medallas más difíciles de alcanzar). ¡Una oportunidad perfecta para escalar puestos en la liga rápidamente!</li>
+        </ul>
+
+        <h3 style="color: var(--primary); margin-top: 15px;">Por Horarios y Costumbres (Ejemplos)</h3>
+        <ul>
+          <li><strong>El Madrugador:</strong> Completar actividades a primera hora de la mañana (06:00 - 08:00 AM).</li>
+          <li><strong>Sin Descanso:</strong> Completar actividades durante el fin de semana.</li>
+          <li><strong>Constancia:</strong> Jugar varios días seguidos al entorno.</li>
+          <li><em>Y muchas medallas ocultas, como la "Hora Bruja" o el premio "Nocturno"... ¡Tendrás que investigar para encontrarlas!</em></li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+  
+  <script type="module">
+    import { renderHeader } from './js/common/ui.js';
+    import { auth, getDoc, doc, db } from './js/common/firebase-config.js';
+
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        const profile = snap.exists() ? snap.data() : { role: 'student' };
+        renderHeader(user, profile);
+      } else {
+        renderHeader(null, null);
+      }
+    });
+  </script>
+</body>
+</html>

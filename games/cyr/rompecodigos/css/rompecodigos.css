@@ -1,0 +1,104 @@
+:root {
+    --game-color: #ff6b35;
+    --cyber-bg: #0d1117;
+    --cyber-panel: #161b22;
+    --cyber-border: #30363d;
+    --cyber-text: #c9d1d9;
+}
+
+body {
+    background-color: var(--cyber-bg);
+    color: var(--cyber-text);
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.hacker-panel {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: var(--cyber-panel);
+    border: 1px solid var(--game-color);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.1);
+    text-align: center;
+}
+
+.glitch-text {
+    font-size: 3rem;
+    color: var(--game-color);
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #8b949e;
+    margin-bottom: 40px;
+}
+
+.options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+}
+
+.option-card {
+    background-color: var(--cyber-bg);
+    border: 1px solid var(--cyber-border);
+    padding: 20px;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 400px;
+    transition: border-color 0.3s;
+}
+
+.option-card:hover {
+    border-color: var(--game-color);
+}
+
+.option-card h2 {
+    color: var(--game-color);
+    margin-bottom: 15px;
+}
+
+.cyber-btn {
+    background-color: transparent;
+    color: var(--game-color);
+    border: 2px solid var(--game-color);
+    padding: 10px 20px;
+    font-size: 1.1rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.cyber-btn:hover {
+    background-color: var(--game-color);
+    color: var(--cyber-bg);
+}
+
+.cyber-input {
+    width: 100%;
+    background-color: var(--cyber-bg);
+    border: 1px solid var(--cyber-border);
+    color: var(--game-color);
+    padding: 12px;
+    font-size: 1.2rem;
+    font-family: 'Courier New', Courier, monospace;
+    text-align: center;
+    letter-spacing: 3px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    box-sizing: border-box;
+}
+
+.cyber-input:focus {
+    outline: none;
+    border-color: var(--game-color);
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+}

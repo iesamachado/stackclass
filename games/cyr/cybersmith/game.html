@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberSmith 🛠️ | Taller de Montaje</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>">
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="../../../css/common/layout.css">
+  <link rel="stylesheet" href="../../../css/common/components.css">
+  <link rel="stylesheet" href="css/cybersmith.css">
+</head>
+<body class="page">
+  <header class="main-header" style="background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="font-family: var(--font-mono); font-size: 1.5rem; color: var(--primary);">
+      🛠️ CyberSmith OS v1.0
+    </div>
+    <div>
+      <a href="index.html" class="btn btn-outline" style="font-size: 0.9rem;">🔙 Volver al Menú</a>
+    </div>
+  </header>
+
+  <main class="page-content" style="width: 100%; max-width: 1400px; margin: 0 auto; padding-top: 20px;">
+    
+    <!-- HEADER DEL JUEGO ARCADE -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;">
+      <!-- TICKET -->
+      <div class="card" style="flex: 1; border-left: 4px solid var(--accent); background: #fffde7; color: #333;">
+        <div style="font-family: var(--font-mono); font-weight: bold; border-bottom: 1px dashed #ccc; margin-bottom: 10px; padding-bottom: 5px;">🎫 TICKET DE CLIENTE #<span id="ticket-id">001</span></div>
+        <div id="ticket-text" style="font-family: 'Kalam', cursive; font-size: 1.1rem; line-height: 1.4;">
+          Cargando pedido...
+        </div>
+      </div>
+      
+      <!-- STATS -->
+      <div class="card" style="display: flex; gap: 30px; font-family: var(--font-mono); font-size: 1.5rem; background: var(--bg-card);">
+        <div>⏱️ Tiempo: <span id="timer-display" style="color: var(--accent);">05:00</span></div>
+        <div>🏆 PCs: <span id="score-display" style="color: var(--success);">0</span></div>
+        <button id="btn-start-arcade" class="btn btn-primary" style="font-size: 1rem;">Iniciar Turno</button>
+      </div>
+    </div>
+
+    <div class="taller-layout" id="game-area" style="opacity: 0.5; pointer-events: none;">
+      <!-- INVENTARIO -->
+      <aside class="inventario" id="inventory">
+        <h3 style="font-size: 1rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">📦 Componentes</h3>
+        <!-- Se inyectarán desde JS -->
+      </aside>
+
+      <!-- PLACA BASE Y MONITOR FÍSICO -->
+      <section class="mesa-trabajo">
+        
+        <!-- MONITOR FÍSICO (Oculto por defecto) -->
+        <div id="external-monitor-wrapper" style="display: none; flex-direction: column; align-items: center; width: 70%; max-height: 40%; margin-top: 15px; margin-bottom: 15px;">
+          <!-- Pantalla -->
+          <div style="width: 100%; flex-grow: 1; min-height: 200px; background: #222; border-radius: 10px; border: 15px solid #111; border-bottom-width: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); display: flex; flex-direction: column; position: relative;">
+            <div class="monitor" id="monitor-terminal" style="flex-grow: 1; border-radius: 0; border: none; background: #050505; position: relative; overflow-y: auto;">
+              <div id="monitor-content" style="padding: 10px;">
+                <!-- Logs will go here -->
+              </div>
+            </div>
+            <!-- LED -->
+            <div style="position: absolute; bottom: -18px; right: 20px; width: 8px; height: 8px; background: #39ff14; border-radius: 50%;" id="monitor-led"></div>
+            <div style="position: absolute; bottom: -22px; width: 100%; text-align: center; font-size: 0.6rem; color: #555; font-family: sans-serif; letter-spacing: 2px;">CYBERSMITH</div>
+          </div>
+          <!-- Peana / Soporte -->
+          <div style="width: 50px; height: 25px; background: #222; border-left: 2px solid #111; border-right: 2px solid #111;"></div>
+          <div style="width: 150px; height: 10px; background: #333; border-radius: 5px 5px 0 0;"></div>
+        </div>
+
+        <div class="motherboard-bg">
+          <div class="dropzone" id="drop-cpu" data-accept="cpu">SOCKET CPU</div>
+          <div class="dropzone" id="drop-ram1" data-accept="ram">DIMM 1</div>
+          <div class="dropzone" id="drop-ram2" data-accept="ram">DIMM 2</div>
+          <div class="dropzone" id="drop-gpu" data-accept="gpu">PCIe</div>
+          <div class="dropzone" id="drop-hdd1" data-accept="hdd">SATA 1</div>
+          <div class="dropzone" id="drop-hdd2" data-accept="hdd">SATA 2</div>
+          <div class="dropzone" id="drop-psu" data-accept="psu">ATX PWR</div>
+          
+          <div class="dropzone" id="drop-keyboard" data-accept="keyboard" style="font-size: 0.7rem; text-align: center;">Teclado</div>
+          <div class="dropzone" id="drop-mouse" data-accept="mouse" style="font-size: 0.7rem; text-align: center;">Ratón</div>
+          <div class="dropzone" id="drop-monitor" data-accept="monitor" style="font-size: 0.7rem; text-align: center;">Monitor</div>
+        </div>
+      </section>
+
+      <!-- DIAGNOSTICO Y MONITOR -->
+      <aside class="diagnostico" style="display: flex; flex-direction: column; gap: 15px;">
+        
+        <div style="background: var(--bg-card); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <h3 style="font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase;">💰 Coste del Equipo</h3>
+          <div style="font-size: 2rem; font-family: var(--font-mono); color: var(--accent); margin-top: 5px;">
+            <span id="price-display">0</span> €
+          </div>
+        </div>
+
+        <div style="background: var(--bg-card); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); flex-grow: 1; display: flex; flex-direction: column;">
+          <h3 style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 5px;">📟 BIOS Debug (Placa Base)</h3>
+          <div class="monitor" id="bios-terminal" style="flex-grow: 1; font-size: 0.8rem; padding: 10px;">
+            <div id="bios-content">
+              <div class="status-line">Standby...</div>
+            </div>
+          </div>
+        </div>
+        
+        <button class="btn btn-primary btn-boot" id="btn-boot" disabled>Arrancar Sistema ⚡</button>
+      </aside>
+    </div>
+
+  </main>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

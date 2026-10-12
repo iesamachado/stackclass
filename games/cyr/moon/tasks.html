@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOON - Mis Tareas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="../../../css/common/layout.css">
+  <link rel="stylesheet" href="../../../css/common/components.css">
+  <link rel="stylesheet" href="css/moon.css">
+</head>
+<body class="theme-moon">
+
+  <div id="app-header"></div>
+
+  <!-- ═══════════════════════════════════════ TASKS SCREEN ═══ -->
+  <div id="screen-tasks" class="screen active">
+
+    <div class="teacher-dashboard" style="padding: 40px; max-width: 1000px; margin: 0 auto; color: white;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-display); color: var(--accent-cyan);">MIS MISIONES (MOON)</h2>
+        <button class="btn btn-execute" onclick="window.location.href='game.html?classId=' + new URLSearchParams(window.location.search).get('classId')">Volver al Juego</button>
+      </div>
+
+      <!-- Controles Docente -->
+      <div class="teacher-actions" id="tasks-actions-teacher" style="display: none; gap: 20px; margin-bottom: 30px;">
+        <button id="btn-create-task" class="btn btn-execute">📝 Nueva Tarea</button>
+      </div>
+
+      <!-- Lista de tareas -->
+      <div class="teacher-content bg-panel" id="tasks-list" style="padding: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); min-height: 200px;">
+        <p style="color: rgba(255,255,255,0.5);">Cargando tareas...</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/tasks.js"></script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ClassHub — Panel del alumno. Accede a tus clases y juegos habilitados por tu docente.">
+  <title>ClassHub — Mi Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+
+  <link rel="stylesheet" href="css/common/design-system.css">
+  <link rel="stylesheet" href="css/common/reset.css">
+  <link rel="stylesheet" href="css/common/layout.css">
+  <link rel="stylesheet" href="css/common/components.css">
+  <link rel="stylesheet" href="css/dashboard_student.css">
+</head>
+<body class="page">
+
+  <div id="app-header"></div>
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- Cabecera -->
+      <header class="dashboard-header animate-fade-up">
+        <h1 class="dashboard-title" id="student-welcome">¡Hola! 👋</h1>
+        <p class="dashboard-subtitle">Aquí están tus clases y los juegos que tienes disponibles.</p>
+      </header>
+
+      <!-- Alerta si viene sin acceso a un juego -->
+      <div id="no-access-alert" class="alert alert--warning animate-fade-up" style="display:none; margin-bottom:var(--space-6)">
+        <span>⚠️</span>
+        <div id="no-access-msg"></div>
+      </div>
+
+      <!-- Resumen de Gamificación -->
+      <section class="animate-fade-up delay-1" style="margin-bottom:var(--space-6)">
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--space-4); background:var(--bg-card); border:4px solid var(--primary); box-shadow:6px 6px 0px var(--primary); padding:20px;">
+          <div style="display:flex; gap:var(--space-4); align-items:center;">
+            <div style="font-size:3.5rem; background:rgba(0,0,0,0.05); width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid var(--text-primary);" id="hero-league-icon">🥉</div>
+            <div>
+              <div style="font-size:0.85rem; font-weight:bold; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted);">Liga actual</div>
+              <h3 style="margin:0; font-size:1.8rem; color:var(--primary); text-shadow:1px 1px 0px var(--text-primary); -webkit-text-stroke: 1px var(--text-primary);" id="hero-league-name">Bronce</h3>
+              <div style="font-weight:900; margin-top:4px; font-size:1.2rem; color:var(--warning); text-shadow:1px 1px 0px var(--text-primary);" id="hero-xp">⭐ 0 XP</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:var(--space-4); align-items:center;">
+            <div style="text-align:right; display:none;" id="hero-guild-info">
+              <div style="font-size:0.85rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted);">Tu Gremio</div>
+              <h3 style="margin:0; font-size:1.2rem; font-weight:bold; color:var(--text-primary);" id="hero-guild-name">Sin gremio</h3>
+            </div>
+            <a href="logros.html" class="btn btn-primary" style="font-size:1.1rem; padding:12px 24px; box-shadow:4px 4px 0px var(--text-primary);">Ver mis logros 🏆</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Exámenes Activos -->
+      <section class="animate-fade-up delay-1" id="section-exams" style="display:none; margin-bottom:var(--space-5);">
+        <div class="section-header">
+          <h2 class="section-title">📝 Exámenes Activos</h2>
+        </div>
+        <div id="student-exams-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:var(--space-3);"></div>
+      </section>
+
+      <!-- Mis Clases + Juegos -->
+      <section class="animate-fade-up delay-2" aria-labelledby="my-classes-title">
+        <div class="section-header">
+          <h2 class="section-title" id="my-classes-title">🏫 Mis Clases</h2>
+          <button class="btn btn-ghost btn--sm" id="btn-join-class">
+            <span>➕</span> Unirse con PIN
+          </button>
+        </div>
+
+        <!-- Mensaje si no hay clases -->
+        <div id="no-classes-msg" class="empty-state" style="display:none">
+          <span class="empty-state-icon">🏫</span>
+          Aún no estás en ninguna clase. Pide el PIN a tu docente para unirte.
+        </div>
+
+        <!-- Acordeón de clases -->
+        <div id="student-classes-list" class="student-classes-list">
+          <div class="class-card skeleton" style="height:180px"></div>
+          <div class="class-card skeleton" style="height:180px"></div>
+        </div>
+      </section>
+
+      <!-- Mis Tareas -->
+      <section class="animate-fade-up delay-3" aria-labelledby="assignments-title" id="section-assignments" style="display:none">
+        <div class="section-header">
+          <h2 class="section-title" id="assignments-title">☁️ Mis tareas (Classroom)</h2>
+        </div>
+        <div id="student-assignments-list"></div>
+      </section>
+
+      <!-- Tareas Offline -->
+      <section class="animate-fade-up delay-3" aria-labelledby="offline-tasks-title" id="section-offline-tasks" style="display:none; margin-top:var(--space-6);">
+        <div class="section-header">
+          <h2 class="section-title" id="offline-tasks-title">📝 Tareas y Rúbricas</h2>
+        </div>
+        <div id="student-offline-tasks-list"></div>
+      </section>
+
+      <!-- Historial reciente -->
+      <section class="animate-fade-up delay-3" aria-labelledby="history-title">
+        <div class="section-header">
+          <h2 class="section-title" id="history-title">📊 Mis últimas partidas</h2>
+        </div>
+        <div class="card" id="history-card">
+          <p id="history-empty" class="empty-state" style="display:none">
+            Aún no has jugado ninguna partida. ¡Empieza ahora!
+          </p>
+          <table class="ranking-table" id="history-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Juego</th>
+                <th>Puntuación</th>
+                <th>Clase</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <!-- Mis Notas de Teoría -->
+      <section class="animate-fade-up delay-4" aria-labelledby="grades-title">
+        <div class="section-header">
+          <h2 class="section-title" id="grades-title">📝 Mis Notas de Teoría</h2>
+        </div>
+        <div class="card" id="grades-card">
+          <p id="grades-empty" class="empty-state" style="display:none">
+            Aún no has entregado ningún test de teoría.
+          </p>
+          <table class="ranking-table" id="grades-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Temario</th>
+                <th>Nota</th>
+                <th>Fecha de entrega</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="grades-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal: Unirse a clase por PIN -->
+  <div id="modal-join-class" class="modal-backdrop" aria-hidden="true" role="dialog"
+       aria-modal="true" aria-labelledby="join-class-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="join-class-title">Unirse a una clase</h3>
+        <button class="modal-close" id="close-join-modal" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="form-hint" style="margin-bottom:var(--space-4)">
+          Introduce el PIN de 6 dígitos que te ha dado tu docente.
+        </p>
+        <form id="form-join-class" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="pin-input">PIN de la clase</label>
+            <input type="text" id="pin-input" inputmode="numeric" pattern="[0-9]{6}"
+                   maxlength="6" placeholder="000000" class="pin-input-big"
+                   autocomplete="off">
+          </div>
+          <p id="join-error" class="form-error" aria-live="polite"></p>
+          <div class="modal-footer" style="padding:0; margin-top:var(--space-5); border:none">
+            <button type="button" class="btn btn-ghost" id="cancel-join">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Unirme</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Rúbrica Alumno -->
+  <div id="modal-student-rubric" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-box" style="max-width: 800px; width: 95%;">
+      <div class="modal-header">
+        <h3 id="student-rubric-title">Rúbrica de la Tarea</h3>
+        <button class="modal-close" id="btn-close-student-rubric">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="student-rubric-container"></div>
+      </div>
+    </div>
+  </div>
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script type="module" src="js/dashboard_student.js"></script>
+</body>
+</html>

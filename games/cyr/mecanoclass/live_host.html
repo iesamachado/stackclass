@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MecanoClass Live - Sala del Profesor</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- CSS Changes -->
+    <link rel="stylesheet" href="../../../css/common/reset.css">
+    <link rel="stylesheet" href="../../../css/common/design-system.css">
+    <link rel="stylesheet" href="../../../css/common/layout.css">
+    <link rel="stylesheet" href="../../../css/common/components.css">
+    <link rel="stylesheet" href="./css/mecanoclass.css">
+    
+    <style>
+        .racer-lane {
+            position: absolute;
+            height: 60px;
+            width: 100%;
+            left: 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            transition: all 0.5s ease;
+            box-sizing: border-box;
+        }
+
+        .racer-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid #818cf8;
+            position: absolute;
+            left: 0;
+            transition: left 0.5s linear;
+            z-index: 2;
+            background: #1e293b;
+            object-fit: cover;
+        }
+
+        .racer-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .racer-name {
+            position: absolute;
+            left: 10px;
+            top: -22px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            transition: left 0.5s linear;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-header"></div>
+
+    <div class="container-fluid d-flex flex-column" style="min-height: calc(100vh - var(--navbar-height, 72px)); margin-top: calc(var(--navbar-height, 72px) + var(--space-3)); padding: 0 var(--space-4);">
+        <!-- Top Bar -->
+        <div class="d-flex justify-content-between align-items-center p-3 glass-panel mb-4">
+            <div class="d-flex align-items-center gap-3">
+                <a href="index.html" class="btn-secondary-glow" style="padding: 8px 16px; font-size: 0.9rem; text-decoration: none;">
+                    ← Volver
+                </a>
+                <h2 class="title-gradient fw-bold m-0" style="font-size: 1.5rem;">🏎️ CARRERA EN VIVO</h2>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-center px-4 py-1" style="background: rgba(15, 23, 42, 0.6); border-radius: 12px; border: 1px solid var(--glass-border);">
+                    <span class="text-dim" style="font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;">PIN DE SALA</span>
+                    <h1 class="text-white fw-bold m-0" id="gamePin" style="font-family: 'JetBrains Mono', monospace; letter-spacing: 4px; font-size: 1.8rem; color: #818cf8;">...</h1>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button class="btn-secondary-glow" id="btnJoinAsPlayer" style="padding: 8px 16px; font-size: 0.9rem;">
+                    🎮 Participar
+                </button>
+                <button class="btn-secondary-glow" id="btnExitGame" style="padding: 8px 16px; font-size: 0.9rem; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
+                    ✕ Salir
+                </button>
+            </div>
+        </div>
+
+        <!-- Lobby View -->
+        <div id="lobbyView" class="flex-grow-1 d-flex flex-column align-items-center justify-content-center p-4">
+            <h3 class="text-light mb-4" style="font-size: 1.4rem;">Esperando a que los alumnos se unan con el PIN...</h3>
+            <div id="playersGrid" class="d-flex flex-wrap gap-4 justify-content-center mb-5" style="max-width: 800px; min-height: 120px;">
+                <!-- Players joined avatars -->
+            </div>
+            <button id="startGameBtn" class="btn-premium-glow px-5 py-3" style="font-size: 1.3rem; padding: 16px 48px;">
+                🏁 Comenzar Carrera
+            </button>
+        </div>
+
+        <!-- Race View -->
+        <div id="raceView" class="flex-grow-1 p-4 d-none overflow-auto position-relative">
+            <div class="d-flex justify-content-end mb-3">
+                <button id="forceEndGameBtn" class="btn-premium-glow py-2 px-4" style="font-size: 1rem;">
+                    🛑 Finalizar Carrera
+                </button>
+            </div>
+            <div id="raceTracks" style="position: relative; min-height: 500px; max-width: 1100px; margin: 0 auto;">
+                <!-- Tracks will be generated here -->
+            </div>
+        </div>
+
+        <!-- Podium View -->
+        <div id="podiumView" class="flex-grow-1 d-none flex-column align-items-center justify-content-center text-center p-4">
+            <h1 class="text-warning fw-bold mb-5" style="font-size: 3rem; color: #fbbf24;">🏆 ¡Podio de Campeones! 🏆</h1>
+            <div class="d-flex align-items-end gap-4 justify-content-center" style="max-width: 800px; margin: 0 auto;">
+                <div class="text-center order-2">
+                    <img id="silverAvatar" src="" class="rounded-circle mb-3" style="width: 90px; height: 90px; border: 3px solid #94a3b8; object-fit: cover;">
+                    <div class="text-white p-3 d-flex flex-column align-items-center justify-content-start pt-4" style="height: 140px; width: 130px; background: #64748b; border-radius: 12px 12px 0 0;">
+                        <h2 style="font-size: 2.2rem; margin: 0;">🥈 2º</h2>
+                        <div id="silverStats" class="mt-2 small fw-bold" style="font-size: 0.8rem;"></div>
+                    </div>
+                </div>
+                <div class="text-center order-1">
+                    <img id="goldAvatar" src="" class="rounded-circle mb-3" style="width: 110px; height: 110px; border: 4px solid #fbbf24; object-fit: cover;">
+                    <div class="p-3 d-flex flex-column align-items-center justify-content-start pt-4" style="height: 190px; width: 150px; background: #fbbf24; color: #0f172a; border-radius: 14px 14px 0 0;">
+                        <h1 style="font-size: 2.8rem; margin: 0; font-weight: 900;">🥇 1º</h1>
+                        <div id="goldStats" class="mt-2 small fw-bold" style="font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+                <div class="text-center order-3">
+                    <img id="bronzeAvatar" src="" class="rounded-circle mb-3" style="width: 80px; height: 80px; border: 3px solid #b45309; object-fit: cover;">
+                    <div class="text-white p-3 d-flex flex-column align-items-center justify-content-start pt-3" style="height: 110px; width: 120px; background: #b45309; border-radius: 10px 10px 0 0;">
+                        <h3 style="font-size: 1.8rem; margin: 0;">🥉 3º</h3>
+                        <div id="bronzeStats" class="mt-2 small fw-bold" style="font-size: 0.75rem;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-5 text-start w-100" style="max-width: 800px;">
+                <h4 class="text-white mb-3">Resultados de todos los participantes:</h4>
+                <div class="table-responsive rounded glass-panel">
+                    <table class="table table-dark table-hover mb-0 text-white">
+                        <thead>
+                            <tr>
+                                <th>Posición</th>
+                                <th>Jugador</th>
+                                <th>Velocidad (PPM)</th>
+                                <th>Errores</th>
+                                <th>Progreso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allParticipantsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-4 mb-5">
+                <button class="btn-premium-glow" onclick="location.reload()" style="padding: 14px 36px; font-size: 1.1rem;">
+                    🔄 Nueva Carrera
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/initial_texts.js"></script>
+    <script type="module" src="./js/live_host.js"></script>
+</body>
+</html>

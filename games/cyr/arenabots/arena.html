@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Arena de Bots – Enseña lógica de programación con batallas de robots en el navegador. Diseñado para estudiantes de 1º ESO." />
+  <meta name="theme-color" content="#0a0a0f" />
+  <title>Arena de Bots 🤖 | Programa tu Robot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Inter:wght@300;400;600&family=Caveat:wght@700&family=Kalam:wght@400;700&family=Press+Start+2P&family=VT323&family=Outfit:wght@400;600;800&family=Fira+Code&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../../css/common/reset.css" />
+  <link rel="stylesheet" href="../../../css/common/design-system.css" />
+  <link rel="stylesheet" href="../../../css/common/layout.css" />
+  <link rel="stylesheet" href="../../../css/common/components.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div id="app-content" hidden>
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!--                    CABECERA                        -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <header class="main-header" role="banner">
+    <div class="header-inner">
+      <div class="logo-area">
+        <div class="logo-icon" aria-hidden="true">⚡</div>
+        <div class="logo-text">
+          <span class="logo-title">Arena de Bots</span>
+          <span class="logo-sub">Programa · Combate · Aprende</span>
+        </div>
+      </div>
+      <nav class="header-nav" role="navigation" aria-label="Navegación principal">
+        <button class="nav-btn" id="btn-volver-menu" aria-label="Volver al menú principal" style="display:none; color: var(--neon-cyan); border-color: var(--neon-cyan);">
+          <span class="nav-icon">🏠</span> Menú
+        </button>
+        <button class="nav-btn" id="btn-ayuda" aria-label="Abrir ayuda de comandos">
+          <span class="nav-icon">?</span> Comandos
+        </button>
+        <button class="nav-btn" id="btn-clasificacion" aria-label="Ver clasificación">
+          <span class="nav-icon">🏆</span> Ranking
+        </button>
+        <button class="nav-btn" id="btn-mis-robots" aria-label="Ver mis robots guardados" style="display:none;">
+          <span class="nav-icon">💾</span> Mis Robots
+        </button>
+        <button class="nav-btn" id="btn-login" aria-label="Iniciar Sesión">
+          <span class="nav-icon">👤</span> Entrar
+        </button>
+        <div class="player-badge" id="player-badge" style="display:none;">
+          <span class="player-dot"></span>
+          <span id="player-name-display" style="cursor:pointer; text-decoration:underline;">Piloto</span>
+          <button id="btn-logout" aria-label="Cerrar sesión" style="background:transparent; border:none; color:var(--text-secondary); cursor:pointer; margin-left:8px; font-size:12px;">[Salir]</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!--                  CONTENIDO DE LA ARENA             -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <div id="arena-content" hidden>
+    <main class="main-content" role="main">
+
+    <!-- ─── PANEL IZQUIERDO: CONTROL + EDITOR ─── -->
+    <aside class="panel-left" role="complementary" aria-label="Panel de control y editor de código">
+
+      <!-- PERFIL DEL JUGADOR -->
+      <section class="card panel-player" aria-labelledby="section-jugador">
+        <h2 id="section-jugador" class="card-title">
+          <span class="title-icon">🤖</span> Tu Bot
+        </h2>
+        <div class="player-config">
+          <div class="input-group" style="display: none;">
+            <label for="player-name" class="input-label">Nombre del Piloto</label>
+            <input
+              type="text"
+              id="player-name"
+              class="cyber-input"
+              readonly
+            />
+          </div>
+          <div class="bot-color-row">
+            <span class="color-label">Color del Bot:</span>
+            <div class="color-options" role="group" aria-label="Selección de color del bot">
+              <button class="color-btn active" data-color="cyan"   aria-label="Cian" style="--c:#00f5ff"></button>
+              <button class="color-btn"        data-color="green"  aria-label="Verde" style="--c:#39ff14"></button>
+              <button class="color-btn"        data-color="yellow" aria-label="Amarillo" style="--c:#ffe600"></button>
+              <button class="color-btn"        data-color="purple" aria-label="Morado" style="--c:#bf5fff"></button>
+            </div>
+          </div>
+          <button class="btn-secondary" id="btn-taller" style="margin-top: var(--sp-4); width: 100%; justify-content: center;">
+            🛠️ Taller de Robots
+          </button>
+        </div>
+      </section>
+
+      <!-- EDITOR DE CÓDIGO / COMANDOS -->
+      <section class="card panel-editor" aria-labelledby="section-editor">
+        <h2 id="section-editor" class="card-title">
+          <span class="title-icon">💻</span> Editor de Comandos
+          <span class="badge-new">EDITOR</span>
+        </h2>
+
+        <!-- Modo botones visuales (por defecto) -->
+        <div class="editor-mode-toggle" role="group" aria-label="Modo del editor">
+          <button class="mode-btn active" id="btn-mode-visual" data-mode="visual">🎮 Visual</button>
+          <button class="mode-btn"        id="btn-mode-texto"  data-mode="text">⌨️ Texto</button>
+        </div>
+
+        <!-- PANEL VISUAL: paleta de bloques -->
+        <div class="editor-visual" id="editor-visual" role="region" aria-label="Paleta de comandos visuales">
+          <p class="editor-hint">Haz clic en los comandos para añadirlos a tu script:</p>
+          <div class="cmd-palette" role="list">
+            <button class="cmd-block cmd-move"  data-cmd="avanzar()"      role="listitem" aria-label="Añadir comando avanzar">
+              <span class="cmd-icon">⬆️</span><span class="cmd-text">avanzar()</span> <span class="cmd-cost">(-10)</span>
+            </button>
+            <button class="cmd-block cmd-move"  data-cmd="retroceder()"   role="listitem" aria-label="Añadir comando retroceder">
+              <span class="cmd-icon">⬇️</span><span class="cmd-text">retroceder()</span> <span class="cmd-cost">(-10)</span>
+            </button>
+            <button class="cmd-block cmd-turn"  data-cmd="girarDerecha()" role="listitem" aria-label="Añadir comando girar derecha">
+              <span class="cmd-icon">↪️</span><span class="cmd-text">girarDerecha()</span> <span class="cmd-cost">(-5)</span>
+            </button>
+            <button class="cmd-block cmd-turn"  data-cmd="girarIzquierda()" role="listitem" aria-label="Añadir comando girar izquierda">
+              <span class="cmd-icon">↩️</span><span class="cmd-text">girarIzquierda()</span> <span class="cmd-cost">(-5)</span>
+            </button>
+            <button class="cmd-block cmd-shoot" data-cmd="disparar()"     role="listitem" aria-label="Añadir comando disparar">
+              <span class="cmd-icon">🔫</span><span class="cmd-text">disparar()</span> <span class="cmd-cost">(-30)</span>
+            </button>
+            <button class="cmd-block cmd-scan"  data-cmd="escanear()"     role="listitem" aria-label="Añadir comando escanear">
+              <span class="cmd-icon">📡</span><span class="cmd-text">escanear()</span> <span class="cmd-cost">(-5)</span>
+            </button>
+            <button class="cmd-block cmd-shield" data-cmd="escudo()"      role="listitem" aria-label="Añadir comando activar escudo">
+              <span class="cmd-icon">🛡️</span><span class="cmd-text">escudo()</span> <span class="cmd-cost">(-40)</span>
+            </button>
+            <button class="cmd-block cmd-wait"   data-cmd="esperar()"     role="listitem" aria-label="Añadir comando esperar">
+              <span class="cmd-icon">🔋</span><span class="cmd-text">esperar()</span> <span class="cmd-cost">(+40)</span>
+            </button>
+            <button class="cmd-block cmd-repeat" data-cmd="repetir(3){"   role="listitem" aria-label="Añadir bucle repetir">
+              <span class="cmd-icon">🔄</span><span class="cmd-text">repetir(3){</span>
+            </button>
+            <button class="cmd-block cmd-repeat" data-cmd="}"             role="listitem" aria-label="Cerrar bloque repetir">
+              <span class="cmd-icon">⤵️</span><span class="cmd-text">}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PANEL TEXTO: textarea -->
+        <div class="editor-text hidden" id="editor-text">
+          <p class="editor-hint">Escribe un comando por línea:</p>
+        </div>
+
+        <!-- Área de script (compartida) -->
+        <div class="script-area-wrapper">
+          <div class="script-line-numbers" id="line-numbers" aria-hidden="true"></div>
+          <textarea
+            id="code-editor"
+            class="code-editor"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            placeholder="// Tu script aparece aquí&#10;// Haz clic en los comandos de arriba"
+            aria-label="Editor de script del bot"
+            rows="10"
+          ></textarea>
+        </div>
+
+        <div class="editor-controls">
+          <button class="btn-secondary" id="btn-limpiar" aria-label="Limpiar el script">
+            🗑️ Limpiar
+          </button>
+          <button class="btn-secondary" id="btn-guardar" aria-label="Guardar script">
+            💾 Guardar
+          </button>
+        </div>
+
+        <!-- Validación -->
+        <div class="validation-area" id="validation-area" role="status" aria-live="polite"></div>
+      </section>
+
+      <!-- BOTÓN PRINCIPAL DE ACCIÓN -->
+      <div class="action-area" style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn-arena" id="btn-arena-entrenar" style="background: var(--neon-cyan); color: var(--bg-dark);" aria-label="Entrenar contra la IA">
+          <span class="btn-arena-icon">🤖</span>
+          <span class="btn-arena-text">Entrenar</span>
+          <span class="btn-arena-sub">Batalla vs IA</span>
+        </button>
+        <button class="btn-arena" id="btn-arena-competir" aria-label="Competir por el ranking">
+          <span class="btn-arena-icon">🏆</span>
+          <span class="btn-arena-text">Competir</span>
+          <span class="btn-arena-sub">Partida Clasificatoria</span>
+        </button>
+        <button class="btn-reset hidden" id="btn-reset" aria-label="Reiniciar partida">
+          🔄 Nueva Partida
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ─── PANEL DERECHO: ARENA + RANKING ─── -->
+    <section class="panel-right" aria-label="Arena de combate y clasificación">
+
+      <!-- ARENA (CANVAS) -->
+      <div class="arena-wrapper" role="region" aria-label="Arena de combate visual">
+        <div class="arena-header">
+          <div class="combatant player-side">
+            <span class="combatant-label">TU BOT</span>
+            <div class="hp-bar-container" aria-label="Vida de tu bot">
+              <div class="hp-bar hp-player" id="hp-player" style="width:100%"></div>
+            </div>
+            <div class="energy-bar-container" aria-label="Energía de tu bot">
+              <div class="energy-bar energy-player" id="energy-player" style="width:100%"></div>
+            </div>
+            <span class="hp-text" id="hp-text-player">100 HP</span>
+          </div>
+          <div class="vs-badge">VS</div>
+          <div class="combatant enemy-side">
+            <span class="combatant-label">CPU BOT</span>
+            <div class="hp-bar-container" aria-label="Vida del bot CPU">
+              <div class="hp-bar hp-enemy" id="hp-enemy" style="width:100%"></div>
+            </div>
+            <div class="energy-bar-container" aria-label="Energía del bot CPU">
+              <div class="energy-bar energy-enemy" id="energy-enemy" style="width:100%"></div>
+            </div>
+            <span class="hp-text" id="hp-text-enemy">100 HP</span>
+          </div>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="arena-canvas" aria-label="Arena de combate" role="img"></canvas>
+          <div class="canvas-overlay" id="canvas-overlay">
+            <div class="overlay-content">
+              <div class="overlay-icon">🤖</div>
+              <h3 class="overlay-title">¡Prepara tu Bot!</h3>
+              <p class="overlay-desc">Escribe tus comandos en el panel izquierdo y pulsa ¡A la Arena! para comenzar la batalla.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOG DE EVENTOS -->
+        <div class="battle-log-wrapper" role="region" aria-label="Registro de batalla">
+          <div class="battle-log-header">
+            <span>📋 LOG DE BATALLA</span>
+            <span class="log-live">● EN VIVO</span>
+          </div>
+          <div class="battle-log" id="battle-log" role="log" aria-live="polite" aria-label="Registro de eventos de batalla"></div>
+        </div>
+      </div>
+
+      <!-- TABLA DE CLASIFICACIÓN -->
+      <div class="card panel-ranking" role="region" aria-labelledby="section-ranking">
+        <h2 id="section-ranking" class="card-title">
+          <span class="title-icon">🏆</span> Clasificación
+        </h2>
+        <table class="ranking-table" role="table" aria-label="Tabla de clasificación de jugadores">
+          <thead>
+            <tr role="row">
+              <th scope="col" role="columnheader">#</th>
+              <th scope="col" role="columnheader">Piloto</th>
+              <th scope="col" role="columnheader">Victorias</th>
+              <th scope="col" role="columnheader">Partidas</th>
+              <th scope="col" role="columnheader">% Victoria</th>
+            </tr>
+          </thead>
+          <tbody id="ranking-tbody" role="rowgroup">
+            <tr role="row">
+              <td colspan="5" class="ranking-empty">Aún no hay datos. ¡Juega tu primera partida!</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+    </main>
+  </div> <!-- Fin #arena-content -->
+  </div> <!-- Fin #app-content -->
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!--                     PIE DE PÁGINA                  -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <footer class="main-footer" role="contentinfo">
+    <p>Arena de Bots &copy; 2026 · Diseñado para aprender programación · 1º ESO</p>
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!--                  MODALES                           -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <!-- =========================================================
+       MODAL: CUADRO DE ELIMINATORIAS (BRACKET)
+  ========================================================== -->
+  <div class="modal-overlay hidden" id="modal-bracket">
+    <div class="modal-content" style="max-width: 900px; width: 95%;">
+      <button class="modal-close" id="modal-bracket-cerrar">×</button>
+      <h2 class="neon-text" style="color: var(--neon-cyan); border-bottom: 1px solid var(--neon-cyan); padding-bottom: 10px;">🏆 Cuadro del Torneo</h2>
+      
+      <div id="bracket-container" style="display: flex; gap: 20px; overflow-x: auto; padding: 20px 0; justify-content: center; align-items: center; min-height: 300px;">
+        <!-- El JS pintará el árbol aquí -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL: GESTIÓN DE CLASES Y TORNEOS (PROFESOR)
+  ========================================================== -->
+  <div class="modal-overlay hidden" id="modal-clases">
+    <div class="modal-content" style="max-width: 800px;">
+      <button class="modal-close" id="modal-clases-cerrar">×</button>
+      <h2 class="neon-text" style="color: var(--neon-purple); border-bottom: 1px solid var(--neon-purple); padding-bottom: 10px;">🎓 Gestión del Aula y Torneos</h2>
+      
+      <div style="display: flex; gap: 20px; margin-top: 20px;">
+        <!-- Panel Izquierdo: Clases -->
+        <div style="flex: 1; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 20px;">
+          <h3>Mis Clases</h3>
+          <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 15px;">Importa clases desde Google Classroom para organizar torneos privados.</p>
+          <button id="btn-sync-classroom" class="btn-secondary" style="width: 100%; justify-content: center;">🔄 Sincronizar Classroom</button>
+          <div id="lista-clases" class="saved-bots-list" style="margin-top: 15px; max-height: 200px; overflow-y: auto;">
+            <!-- Se rellena por JS -->
+          </div>
+        </div>
+        
+        <!-- Panel Derecho: Torneos -->
+        <div style="flex: 1; padding-left: 10px;">
+          <h3>Torneos Activos</h3>
+          <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 15px;">Selecciona una clase a la izquierda para ver o crear un torneo.</p>
+          <div id="panel-torneo-detalle" style="display: none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+            <h4 id="torneo-clase-nombre" style="margin-top: 0; color: var(--neon-cyan);">Clase seleccionada</h4>
+            <p id="torneo-estado">Estado: Sin torneo activo</p>
+            
+            <div id="torneo-acciones" style="margin-top: 15px; display: flex; gap: 10px; flex-direction: column;">
+              <button id="btn-nuevo-torneo" class="btn-primary" style="justify-content: center;">🏆 Abrir Inscripciones</button>
+              <button id="btn-empezar-torneo" class="btn-danger" style="justify-content: center; display: none;">⚔️ Cerrar Inscripciones y Empezar</button>
+              <button id="btn-ver-bracket" class="btn-secondary" style="justify-content: center; display: none;">📊 Ver Cuadro de Eliminatorias</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Resultado de batalla -->
+  <div class="modal-overlay" id="modal-resultado" role="dialog" aria-modal="true" aria-labelledby="modal-resultado-titulo" hidden>
+    <div class="modal-card modal-resultado-card">
+      <div class="modal-fireworks" id="modal-fireworks" aria-hidden="true"></div>
+      <div class="modal-result-icon" id="modal-result-icon">🏆</div>
+      <h2 class="modal-title" id="modal-resultado-titulo">¡VICTORIA!</h2>
+      <p class="modal-subtitle" id="modal-result-subtitle">Tu bot ha ganado la batalla</p>
+      <div class="modal-stats" id="modal-stats"></div>
+      <div class="modal-actions">
+        <button class="btn-arena modal-btn-play" id="modal-btn-jugar-de-nuevo">
+          ⚡ ¡Jugar de Nuevo!
+        </button>
+        <button class="btn-secondary modal-btn-close" id="modal-btn-cerrar-resultado">
+          Ver Resultados
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ayuda de comandos -->
+  <div class="modal-overlay" id="modal-ayuda" role="dialog" aria-modal="true" aria-labelledby="modal-ayuda-titulo" hidden>
+    <div class="modal-card modal-ayuda-card">
+      <button class="modal-close-btn" id="modal-ayuda-cerrar" aria-label="Cerrar ayuda">✕</button>
+      <h2 class="modal-title" id="modal-ayuda-titulo">📖 Guía de Comandos</h2>
+      <div class="help-content">
+        <div class="help-section">
+          <h3 class="help-cat">🚗 Movimiento</h3>
+          <div class="help-grid">
+            <div class="help-item"><code>avanzar()</code><span>Avanza 40px (-10 🔋)</span></div>
+            <div class="help-item"><code>retroceder()</code><span>Retrocede 40px (-10 🔋)</span></div>
+            <div class="help-item"><code>girarDerecha()</code><span>Gira 45° a la derecha (-5 🔋)</span></div>
+            <div class="help-item"><code>girarIzquierda()</code><span>Gira 45° a la izquierda (-5 🔋)</span></div>
+          </div>
+        </div>
+        <div class="help-section">
+          <h3 class="help-cat">⚔️ Combate y Energía</h3>
+          <div class="help-grid">
+            <div class="help-item"><code>disparar()</code><span>Láser: 25 daño (-30 🔋)</span></div>
+            <div class="help-item"><code>escanear()</code><span>Apunta automático (-5 🔋)</span></div>
+            <div class="help-item"><code>escudo()</code><span>Bloquea 50% daño (-40 🔋)</span></div>
+            <div class="help-item"><code>esperar()</code><span>Pasa turno y recupera (+40 🔋)</span></div>
+          </div>
+        </div>
+        <div class="help-section">
+          <h3 class="help-cat">🔄 Control de Flujo</h3>
+          <div class="help-grid">
+            <div class="help-item"><code>repetir(N){</code><span>Repite el bloque N veces</span></div>
+            <div class="help-item"><code>}</code><span>Cierra el bloque repetir</span></div>
+          </div>
+        </div>
+        <div class="help-example">
+          <h3 class="help-cat">💡 Ejemplo de Script</h3>
+          <pre class="help-code">avanzar()
+girarDerecha()
+escanear()
+repetir(3){
+  disparar()
+  girarIzquierda()
+}</pre>
+        </div>
+      </div>
+      <button class="btn-arena" id="modal-ayuda-ok" style="width:100%;margin-top:1rem">¡Entendido!</button>
+    </div>
+  </div>
+
+  <!-- Modal: Clasificación completa -->
+  <div class="modal-overlay" id="modal-clasificacion" role="dialog" aria-modal="true" aria-labelledby="modal-clasificacion-titulo" hidden>
+    <div class="modal-card modal-clasificacion-card">
+      <button class="modal-close-btn" id="modal-clasificacion-cerrar" aria-label="Cerrar clasificación">✕</button>
+      <h2 class="modal-title" id="modal-clasificacion-titulo">🏆 Clasificación Global</h2>
+      <table class="ranking-table full-ranking" role="table" aria-label="Tabla de clasificación global">
+        <thead>
+          <tr><th>#</th><th>Piloto</th><th>Victorias</th><th>Partidas</th><th>% Éxito</th></tr>
+        </thead>
+        <tbody id="full-ranking-tbody"></tbody>
+      </table>
+      <button class="btn-secondary" id="modal-clasificacion-ok" style="margin-top:1rem;width:100%">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!--          NOTIFICACIONES TOAST                      -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <div class="toast-container" id="toast-container" role="region" aria-live="assertive" aria-label="Notificaciones"></div>
+
+  <!-- Modal Taller de Robots -->
+  <div class="modal-overlay" id="modal-taller" hidden>
+    <div class="modal-card modal-taller-card">
+      <button class="modal-close-btn" id="modal-taller-cerrar" aria-label="Cerrar">&times;</button>
+      <h2 class="modal-title">🛠️ Taller de Robots</h2>
+      <div class="taller-content">
+        <div class="taller-preview">
+          <img id="taller-preview-img" src="" alt="Vista previa del Avatar" />
+        </div>
+        <div class="taller-controls">
+          <div class="taller-group">
+            <label>Color Base</label>
+            <select id="taller-basecolor">
+              <option value="">Automático</option>
+              <option value="00f5ff">Cian</option>
+              <option value="39ff14">Verde</option>
+              <option value="ffe600">Amarillo</option>
+              <option value="bf5fff">Morado</option>
+              <option value="ff00aa">Magenta</option>
+              <option value="ff4444">Rojo</option>
+              <option value="ffffff">Blanco</option>
+              <option value="333333">Oscuro</option>
+            </select>
+          </div>
+          <div class="taller-group">
+            <label>Forma Base</label>
+            <select id="taller-face">
+              <option value="round01">Redonda 1</option>
+              <option value="round02">Redonda 2</option>
+              <option value="square01">Cuadrada 1</option>
+              <option value="square02">Cuadrada 2</option>
+              <option value="square03">Cuadrada 3</option>
+              <option value="square04">Cuadrada 4</option>
+            </select>
+          </div>
+          <div class="taller-group">
+            <label>Ojos</label>
+            <select id="taller-eyes">
+              <option value="bulging">Saltones</option>
+              <option value="dizzy">Mareados</option>
+              <option value="eva">Eva</option>
+              <option value="frame1">Visor 1</option>
+              <option value="frame2">Visor 2</option>
+              <option value="glow">Brillantes</option>
+              <option value="hal">HAL 9000</option>
+              <option value="happy">Felices</option>
+              <option value="hearts">Corazones</option>
+              <option value="robocop">Robocop</option>
+              <option value="round">Redondos</option>
+              <option value="sensor">Sensor</option>
+            </select>
+          </div>
+          <div class="taller-group">
+            <label>Boca</label>
+            <select id="taller-mouth">
+              <option value="bite">Dientes</option>
+              <option value="diagram">Diagrama</option>
+              <option value="grill01">Rejilla 1</option>
+              <option value="grill02">Rejilla 2</option>
+              <option value="grill03">Rejilla 3</option>
+              <option value="smile01">Sonrisa 1</option>
+              <option value="smile02">Sonrisa 2</option>
+              <option value="square01">Cuadrada</option>
+            </select>
+          </div>
+          <div class="taller-group">
+            <label>Cabeza</label>
+            <select id="taller-top">
+              <option value="antenna">Antena</option>
+              <option value="antennaCrooked">Antena Torcida</option>
+              <option value="bulb01">Bombilla</option>
+              <option value="glowingBulb01">Bombilla Brillante</option>
+              <option value="horns">Cuernos</option>
+              <option value="lights">Luces</option>
+              <option value="pyramid">Pirámide</option>
+              <option value="radar">Radar</option>
+            </select>
+          </div>
+          <div class="taller-group">
+            <label>Orejas / Laterales</label>
+            <select id="taller-sides">
+              <option value="antenna01">Antenas 1</option>
+              <option value="antenna02">Antenas 2</option>
+              <option value="cables01">Cables 1</option>
+              <option value="cables02">Cables 2</option>
+              <option value="round">Redondos</option>
+              <option value="square">Cuadrados</option>
+            </select>
+          </div>
+          <div class="taller-group">
+            <label>Textura</label>
+            <select id="taller-texture">
+              <option value="camo01">Camuflaje 1</option>
+              <option value="camo02">Camuflaje 2</option>
+              <option value="circuits">Circuitos</option>
+              <option value="dirty01">Sucio 1</option>
+              <option value="dirty02">Sucio 2</option>
+              <option value="dots">Puntos</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions" style="flex-direction: row; gap: 10px; margin-top: var(--sp-4);">
+        <button class="btn-secondary" id="btn-taller-aleatorio" style="flex:1; justify-content: center;">🎲 Aleatorio</button>
+        <button class="btn-arena" id="btn-taller-guardar" style="flex:2; padding: var(--sp-3);">Guardar Avatar</button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Modal Mis Robots -->
+  <div class="modal-overlay" id="modal-robots" hidden>
+    <div class="modal-card" style="max-width: 700px;">
+      <button class="modal-close-btn" id="modal-robots-cerrar" aria-label="Cerrar">&times;</button>
+      <h2 class="modal-title">💾 Mis Robots Guardados</h2>
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+        <input type="text" id="save-bot-name" class="cyber-input" placeholder="Nombre para guardar este robot..." style="flex:1;" />
+        <button class="btn-secondary" id="btn-save-bot" style="padding: 12px 20px; font-weight: bold; border-color: var(--neon-cyan); color: var(--neon-cyan);">Guardar Robot Actual</button>
+      </div>
+      
+      <div id="saved-bots-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-height: 400px; overflow-y: auto;">
+        <!-- Aquí se inyectarán los robots guardados -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL: PERFIL DE USUARIO
+  ========================================================== -->
+  <div class="modal-overlay" id="modal-perfil" hidden>
+    <div class="modal-card" style="max-width: 400px;">
+      <button class="modal-close-btn" id="modal-perfil-cerrar" aria-label="Cerrar">&times;</button>
+      <h2 class="modal-title">👤 Mi Perfil</h2>
+      
+      <div style="margin-top: 20px;">
+        <div class="input-group">
+          <label class="input-label">Nombre (Google)</label>
+          <input type="text" id="perfil-nombre" class="cyber-input" readonly style="color: var(--text-secondary);" />
+        </div>
+        <div class="input-group" style="margin-top: 15px;">
+          <label class="input-label">Apellidos (o iniciales)</label>
+          <input type="text" id="perfil-apellidos" class="cyber-input" placeholder="Escribe tus apellidos..." />
+          <small style="color: var(--text-secondary); font-size: 0.8em; display: block; margin-top: 5px;">Mostrado en la clasificación. Puedes poner solo las iniciales por privacidad.</small>
+        </div>
+        
+        <div class="input-group" style="margin-top: 25px; border-top: 1px solid var(--border-subtle); padding-top: 15px;">
+          <label class="input-label" style="color: var(--neon-cyan); font-weight: bold;">Tema de la Interfaz</label>
+          <select id="app-theme-selector" class="cyber-input">
+            <option value="neon">Cyber-Neón</option>
+            <option value="sketchbook" selected>Cuaderno Escolar (Por defecto)</option>
+            <option value="arcade">Arcade 16-Bits (Retro)</option>
+            <option value="glass">Cristal Moderno (Glassmorphism)</option>
+          </select>
+        </div>
+
+        <button id="btn-guardar-perfil" class="btn-primary" style="width: 100%; margin-top: 25px; justify-content: center;">💾 Guardar Perfil</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!--               MÓDULOS JS (ES6)                     -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

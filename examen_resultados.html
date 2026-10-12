@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyR ClassHub — Resultados del Examen</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+  <link rel="stylesheet" href="css/common/design-system.css">
+  <link rel="stylesheet" href="css/common/reset.css">
+  <link rel="stylesheet" href="css/common/layout.css">
+  <link rel="stylesheet" href="css/common/components.css">
+  <style>
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:var(--space-4,16px); margin-bottom:var(--space-4,16px); }
+    .stat-card--success { border-color:var(--success,#27ae60); background:rgba(39,174,96,0.05); }
+    .stat-card--error { border-color:var(--error,#e74c3c); background:rgba(231,76,60,0.05); }
+    .stat-card--warning { border-color:var(--warning,#f39c12); background:rgba(243,156,18,0.05); }
+    .stat-value { font-size:2rem; font-weight:bold; }
+    .stat-label { font-size:var(--text-sm,0.875rem); color:var(--text-muted,#888); }
+    @media print { .no-print { display:none!important; } .page-break { page-break-after:always; } .print-q { margin-bottom:20px; } .print-opt { margin-left:20px; margin-bottom:6px; } .print-header { margin-bottom:20px; } }
+  </style>
+</head>
+<body class="page">
+  <div id="app-header"></div>
+  <main class="page-content">
+    <div class="container">
+      <header class="dashboard-header animate-fade-up">
+        <a href="dashboard_teacher.html" class="back-link" id="back-link">← Volver</a>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:var(--space-2,8px); flex-wrap:wrap; gap:var(--space-3,12px);">
+          <div>
+            <h1 id="ex-title" style="margin:0;">Cargando...</h1>
+            <p class="dashboard-subtitle" id="ex-meta"></p>
+          </div>
+          <div class="no-print" style="display:flex; gap:var(--space-2,8px); flex-wrap:wrap;">
+            <button class="btn btn-ghost" id="btn-print">🖨️ Imprimir</button>
+            <button class="btn btn-ghost" id="btn-toggle-state" style="display:none;">Activar</button>
+            <button class="btn btn-primary" id="btn-toggle-results">📢 Publicar Notas</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Tabs -->
+      <div class="class-tabs animate-fade-up delay-1 no-print">
+        <button class="tab-btn tab-btn--active" data-tab="entregas">📝 Entregas</button>
+        <button class="tab-btn" data-tab="analisis">📊 Análisis Curricular</button>
+      </div>
+
+      <!-- Tab: Entregas -->
+      <section id="tab-entregas" class="tab-content animate-fade-up delay-2">
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th style="text-align:left;">Alumno</th>
+                <th>Fecha Entrega</th>
+                <th>Aciertos / Fallos / Blancos</th>
+                <th>Nota</th>
+                <th class="no-print">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="resultados-list">
+              <tr><td colspan="5" style="text-align:center; padding:var(--space-6,24px); color:var(--text-muted,#888);">Cargando entregas...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Tab: Análisis -->
+      <section id="tab-analisis" class="tab-content" style="display:none;">
+        <div id="analysis-container" class="animate-fade-up delay-2">
+          <div style="text-align:center; padding:var(--space-6,24px); color:var(--text-muted,#888);">No hay datos suficientes todavía.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Modal revisión alumno -->
+  <div id="modal-review" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-box" style="max-width:750px; width:95%;">
+      <div class="modal-header">
+        <h3 id="review-student-name"></h3>
+        <button class="modal-close" id="btn-close-review">✕</button>
+      </div>
+      <div class="modal-body" id="review-student-body" style="max-height:65vh; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- Modal detalle pregunta -->
+  <div id="modal-qdetail" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-box" style="max-width:600px; width:95%;">
+      <div class="modal-header">
+        <h3>Detalle de la Pregunta</h3>
+        <button class="modal-close" id="btn-close-qdetail">✕</button>
+      </div>
+      <div class="modal-body" id="qdetail-body"></div>
+    </div>
+  </div>
+
+  <!-- Área de impresión -->
+  <div id="print-area" style="display:none;"></div>
+
+  <div id="toast-container" aria-live="polite"></div>
+  <script type="module" src="js/examen_resultados.js"></script>
+</body>
+</html>

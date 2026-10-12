@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 140">
+  <!-- USB Type-A Plug -->
+  <!-- Metal connector -->
+  <rect x="22" y="0" width="16" height="15" fill="#e0e0e0" stroke="#777" stroke-width="1"/>
+  <!-- Two square holes -->
+  <rect x="25" y="4" width="3" height="3" fill="#333" />
+  <rect x="32" y="4" width="3" height="3" fill="#333" />
+  <!-- Plastic grip -->
+  <rect x="20" y="15" width="20" height="15" fill="#222" rx="2" />
+  <rect x="25" y="18" width="10" height="8" fill="#444" />
+  
+  <!-- Cable -->
+  <path d="M 30 30 Q 20 50 30 70" stroke="#222" stroke-width="3" fill="none" />
+  
+  <!-- Mouse Body -->
+  <rect x="15" y="70" width="30" height="50" fill="#222" rx="15" stroke="#555" stroke-width="2"/>
+  <path d="M 15 95 C 30 95, 30 95, 45 95" stroke="#111" stroke-width="2"/>
+  <path d="M 30 70 L 30 95" stroke="#111" stroke-width="2"/>
+  <!-- Scroll wheel -->
+  <circle cx="30" cy="85" r="4" fill="#444"/>
+</svg>

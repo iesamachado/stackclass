@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetDefender - Defensa Cibernética</title>
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="game-container">
+    <div class="header">
+      <div class="score">Puntuación: <span id="score">0</span></div>
+      <div class="lives">Salud Red: <span id="lives">♥♥♥</span></div>
+    </div>
+    
+    <div class="game-area" id="game-area">
+      <!-- Threats will spawn here -->
+      <div class="server-base">SERVIDOR CENTRAL</div>
+    </div>
+    
+    <div class="controls">
+      <button class="def-btn btn-firewall" data-def="firewall">🧱<br>Firewall<br><small>(DDoS/Hack)</small></button>
+      <button class="def-btn btn-antivirus" data-def="antivirus">🦠<br>Antivirus<br><small>(Malware/.exe)</small></button>
+      <button class="def-btn btn-spam" data-def="spam">📧<br>Filtro Spam<br><small>(Phishing/Correos)</small></button>
+    </div>
+    
+    <div id="game-over" class="overlay" style="display:none;">
+      <h1 id="go-title">¡Red Comprometida!</h1>
+      <p>Has defendido la red de <span id="go-score">0</span> amenazas.</p>
+      <button id="btn-restart" class="btn btn-primary">Volver al Panel</button>
+    </div>
+  </div>
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

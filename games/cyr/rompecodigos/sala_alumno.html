@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumno - RompeCódigos</title>
+    <!-- Common styles -->
+    <link rel="stylesheet" href="../../../css/common/reset.css">
+    <link rel="stylesheet" href="../../../css/common/design-system.css">
+    <link rel="stylesheet" href="../../../css/common/layout.css">
+    <link rel="stylesheet" href="../../../css/common/components.css">
+    <!-- Game specific styles -->
+    <link rel="stylesheet" href="css/rompecodigos-base.css">
+    <link rel="stylesheet" href="css/alumno.css">
+    <link rel="stylesheet" href="css/juego.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div id="app-header"></div>
+    <main class="main-content">
+        <!-- LOBBY VIEW -->
+        <div id="view-lobby" class="container-sm page-enter">
+            <div id="step-join" class="step-card">
+                <div class="step-header">
+                    <div class="step-icon">🎮</div>
+                    <h1>Unirse a <span class="text-secondary">Misión</span></h1>
+                    <p class="text-muted">Introduce el código de sala que te ha dado tu profesor</p>
+                </div>
+                <div class="code-input-group">
+                    <input type="text" id="input-codigo" class="code-input" placeholder="CÓDIGO DE 6 LETRAS" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false">
+                    <button id="btn-buscar-sala" class="btn btn-primary btn-lg">Buscar</button>
+                </div>
+                <div id="sala-encontrada" class="sala-info-card hidden">
+                    <div class="sala-info-header">Sala Encontrada</div>
+                    <div class="sala-info-grid">
+                        <div class="sala-info-item">
+                            <span class="info-label">PROFESOR</span>
+                            <span class="info-val" id="sala-profesor">Cargando...</span>
+                        </div>
+                        <div class="sala-info-item">
+                            <span class="info-label">DIFICULTAD</span>
+                            <span class="info-val badge badge-accent" id="sala-dificultad">Cargando...</span>
+                        </div>
+                        <div class="sala-info-item">
+                            <span class="info-label">EQUIPOS</span>
+                            <span class="info-val" id="sala-equipos">0</span>
+                        </div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="form-group">
+                        <label class="form-label" style="text-align:left;">Nombre de tu equipo</label>
+                        <input type="text" id="input-equipo" class="form-input" placeholder="Ej: Los Hackers" maxlength="20">
+                    </div>
+                    <button id="btn-unirse" class="btn btn-accent btn-lg w-full" style="margin-top: 1rem;">
+                        🚀 Unirme a la Misión
+                    </button>
+                </div>
+            </div>
+            
+            <div id="step-waiting" class="step-card hidden">
+                <div class="step-header">
+                    <div class="step-icon pulse-animation">⏳</div>
+                    <h1>Misión <span class="text-accent">Asignada</span></h1>
+                    <p class="text-muted">Esperando a que el profesor inicie la sesión...</p>
+                </div>
+                <div class="team-chip-large">
+                    <span class="text-muted" style="font-size:0.85rem">TU EQUIPO</span>
+                    <div class="team-name" id="waiting-equipo-name">---</div>
+                    <span class="team-code">Sala: <span id="waiting-codigo">---</span></span>
+                </div>
+                <div class="equipos-waiting-section">
+                    <div class="section-title">Equipos en la sala</div>
+                    <div id="equipos-waiting-list" class="equipos-waiting-list">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        </div>
+    </main>
+    <div id="toast-container"></div>
+    <script src="js/cifrado.js"></script>
+    <script type="module" src="js/sala_alumno.js"></script>
+</body>
+</html>

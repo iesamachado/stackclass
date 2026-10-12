@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ClassHub — Gestión de clase. Administra alumnos, habilita juegos y sincroniza con Google Classroom.">
+  <title>ClassHub — Gestión de Clase</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+
+  <link rel="stylesheet" href="css/common/design-system.css">
+  <link rel="stylesheet" href="css/common/reset.css">
+  <link rel="stylesheet" href="css/common/layout.css">
+  <link rel="stylesheet" href="css/common/components.css">
+  <link rel="stylesheet" href="css/class_detail.css">
+</head>
+<body class="page">
+
+  <div id="app-header"></div>
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- Cabecera -->
+      <header class="dashboard-header animate-fade-up">
+        <a href="dashboard_teacher.html" class="back-link">← Volver a mis clases</a>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:var(--space-2);">
+          <div>
+            <h2 id="class-name" style="margin:0; font-size:1.8rem;">Cargando...</h2>
+            <div style="display:flex; gap:var(--space-4); margin-top:var(--space-2); color:var(--text-muted); font-size:0.9rem;">
+              <span id="class-pin" class="badge badge--primary" style="cursor:pointer;" title="Copiar PIN">📋 ---</span>
+              <span id="classroom-link-meta" style="display:none; align-items:center; gap:var(--space-2);">
+                <span class="badge badge--accent">🔗 Vinculada a Classroom</span>
+              </span>
+              <a href="evaluation.html" class="btn btn-ghost btn--sm" style="display:flex; align-items:center; gap:6px; text-decoration:none;">
+                📊 <span>Cómo evaluar (Criterios y Tareas)</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="class-tabs animate-fade-up delay-1">
+        <button class="tab-btn tab-btn--active" data-tab="games">📚 Temario y Juegos</button>
+        <button class="tab-btn" data-tab="students">👨‍🎓 Alumnos</button>
+        <button class="tab-btn" data-tab="assignments">☁️ Classroom</button>
+        <button class="tab-btn" data-tab="offline_tasks">📝 Tareas Offline</button>
+        <button class="tab-btn" data-tab="results">📊 Resultados</button>
+        <button class="tab-btn" data-tab="guilds">🛡️ Gremios</button>
+        <button class="tab-btn" data-tab="exams">📝 Exámenes</button>
+      </div>
+
+      <!-- TAB: CONTENIDOS (habilitación) -->
+      <section id="tab-games" class="tab-content tab-content--active animate-fade-up delay-2">
+        <div class="dashboard-grid dashboard-grid--2" style="grid-template-columns: 1fr 1fr; align-items: start;">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Juegos habilitados</h2>
+            </div>
+            <p class="form-hint" style="margin-bottom:var(--space-5)">
+              Activa o desactiva cada juego. Solo los alumnos de esta clase verán los juegos activos.
+            </p>
+            <div class="games-toggle-list" id="games-toggle-list">
+              <!-- Renderizado por JS -->
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Temario y Teoría</h2>
+            </div>
+            <p class="form-hint" style="margin-bottom:var(--space-5)">
+              Selecciona qué bloques temáticos pueden visualizar los alumnos de esta clase.
+            </p>
+            <div class="games-toggle-list" id="topics-toggle-list">
+              <!-- Renderizado por JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: ALUMNOS -->
+      <section id="tab-students" class="tab-content" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Alumnos de la clase</h2>
+            <div class="card-header-actions" style="display:flex; gap:var(--space-2); flex-wrap:wrap;">
+              <button class="btn btn-ghost btn--sm" id="btn-sync-students">
+                🔄 Sincronizar Classroom
+              </button>
+              <button class="btn btn-primary btn--sm" id="btn-add-students">
+                + Añadir alumnos
+              </button>
+            </div>
+          </div>
+
+          <div id="gamification-podium" style="margin-bottom:var(--space-5)"></div>
+
+          <details>
+            <summary style="cursor:pointer; font-weight:bold; font-size:1.1rem; padding: 10px 15px; background: var(--bg-body); border-radius: 8px; user-select: none;">
+              👀 Mostrar lista completa de alumnos
+            </summary>
+            <div style="margin-top: 15px;">
+              <div id="students-list">
+                <div class="skeleton" style="height:60px;margin-bottom:8px"></div>
+                <div class="skeleton" style="height:60px;margin-bottom:8px"></div>
+                <div class="skeleton" style="height:60px"></div>
+              </div>
+
+              <p class="empty-state" id="no-students" style="display:none">
+                No hay alumnos en esta clase todavía. Usa el botón "+ Añadir alumnos", comparte el PIN o sincroniza desde Classroom.
+              </p>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- TAB: TAREAS -->
+      <section id="tab-assignments" class="tab-content" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Tareas de Classroom</h2>
+            <button class="btn btn-primary btn--sm" id="btn-new-assignment">
+              + Nueva tarea
+            </button>
+          </div>
+          <p class="form-hint" style="margin-bottom:var(--space-5)">
+            Crea tareas en Google Classroom vinculadas a cada juego. Las notas se sincronizan automáticamente.
+          </p>
+          <div id="assignments-list">
+            <p class="empty-state" id="no-assignments">Aún no hay tareas creadas para esta clase.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: TAREAS OFFLINE -->
+      <section id="tab-offline_tasks" class="tab-content" style="display:none">
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--space-3);">
+            <div>
+              <h2 class="card-title">Tareas y Rúbricas Offline</h2>
+              <p class="section-desc">Gestiona las tareas offline de clase, evalúa con rúbricas y exporta las notas.</p>
+            </div>
+            <button class="btn btn-outline btn--sm" id="btn-export-seneca" style="display:flex; align-items:center; gap:5px;">
+              <span>⬇️</span> Exportar a Séneca (CSV)
+            </button>
+          </div>
+          
+          <div id="offline-tasks-container" style="margin-top:var(--space-4);">
+            <div class="skeleton" style="height:100px; margin-bottom:10px;"></div>
+            <div class="skeleton" style="height:100px;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: RESULTADOS -->
+      <section id="tab-results" class="tab-content" style="display:none">
+        <div class="results-filter" id="results-filter">
+          <label class="form-label">Filtrar por juego:</label>
+          <div class="game-filter-pills" id="game-filter-pills">
+            <button class="filter-pill filter-pill--active" data-game="">Todos</button>
+            <!-- Se añaden dinámicamente -->
+          </div>
+        </div>
+
+        <div class="dashboard-grid dashboard-grid--2" style="margin-bottom:var(--space-6)">
+          <div class="card">
+            <h3 class="card-title">🏆 Podio</h3>
+            <div id="results-podium"></div>
+          </div>
+          <div class="card">
+            <details>
+              <summary style="cursor:pointer; outline:none; user-select:none;">
+                <h3 class="card-title" style="display:inline-block; margin:0;">📋 Ranking completo</h3>
+              </summary>
+              <div id="results-ranking" style="margin-top: 15px;"></div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: GREMIOS -->
+      <section id="tab-guilds" class="tab-content" style="display:none;">
+        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2 class="section-title">Ranking de Gremios</h2>
+            <p class="section-desc">Puntuación acumulada de los miembros del gremio en esta clase.</p>
+          </div>
+          <a href="ayuda_gamificacion.html" class="btn btn-outline btn--sm" target="_blank">ℹ️ Info Gamificación</a>
+        </div>
+        <div id="guilds-ranking-list" style="display:flex; flex-direction:column; gap:var(--space-4);">
+          <div class="text-center text-muted" style="padding:40px;">Calculando ranking...</div>
+        </div>
+      </section>
+
+      <!-- TAB: EXÁMENES -->
+      <section id="tab-exams" class="tab-content" style="display:none;">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Exámenes Test</h2>
+            <p class="section-desc">Genera exámenes aleatorios a partir del banco de preguntas.</p>
+          </div>
+          <div class="section-actions" style="display:flex; gap:10px;">
+            <a href="banco_preguntas.html" class="btn btn-ghost" id="btn-banco">📚 Banco de Preguntas</a>
+            <button class="btn btn-primary" id="btn-new-exam">➕ Generar Examen</button>
+            <button class="btn btn-outline" id="btn-view-criteria" style="margin-left:5px;">🎯 Notas por Criterios</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Preguntas</th>
+                <th>Tiempo</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                  <th>Acción</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="examenes-test-list">
+              <tr><td colspan="6" class="text-center text-muted">Cargando exámenes...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="section-header" style="margin-top: 40px;">
+          <div>
+            <h2 class="section-title">Controles de Lectura (Tests de Teoría)</h2>
+            <p class="section-desc">Notas obtenidas por los alumnos en los tests autogenerados al final de cada bloque. Solo se guarda el último intento.</p>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <details>
+            <summary style="cursor:pointer; padding: 15px; font-weight:bold; background: var(--bg-card); user-select:none; border-bottom: 1px solid var(--border);">
+              👀 Mostrar notas de los controles de lectura
+            </summary>
+            <table class="ranking-table" style="border-top:none;">
+              <thead>
+                <tr>
+                  <th>Alumno</th>
+                  <th>Bloque</th>
+                  <th>Nota Final</th>
+                  <th>Fecha</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="teoria-test-list">
+                <tr><td colspan="4" class="text-center text-muted">Cargando resultados...</td></tr>
+              </tbody>
+            </table>
+          </details>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal: Nueva tarea -->
+  <div id="modal-new-assignment" class="modal-backdrop" aria-hidden="true" role="dialog"
+       aria-modal="true" aria-labelledby="new-assignment-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="new-assignment-title">Nueva tarea en Classroom</h3>
+        <button class="modal-close" id="close-new-assignment" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-new-assignment" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="assignment-game">Juego</label>
+            <select id="assignment-game" required>
+              <option value="">Selecciona un juego...</option>
+              <!-- Rellenado por JS -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="assignment-title">Título de la tarea</label>
+            <input type="text" id="assignment-title" placeholder="Ej: Práctica de mecanografía" required>
+          </div>
+          <div id="assignment-criteria-suggestion" style="display:none; margin-bottom:var(--space-4);" class="alert alert--info"></div>
+          <div class="form-group">
+            <label class="form-label" for="assignment-target">Puntuación objetivo (para nota 10/10)</label>
+            <input type="number" id="assignment-target" min="1" placeholder="Ej: 100" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="assignment-due">Fecha de entrega (opcional)</label>
+            <input type="datetime-local" id="assignment-due">
+          </div>
+          <div class="assignment-classroom-note" id="assignment-classroom-note" style="display:none">
+            <div class="alert alert--warning">
+              <span>⚠️</span>
+              <div>Esta clase no tiene un curso de Classroom vinculado. La tarea solo se guardará en ClassHub.</div>
+            </div>
+          </div>
+          <p id="assignment-error" class="form-error" aria-live="polite"></p>
+          <div class="modal-footer" style="padding:0; margin-top:var(--space-5); border:none">
+            <button type="button" class="btn btn-ghost" id="cancel-new-assignment">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Crear tarea</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Añadir alumnos manualmente -->
+  <div id="modal-add-students" class="modal-backdrop" aria-hidden="true" role="dialog"
+       aria-modal="true" aria-labelledby="add-students-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="add-students-title">➕ Añadir alumnos a la clase</h3>
+        <button class="modal-close" id="close-add-students" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-add-students" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="manual-students-input">Correos electrónicos de los alumnos</label>
+            <textarea id="manual-students-input" rows="6" style="font-family:var(--font-mono); font-size:var(--text-xs);"
+                      placeholder="Pega los correos (uno por línea o separados por comas):&#10;alumno1@g.educaand.es&#10;alumno2@iesamachado.org" required></textarea>
+            <p class="form-hint" style="margin-top: var(--space-2);">
+              Se admiten correos corporativos <strong>@g.educaand.es</strong>, <strong>@iesamachado.org</strong> o cualquier otro dominio. Quedarán autorizados para iniciar sesión inmediatamente con Google.
+            </p>
+          </div>
+          <div class="modal-footer" style="padding:0; margin-top:var(--space-5); border:none">
+            <button type="button" class="btn btn-ghost" id="cancel-add-students">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Añadir a la clase</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Sincronizar notas -->
+  <div id="modal-sync-grades" class="modal-backdrop" aria-hidden="true" role="dialog"
+       aria-modal="true" aria-labelledby="sync-grades-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="sync-grades-title">📊 Volcar notas a Classroom</h3>
+        <button class="modal-close" id="close-sync-grades" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body" id="sync-grades-body">
+        <p class="form-hint">Selecciona las tareas cuyas notas quieres sincronizar.</p>
+        <div id="sync-assignments-list"></div>
+        <div style="margin-top:var(--space-4)">
+          <button class="btn btn-primary btn--full" id="btn-do-sync">📤 Sincronizar notas</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div id="toast-container" aria-live="polite"></div>
+
+  <!-- Modal Medallas -->
+  <div id="modal-medallas" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-box modal-box--large">
+      <div class="modal-header">
+        <h3 id="medallas-alumno-nombre">Medallero</h3>
+        <button class="modal-close" id="btn-close-medallas">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="medallas-alumno-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:var(--space-3);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Examen -->
+  <div id="modal-new-exam" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Generar Examen Test</h3>
+        <button class="modal-close" id="btn-close-new-exam">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Título del Examen</label>
+          <input type="text" id="gen-titulo" class="form-input" placeholder="Ej: Control Tema 1" required>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+          <div class="form-group">
+            <label class="form-label">Tiempo (minutos)</label>
+            <input type="number" id="gen-tiempo" class="form-input" value="30" min="5" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nº de Preguntas</label>
+            <input type="number" id="gen-num" class="form-input" value="10" min="1" max="50" required>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label">Bloque Temático</label>
+          <select id="gen-topic" class="form-input">
+            <option value="">Cualquier bloque</option>
+            <option value="block1">Alfabetización Digital</option>
+            <option value="block2">Programación</option>
+            <option value="block3">Robótica</option>
+            <option value="block4">IoT y Móvil</option>
+            <option value="block5">Inteligencia Artificial</option>
+            <option value="block6">Ciberseguridad</option>
+          </select>
+        </div>
+        <div class="modal-footer" style="padding:0; margin-top:24px; border:none;">
+          <button class="btn btn-ghost" id="btn-cancel-new-exam">Cancelar</button>
+          <button class="btn btn-primary" id="btn-save-examen">Generar Examen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/class_detail.js"></script>
+
+  <!-- Modal Evaluación por Criterios -->
+  <div id="modal-criteria" class="modal-backdrop" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="criteria-title">
+    <div class="modal-box" style="max-width: 900px; width: 95%;">
+      <div class="modal-header">
+        <h3 id="criteria-title">Evaluación por Criterios (LOMLOE)</h3>
+        <button class="modal-close" id="btn-close-criteria">✕</button>
+      </div>
+      <div class="modal-body" style="overflow-x: auto;">
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:15px;">Esta tabla calcula la nota media sobre 10 de cada alumno en cada criterio, analizando las preguntas concretas que han respondido en los tests de teoría (penalizando fallos con -0.33). Solo se muestran los criterios que han aparecido en los tests realizados por tus alumnos.</p>
+        <div id="criteria-table-container">
+          <div style="text-align:center; padding:40px;"><div class="spinner"></div> Cargando datos...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Evaluación Rúbrica -->
+  <div id="modal-rubric" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-box" style="max-width: 800px; width: 95%;">
+      <div class="modal-header">
+        <h3>Evaluando: <span id="rubric-student-name"></span></h3>
+        <button class="modal-close" id="btn-close-rubric">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4 id="rubric-task-title" style="margin-bottom:15px; color:var(--primary);"></h4>
+        <div id="rubric-criteria-container"></div>
+        <div style="margin-top:20px;">
+          <label class="form-label">Comentarios (Feedback para el alumno):</label>
+          <textarea id="rubric-feedback" class="form-input" rows="3" style="width:100%; resize:vertical;"></textarea>
+        </div>
+        <div style="margin-top:20px; text-align:right;">
+          <span style="font-size:1.2rem; font-weight:bold; margin-right:15px;">Nota: <span id="rubric-final-grade">0.00</span> / 10</span>
+          <button class="btn btn-primary" id="btn-save-rubric">Guardar Calificación</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Edit Task -->
+  <div id="modal-edit-task" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-box" style="max-width: 600px; width: 95%;">
+      <div class="modal-header">
+        <h3>Personalizar Tarea</h3>
+        <button class="modal-close" id="btn-close-edit-task">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-task">
+          <input type="hidden" id="edit-task-id">
+          <div class="form-group">
+            <label class="form-label">Título de la Tarea</label>
+            <input type="text" id="edit-task-title" class="form-input" required>
+          </div>
+          <div class="form-group" style="margin-top:15px;">
+            <label class="form-label">Descripción</label>
+            <textarea id="edit-task-desc" class="form-input" rows="8" style="width:100%; resize:vertical;" required></textarea>
+          </div>
+          <div class="modal-footer" style="padding:0; margin-top:20px; border:none;">
+            <button type="button" class="btn btn-ghost" id="btn-cancel-edit-task">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

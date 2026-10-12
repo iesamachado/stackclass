@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MecanoClass - Entrenador y Competición de Mecanografía</title>
+    <meta name="description" content="Mejora tu velocidad y precisión al escribir con retos individuales y carreras competitivas en vivo para el aula.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Common styles -->
+    <link rel="stylesheet" href="../../../css/common/reset.css">
+    <link rel="stylesheet" href="../../../css/common/design-system.css">
+    <link rel="stylesheet" href="../../../css/common/layout.css">
+    <link rel="stylesheet" href="../../../css/common/components.css">
+    <!-- MecanoClass styles -->
+    <link rel="stylesheet" href="./css/mecanoclass.css">
+    
+    <style>
+        .meca-hero {
+            text-align: center;
+            padding: var(--space-8) var(--space-4) var(--space-6);
+            position: relative;
+            z-index: 2;
+        }
+        .meca-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 999px;
+            color: #818cf8;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: var(--space-4);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+        }
+        .meca-title {
+            font-size: clamp(2.4rem, 6vw, 3.8rem);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #818cf8 50%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: var(--space-3);
+        }
+        .meca-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-dim);
+            max-width: 620px;
+            margin: 0 auto var(--space-8);
+            line-height: 1.6;
+        }
+        .modes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: var(--space-6);
+            max-width: 1100px;
+            margin: 0 auto var(--space-8);
+            position: relative;
+            z-index: 2;
+            text-align: left;
+        }
+        .mode-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: var(--space-6);
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .mode-card.featured {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, rgba(30, 41, 59, 0.85) 100%);
+        }
+        .mode-card:hover {
+            border-color: #818cf8;
+            box-shadow: 0 16px 48px rgba(99, 102, 241, 0.25);
+            transform: translateY(-4px);
+        }
+        .card-icon {
+            font-size: 2.4rem;
+            margin-bottom: var(--space-3);
+        }
+        .card-badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 6px;
+            margin-bottom: var(--space-2);
+        }
+        .card-badge.indigo {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+        .card-badge.purple {
+            background: rgba(168, 85, 247, 0.2);
+            color: #d8b4fe;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .card-badge.pink {
+            background: rgba(236, 72, 153, 0.2);
+            color: #f472b6;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: var(--space-2);
+        }
+        .card-desc {
+            color: var(--text-dim);
+            font-size: 0.92rem;
+            line-height: 1.55;
+            margin-bottom: var(--space-5);
+            flex-grow: 1;
+        }
+        .pin-input {
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            letter-spacing: 0.25em;
+            text-align: center;
+            text-transform: uppercase;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .pin-input:focus {
+            border-color: #818cf8;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.35);
+        }
+        .features-strip {
+            max-width: 1000px;
+            margin: var(--space-8) auto 0;
+            padding: var(--space-6);
+            border-top: 1px solid var(--glass-border);
+            position: relative;
+            z-index: 2;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-top: var(--space-4);
+        }
+        .feature-box {
+            text-align: center;
+            padding: var(--space-4);
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+        }
+        .feature-box-icon {
+            font-size: 1.8rem;
+            margin-bottom: var(--space-2);
+        }
+        .feature-box-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+        .feature-box-desc {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+    <div id="app-header"></div>
+
+    <main class="container" style="min-height: calc(100vh - var(--navbar-height, 72px)); padding-top: calc(var(--navbar-height, 72px) + var(--space-4));">
+        <div class="meca-hero">
+            <div class="meca-badge">
+                <span>⚡</span> TYPING MASTERY & MULTIPLAYER RACING
+            </div>
+            <h1 class="meca-title">MECANOCLASS</h1>
+            <p class="meca-subtitle">
+                Entrena tu velocidad de mecanografía, domina el teclado y compite en carreras multijugador en tiempo real con tus compañeros de clase.
+            </p>
+
+            <div class="modes-grid">
+                <!-- 1. MODO PRÁCTICA / ENTRENAMIENTO -->
+                <div class="mode-card featured">
+                    <div>
+                        <div class="card-icon">⌨️</div>
+                        <span class="card-badge indigo">Individual</span>
+                        <h2 class="card-title">Modo Entrenamiento</h2>
+                        <p class="card-desc">Practica a tu propio ritmo con textos temáticos. Incluye animación interactiva de plataformas, cálculo de PPM en tiempo real y guardado de récords.</p>
+                    </div>
+                    <div>
+                        <a id="btn-practice-mode" href="practice.html" class="btn-premium-glow" style="text-align: center; display: block; box-sizing: border-box; text-decoration: none; padding: 14px 20px; font-size: 1.05rem;">
+                            ▶ Comenzar Entrenamiento
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 2. MODO COMPETICIÓN EN VIVO (ALUMNO) -->
+                <div class="mode-card">
+                    <div>
+                        <div class="card-icon">🏎️</div>
+                        <span class="card-badge purple">Multijugador</span>
+                        <h2 class="card-title">Unirse a una Carrera</h2>
+                        <p class="card-desc">Introduce el código PIN proporcionado por tu profesor para unirte a la parrilla de salida y competir contra tu clase en vivo.</p>
+                    </div>
+                    <form id="form-unirse-carrera" style="display: flex; flex-direction: column; gap: var(--space-3);">
+                        <input type="text" id="input-pin-carrera" class="pin-input" placeholder="PIN (6 CIFRAS)" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false" required>
+                        <button type="submit" class="btn-secondary-glow" style="width: 100%; padding: 14px; font-size: 1.05rem;">
+                            🏁 Entrar a la Carrera
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 3. MODO COMPETICIÓN EN VIVO (PROFESOR) -->
+                <div class="mode-card" id="teacher-section" style="display: none;">
+                    <div>
+                        <div class="card-icon">🧑‍🏫</div>
+                        <span class="card-badge pink">Docentes</span>
+                        <h2 class="card-title">Panel de Carrera Live</h2>
+                        <p class="card-desc">Crea una sala de competición para proyectar la pista de carreras en la pantalla del aula, gestionar la salida y proclamar el podio de campeones.</p>
+                    </div>
+                    <div class="d-flex flex-column gap-2 mt-3">
+                        <button id="btn-crear-carrera" class="btn-premium-glow" style="width: 100%; padding: 14px; font-size: 1.05rem;">
+                            🚀 Crear Carrera en Vivo
+                        </button>
+                        <button id="btn-historial-carreras" class="btn-secondary-glow" style="width: 100%; padding: 10px; font-size: 0.95rem;">
+                            📚 Historial de Carreras
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Info -->
+            <section class="features-strip">
+                <div class="features-grid">
+                    <div class="feature-box">
+                        <div class="feature-box-icon">⚡</div>
+                        <div class="feature-box-title">PPM en Tiempo Real</div>
+                        <div class="feature-box-desc">Cálculo instantáneo de palabras por minuto con precisión</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-box-icon">🏁</div>
+                        <div class="feature-box-title">Carreras en Vivo</div>
+                        <div class="feature-box-desc">Avatares que avanzan por la pista al ritmo de tu tecleo</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-box-icon">🎯</div>
+                        <div class="feature-box-title">Mínimo 90% Precisión</div>
+                        <div class="feature-box-desc">Fomenta escribir correctamente sin errores sistemáticos</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-box-icon">🏆</div>
+                        <div class="feature-box-title">Podio y Clasificación</div>
+                        <div class="feature-box-desc">Puntuaciones guardadas en tu perfil de ClassHub</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Historial Modal -->
+    <div id="historialModal" class="d-none" style="position: fixed; inset: 0; background: rgba(15,23,42,0.9); z-index: 1050; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+        <div class="glass-panel p-4" style="width: 95%; max-width: 900px; max-height: 85vh; overflow-y: auto; position: relative; border-color: rgba(255,255,255,0.1);">
+            <button id="closeHistorialBtn" class="btn-secondary-glow" style="position: absolute; right: 1rem; top: 1rem; padding: 5px 12px; font-size: 0.9rem;">✕ Cerrar</button>
+            <h2 class="text-white mb-4"><span class="text-warning">📚</span> Historial de Carreras en Vivo</h2>
+            
+            <div id="historialLoading" class="text-center py-5 d-none">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-white mt-3">Cargando historial...</p>
+            </div>
+            
+            <div id="historialList" class="d-flex flex-column gap-3">
+                <!-- Se rellena por JS -->
+            </div>
+        </div>
+    </div>
+
+    <div id="app-footer"></div>
+
+    <script type="module" src="js/index.js"></script>
+</body>
+</html>

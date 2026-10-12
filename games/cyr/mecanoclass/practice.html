@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practicar - MecanoClass</title>
+    
+    <!-- CSS Changes -->
+    <link rel="stylesheet" href="../../../css/common/design-system.css">
+    <link rel="stylesheet" href="../../../css/common/reset.css">
+    <link rel="stylesheet" href="../../../css/common/layout.css">
+    <link rel="stylesheet" href="../../../css/common/components.css">
+    <link rel="stylesheet" href="./css/mecanoclass.css">
+    
+    <style>
+        .typing-area {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            user-select: none;
+            position: relative;
+            color: #cbd5e1;
+            padding: 8px 4px;
+        }
+
+        .char-correct {
+            color: #4ade80;
+        }
+
+        .char-incorrect {
+            color: #f87171;
+            text-decoration: underline;
+        }
+
+        .char-current {
+            background-color: rgba(99, 102, 241, 0.4);
+            border-bottom: 2px solid var(--primary-color);
+            color: white;
+            animation: pulse-caret 1s infinite;
+        }
+
+        @keyframes pulse-caret {
+            50% {
+                border-bottom-color: transparent;
+            }
+        }
+
+        #hiddenInput {
+            position: absolute;
+            opacity: 0;
+            top: 0;
+            left: 0;
+            height: 0;
+            width: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app-header"></div>
+
+    <div class="container flex-grow-1" style="margin-top: calc(var(--navbar-height, 72px) + var(--space-4));">
+        <div style="max-width: 960px; margin: 0 auto;">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+                <a href="index.html" class="btn-secondary-glow" style="text-decoration: none; padding: 8px 16px; font-size: 0.88rem;">
+                    ← Volver a Modos
+                </a>
+                <span class="text-dim" style="font-size: 0.88rem; font-weight: 600;">⌨️ Modo Entrenamiento</span>
+                <div style="display: flex; gap: var(--space-2);">
+                    <a href="live_player.html" class="btn-secondary-glow" style="text-decoration: none; padding: 8px 16px; font-size: 0.88rem;">
+                        🏎️ Unirse a Carrera Live
+                    </a>
+                    <a href="live_host.html" class="btn-premium-glow" id="btnCreateLive" style="display: none; text-decoration: none; padding: 8px 16px; font-size: 0.88rem;">
+                        🚀 Crear Carrera Live
+                    </a>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: var(--space-4); margin-bottom: var(--space-6);">
+                <div class="stat-card" style="flex: 1;">
+                    <span class="stat-label">PPM</span>
+                    <h2 class="stat-value" id="wpmDisplay" style="color: #818cf8;">0</h2>
+                </div>
+                <div class="stat-card" style="flex: 1;">
+                    <span class="stat-label">Precisión</span>
+                    <h2 class="stat-value" id="accuracyDisplay" style="color: #4ade80;">100%</h2>
+                </div>
+            </div>
+
+            <div id="gameContainer" class="glass-panel p-5 position-relative" style="position: relative; min-height: 380px; overflow: hidden; cursor: text;">
+                <canvas id="platformGameCanvas" class="w-100 mb-3" style="border-radius: 8px;"></canvas>
+
+                <div id="textDisplay" class="typing-area">Cargando texto...</div>
+                <input type="text" id="hiddenInput" autocomplete="off" spellcheck="false">
+
+                <!-- Start Overlay -->
+                <div id="overlayStart" class="game-overlay" style="z-index: 10;">
+                    <button type="button" class="btn-premium-glow" id="btnStartPractice" style="font-size: 1.15rem; padding: 16px 36px;">
+                        ⌨️ Comenzar a Escribir
+                    </button>
+                </div>
+
+                <!-- Complete / Success Overlay -->
+                <div id="overlayEnd" class="game-overlay" style="z-index: 20; display: none;">
+                    <div class="overlay-card overlay-card--success">
+                        <div class="overlay-icon">🏆</div>
+                        <h2 class="overlay-title-success">¡Completado!</h2>
+                        <p style="color: var(--text-dim); margin: 0; font-size: 0.95rem;">¡Excelente trabajo! Has terminado el texto.</p>
+                        
+                        <div class="overlay-stats-grid">
+                            <div class="overlay-stat-box">
+                                <span class="overlay-stat-label">Velocidad</span>
+                                <span class="overlay-stat-val highlight" id="finalWpm">0 PPM</span>
+                            </div>
+                            <div class="overlay-stat-box">
+                                <span class="overlay-stat-label">Precisión</span>
+                                <span class="overlay-stat-val" id="finalAccuracy" style="color: #4ade80;">100%</span>
+                            </div>
+                        </div>
+
+                        <div class="overlay-actions">
+                            <button type="button" class="btn-secondary-glow" onclick="location.reload()">
+                                🔄 Repetir
+                            </button>
+                            <button type="button" class="btn-premium-glow" id="btnSaveResult">
+                                💾 Guardar Resultado
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Failed Overlay -->
+                <div id="overlayFailed" class="game-overlay" style="z-index: 20; display: none;">
+                    <div class="overlay-card overlay-card--danger">
+                        <div class="overlay-icon">⚠️</div>
+                        <h2 class="overlay-title-danger">Precisión Insuficiente</h2>
+                        <p style="color: #f1f5f9; margin: 0; font-size: 0.95rem;">
+                            Necesitas al menos un <strong style="color: #fbbf24;">90% de precisión</strong> para guardar tu marca.
+                        </p>
+                        
+                        <div class="overlay-stats-grid">
+                            <div class="overlay-stat-box">
+                                <span class="overlay-stat-label">Tu Precisión</span>
+                                <span class="overlay-stat-val" id="failedAccuracy" style="color: #f87171;">0%</span>
+                            </div>
+                            <div class="overlay-stat-box">
+                                <span class="overlay-stat-label">Velocidad</span>
+                                <span class="overlay-stat-val" id="failedWpm">0 PPM</span>
+                            </div>
+                        </div>
+
+                        <div class="overlay-actions">
+                            <button type="button" class="btn-premium-glow" onclick="location.reload()" style="width: 100%;">
+                                🔄 Intentar de nuevo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-center text-dim">
+                <small>Haz clic en el recuadro para enfocar • Pulsa ESC para reiniciar</small>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="app-footer"></div>
+
+    <!-- Need to include these so they are accessible to practice.js -->
+    <script src="./js/initial_texts.js"></script>
+    <script src="./js/platform-game.js"></script>
+    <script src="./js/typing-engine.js"></script>
+    <script type="module" src="./js/practice.js"></script>
+</body>
+
+</html>

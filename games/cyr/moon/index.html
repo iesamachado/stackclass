@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOON - Acceso</title>
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/layout.css">
+  <link rel="stylesheet" href="../../../css/common/components.css">
+  <link rel="stylesheet" href="css/moon.css">
+</head>
+<body class="theme-moon">
+  <div id="loading-screen" class="screen active" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;">
+    <h1 style="color: var(--game-moon);">MOON</h1>
+    <p>Comprobando acceso...</p>
+  </div>
+  <script type="module">
+    import { requireGameAccess } from '../../../../js/common/auth.js';
+    requireGameAccess('moon', {
+      onGranted: (user, profile, classId) => {
+        window.location.href = `game.html?classId=${classId}`;
+      }
+    });
+  </script>
+</body>
+</html>

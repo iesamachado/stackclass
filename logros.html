@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CyR ClassHub — Mis Logros, Gremio y Medallas">
+  <title>CyR ClassHub — Mis Logros</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
+  <link rel="stylesheet" href="css/common/design-system.css">
+  <link rel="stylesheet" href="css/common/reset.css">
+  <link rel="stylesheet" href="css/common/layout.css">
+  <link rel="stylesheet" href="css/common/components.css">
+  <style>
+    .logros-hero { display:flex; align-items:center; gap:var(--space-4,16px); margin-bottom:var(--space-6,24px); flex-wrap:wrap; }
+    .logros-avatar { width:80px; height:80px; border-radius:50%; border:3px solid var(--primary,#6c63ff); object-fit:cover; }
+    .logros-stats { display:flex; gap:var(--space-4,16px); flex-wrap:wrap; }
+    .logro-stat { background:var(--bg-card,#fff); border:1px solid var(--border,#ddd); border-radius:var(--radius-md,8px); padding:var(--space-3,12px) var(--space-4,16px); text-align:center; min-width:100px; }
+    .logro-stat-val { font-size:1.8rem; font-weight:bold; color:var(--primary,#6c63ff); }
+    .logro-stat-lbl { font-size:var(--text-xs,0.75rem); color:var(--text-muted,#888); text-transform:uppercase; }
+    .leagues-scroll { display:flex; gap:var(--space-3,12px); overflow-x:auto; padding-bottom:var(--space-3,12px); }
+    .league-card { display:flex; flex-direction:column; align-items:center; text-align:center; min-width:180px; flex:0 0 auto; background:var(--bg-card,#fff); padding:20px 15px; border-radius:8px; border:2px solid transparent; border-bottom:5px solid #bdc3c7; transition:all 0.2s; position:relative; }
+    .medal-item { display:flex; align-items:center; gap:15px; background:var(--bg-card,#fff); padding:15px; border-radius:8px; border-left:4px solid #bdc3c7; box-shadow:0 2px 4px rgba(0,0,0,0.05); transition:all 0.2s; }
+    .medal-item.unlocked { border-left-color:var(--warning,#f39c12); }
+    .guild-ranking-row { display:flex; justify-content:space-between; padding:8px 4px; border-bottom:1px solid var(--border,#ddd); align-items:center; }
+    
+    .medals-grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.05); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    
+    .layout-logros { display: flex; flex-direction: column; gap: var(--space-5); }
+    .layout-logros.no-guild-layout { flex-direction: column !important; }
+    .layout-logros.no-guild-layout .medals-grid-container { grid-template-columns: repeat(3, 1fr); }
+    
+    @media (max-width: 900px) {
+      .layout-logros.no-guild-layout .medals-grid-container { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (max-width: 600px) {
+      .medals-grid-container, 
+      .layout-logros.no-guild-layout .medals-grid-container { grid-template-columns: 1fr; }
+    }
+    
+    @media (min-width: 900px) {
+      .layout-logros:not(.no-guild-layout) { flex-direction: row; align-items: flex-start; }
+      .layout-logros-left { flex: 1; min-width: 350px; display: flex; flex-direction: column; gap: var(--space-4); }
+      .layout-logros-right { flex: 1.8; min-width: 450px; }
+    }
+  </style>
+</head>
+<body class="page">
+  <div id="app-header"></div>
+  <main class="page-content">
+    <div class="container">
+
+      <!-- Hero del alumno -->
+      <header class="dashboard-header animate-fade-up">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <a href="dashboard_student.html" class="back-link">← Volver a mis clases</a>
+          <a href="ayuda_gamificacion.html" class="btn btn-outline btn--sm">ℹ️ Cómo ganar XP y Medallas</a>
+        </div>
+        
+        <div class="card" style="margin-top:var(--space-4,16px); display:flex; align-items:center; gap:var(--space-4); padding:var(--space-4); flex-wrap:wrap; justify-content:space-between; background:var(--bg-card); border:4px solid var(--border); box-shadow:4px 4px 0px var(--border);">
+          
+          <!-- Izquierda: Avatar y Nombre -->
+          <div style="display:flex; align-items:center; gap:var(--space-4);">
+            <img class="logros-avatar" id="logros-avatar" src="" alt="avatar" style="width:100px; height:100px; border-width:4px;">
+            <div>
+              <div style="font-size:0.9rem; font-weight:bold; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Perfil de Alumno</div>
+              <h1 style="margin:0; font-size:2.2rem; color:var(--text-primary);" id="logros-name">Cargando...</h1>
+            </div>
+          </div>
+
+          <!-- Derecha: Contadores y Liga -->
+          <div class="logros-stats" style="display:flex; gap:var(--space-3); flex-wrap:wrap;">
+            <div class="logro-stat" style="border:2px solid var(--primary); box-shadow:2px 2px 0px var(--primary);; cursor:pointer; transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" id="btn-xp-detail" title="Ver detalle de XP">
+              <div class="logro-stat-val" id="stat-xp">0</div>
+              <div class="logro-stat-lbl" style="font-weight:bold;">XP Total</div>
+            </div>
+            <div class="logro-stat" id="stat-league-card" style="border:2px solid var(--warning); box-shadow:2px 2px 0px var(--warning); background:#fffdf5;">
+              <div class="logro-stat-val" id="stat-league-icon" style="font-size:2rem; line-height:1;">🥉</div>
+              <div class="logro-stat-lbl" id="stat-league-name" style="font-weight:bold; color:var(--warning);">Bronce</div>
+            </div>
+            <div class="logro-stat" style="border:2px solid var(--accent); box-shadow:2px 2px 0px var(--accent);">
+              <div class="logro-stat-val" id="stat-medals" style="color:var(--accent);">0</div>
+              <div class="logro-stat-lbl" style="font-weight:bold;">Medallas</div>
+            </div>
+          </div>
+
+        </div>
+      </header>
+
+      <!-- Sección Ligas -->
+      <section class="animate-fade-up delay-1" aria-labelledby="leagues-title" style="margin-bottom:var(--space-5);">
+        <div class="section-header">
+          <h2 class="section-title" id="leagues-title">📈 El Camino de las Ligas</h2>
+        </div>
+        <div class="card" style="padding:var(--space-4,16px);">
+          <div class="leagues-scroll" id="student-leagues-list">
+            <div style="color:var(--text-muted,#888);">Cargando ligas...</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="layout-logros animate-fade-up delay-2">
+        <div class="layout-logros-left">
+          <!-- Sección Gremio -->
+          <section aria-labelledby="guild-title">
+            <div class="section-header">
+              <h2 class="section-title" id="guild-title">🛡️ Mi Gremio</h2>
+            </div>
+            <div class="card" id="gremio-container">
+              <div style="text-align:center; padding:var(--space-5,20px); color:var(--text-muted,#888);">Cargando gremios...</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="layout-logros-right">
+          <!-- Sección Medallas -->
+          <section aria-labelledby="medals-title">
+            <div class="section-header">
+              <h2 class="section-title" id="medals-title">🏅 Medallero</h2>
+            </div>
+            <div class="medals-grid" id="student-medals-list">
+              <div style="color:var(--text-muted,#888); padding:var(--space-4,16px);">Cargando medallas...</div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <div id="toast-container" aria-live="polite"></div>
+  <script type="module" src="js/logros.js"></script>
+
+  <!-- Modal XP Detail -->
+  <div id="modal-xp-detail" class="modal-backdrop" aria-hidden="true" role="dialog">
+    <div class="modal-box" style="max-width:850px; width:95%;">
+      <div class="modal-header">
+        <h3 id="xp-modal-title">📊 Mi Actividad y XP</h3>
+        <button class="modal-close" id="close-xp-modal" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body" style="padding:0; max-height: 70vh; overflow-y: auto;">
+        <div id="xp-modal-body" style="overflow-x:auto;">
+           <div style="padding:32px; text-align:center;"><div class="spinner"></div> Cargando detalle de XP...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>H3L4D0S - Acceso</title>
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/layout.css">
+  <link rel="stylesheet" href="../../../css/common/components.css">
+  <link rel="stylesheet" href="css/helados.css">
+</head>
+<body class="theme-helados">
+  <div id="loading-screen" class="screen active" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;">
+    <h1 style="color: var(--game-helados);">H3L4D0S</h1>
+    <p>Comprobando acceso...</p>
+  </div>
+  <script type="module">
+    import { requireGameAccess } from '../../../../js/common/auth.js';
+    requireGameAccess('helados', {
+      onGranted: (user, profile, classId) => {
+        window.location.href = `game.html?classId=${classId}`;
+      }
+    });
+  </script>
+</body>
+</html>

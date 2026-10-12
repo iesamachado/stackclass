@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asimov.IO - Simulador Ético</title>
+  
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="../../../css/common/layout.css">
+  <link rel="stylesheet" href="../../../css/common/components.css">
+  <link rel="stylesheet" href="css/asimov.css">
+</head>
+<body class="asimov-body">
+  
+  <div class="game-wrapper">
+    <!-- Header: Stats -->
+    <header class="stats-header">
+      <div class="stat-box">
+        <span class="stat-icon">😃</span>
+        <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-hap" style="width: 50%; background: #4caf50;"></div></div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-icon">⚙️</span>
+        <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-eff" style="width: 50%; background: #2196f3;"></div></div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-icon">⚖️</span>
+        <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-eth" style="width: 50%; background: #9c27b0;"></div></div>
+      </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="card-area">
+      <div class="card-stack">
+        <div class="dilemma-card" id="current-card">
+          <div class="card-image-box" id="card-icon">🤖</div>
+          <h2 class="card-title" id="card-title">Iniciando Sistema...</h2>
+          <p class="card-desc" id="card-desc">Cargando dilemas éticos.</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Controls -->
+    <div class="controls-area">
+      <button class="btn-swipe btn-left" id="btn-left">
+        <span class="swipe-arrow">←</span>
+        <span class="swipe-text" id="text-left">Rechazar</span>
+      </button>
+      <button class="btn-swipe btn-right" id="btn-right">
+        <span class="swipe-text" id="text-right">Aprobar</span>
+        <span class="swipe-arrow">→</span>
+      </button>
+    </div>
+    
+    <!-- Info Footer -->
+    <div class="info-footer">
+      Días en el cargo: <span id="days-count">0</span> | Objetivo: 20 días
+    </div>
+    
+    <!-- Game Over / End Screen -->
+    <div class="end-screen" id="end-screen" style="display: none;">
+      <h2 id="end-title">¡Fin del Mandato!</h2>
+      <p id="end-desc">Has sido destituido.</p>
+      <p class="end-score">Días de supervivencia: <span id="final-score">0</span></p>
+      <button class="btn btn-primary" id="btn-finish" style="margin-top: 20px;">Volver a ClassHub</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

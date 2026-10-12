@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppFlow 📱 | ClassHub</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="../../../css/common/layout.css">
+  <link rel="stylesheet" href="../../../css/common/components.css">
+</head>
+<body class="page">
+  <div id="app-header"></div>
+  
+  <main class="page-content">
+    <div class="container" style="max-width: 800px; text-align: center; margin-top: 40px;">
+      <h1 style="font-size: 3rem; margin-bottom: 20px;">
+        <span style="font-size: 4rem;">📱</span><br>
+        AppFlow
+      </h1>
+      <p style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 40px;">
+        Aprende lógica orientada a eventos conectando sensores, eventos y acciones para construir apps móviles funcionales.
+      </p>
+      
+      <div class="card" style="padding: 40px;">
+        <a href="game.html" class="btn btn-primary btn--lg" id="btn-start-game" style="font-size: 1.2rem; padding: 15px 40px;">
+          🎮 Iniciar Simulador
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from '../../../../js/common/auth.js';
+    import { renderHeader } from '../../../../js/common/ui.js';
+    import { getUrlParams } from '../../../../js/common/utils.js';
+    
+    requireAuth({
+      allowedRoles: ['student', 'teacher'],
+      onAuthorized: (user, profile) => {
+        renderHeader(user, profile);
+        const { classId } = getUrlParams();
+        if (classId) {
+          document.getElementById('btn-start-game').href = `game.html?classId=${classId}`;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Profesor - RompeCódigos</title>
+    <!-- Common styles -->
+    <link rel="stylesheet" href="../../../css/common/reset.css">
+    <link rel="stylesheet" href="../../../css/common/design-system.css">
+    <link rel="stylesheet" href="../../../css/common/layout.css">
+    <link rel="stylesheet" href="../../../css/common/components.css">
+    <!-- Game specific styles -->
+    <link rel="stylesheet" href="css/rompecodigos-base.css">
+    <link rel="stylesheet" href="css/profesor.css">
+</head>
+<body>
+    <div id="app-header"></div>
+    <main class="main-content">
+      <div class="setup-header">
+        <h1>🎓 Panel del <span class="text-primary">Profesor</span></h1>
+        <p class="text-muted">Configura una nueva sesión o retoma una existente</p>
+      </div>
+
+      <div class="setup-grid">
+
+        <!-- Create session form -->
+        <div class="card card-glow-primary">
+          <div class="section-title" style="margin-bottom: 1.5rem;">Nueva Sesión</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Número de Rondas</label>
+              <select id="cfg-rondas" class="form-input">
+                <option value="1">1 ronda</option>
+                <option value="2">2 rondas</option>
+                <option value="3" selected>3 rondas</option>
+                <option value="4">4 rondas</option>
+                <option value="5">5 rondas</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tiempo por Ronda</label>
+              <select id="cfg-tiempo" class="form-input">
+                <option value="120">2 minutos</option>
+                <option value="180">3 minutos</option>
+                <option value="300" selected>5 minutos</option>
+                <option value="480">8 minutos</option>
+                <option value="600">10 minutos</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Dificultad</label>
+            <div class="difficulty-picker" id="difficulty-picker">
+              <button class="diff-btn active" data-diff="facil">
+                <span>🔓</span> Fácil <span class="diff-sub">César simple</span>
+              </button>
+              <button class="diff-btn" data-diff="medio">
+                <span>🔐</span> Medio <span class="diff-sub">César avanzado</span>
+              </button>
+              <button class="diff-btn" data-diff="dificil">
+                <span>🔒</span> Difícil <span class="diff-sub">Vigenère</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Número de Pistas Disponibles</label>
+            <select id="cfg-pistas" class="form-input">
+              <option value="0">Sin pistas</option>
+              <option value="1">1 pista por ronda</option>
+              <option value="2" selected>2 pistas por ronda</option>
+              <option value="3">3 pistas por ronda</option>
+            </select>
+          </div>
+
+          <button id="btn-crear-sesion" class="btn btn-primary btn-lg w-full">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Crear Sesión
+          </button>
+        </div>
+
+        <!-- Message pool -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom: 1.5rem;">Mensajes del Pool</div>
+          <p class="text-muted" style="font-size:0.85rem; margin-bottom: 1rem;">Los mensajes se asignan automáticamente según la dificultad. También puedes crear uno personalizado.</p>
+
+          <div id="mensaje-pool-list" class="pool-list">
+            <!-- se rellena con JS -->
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="section-title" style="margin-bottom: 1rem;">Crear Mensaje Custom</div>
+          <div class="form-group" style="margin-bottom: 0.75rem">
+            <label class="form-label">Texto Original</label>
+            <input type="text" id="custom-texto" class="form-input" placeholder="EL AGENTE DOBLE ACTIVA EL PROTOCOLO..." maxlength="80">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tipo</label>
+              <select id="custom-tipo" class="form-input">
+                <option value="caesar">César</option>
+                <option value="vigenere">Vigenère</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Clave</label>
+              <input type="text" id="custom-clave" class="form-input" placeholder="3 ó CLAVE">
+            </div>
+          </div>
+          <div id="custom-preview" class="cipher-preview hidden">
+            <span class="cipher-preview-label">Texto cifrado:</span>
+            <span id="custom-preview-text" class="cipher-preview-text"></span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <button id="btn-preview-custom" class="btn btn-ghost btn-sm">Vista previa</button>
+            <button id="btn-add-custom" class="btn btn-accent btn-sm">+ Añadir al pool</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── ACTIVE SESSION VIEW ── -->
+    <div id="view-session" class="view hidden">
+
+      <!-- Top bar -->
+      <div class="session-topbar">
+        <div class="container">
+          <div class="session-topbar-inner">
+            <div class="session-info-bar">
+              <div class="session-chip">
+                <span class="text-muted" style="font-size:0.75rem;">CÓDIGO DE SALA</span>
+                <div class="room-code" id="session-code" title="Click para copiar">------</div>
+              </div>
+              <div class="session-chip">
+                <span class="text-muted" style="font-size:0.75rem;">RONDA</span>
+                <span class="session-stat" id="session-ronda">0/0</span>
+              </div>
+              <div class="session-chip">
+                <span class="text-muted" style="font-size:0.75rem;">EQUIPOS</span>
+                <span class="session-stat" id="session-equipos">0</span>
+              </div>
+              <div class="session-chip">
+                <span class="text-muted" style="font-size:0.75rem;">ESTADO</span>
+                <span class="badge" id="session-estado-badge">Espera</span>
+              </div>
+            </div>
+
+            <div class="session-controls">
+              <div class="timer-box">
+                <span class="timer-display" id="session-timer">--:--</span>
+              </div>
+              <button id="btn-iniciar-ronda" class="btn btn-accent">
+                ▶ Iniciar Ronda
+              </button>
+              <button id="btn-emitir-pista" class="btn btn-ghost" disabled>
+                💡 Pista (<span id="pistas-count">0</span>)
+              </button>
+              <button id="btn-finalizar-ronda" class="btn btn-danger" disabled>
+                ■ Finalizar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container" style="padding-top: 1.5rem;">
+        <div class="session-grid">
+
+          <!-- Equipos panel -->
+          <div class="card">
+            <div class="section-title" style="margin-bottom: 1rem;">Equipos Conectados</div>
+            <div id="equipos-list" class="equipos-list">
+              <div class="empty-state" style="padding: 2rem;">
+                <div class="empty-state-icon">⏳</div>
+                <div class="empty-state-text">Esperando equipos...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mensaje activo -->
+          <div class="card">
+            <div class="section-title" style="margin-bottom: 1rem;">Mensaje Activo</div>
+            <div id="mensaje-activo-panel" class="mensaje-activo-panel">
+              <div class="empty-state" style="padding: 2rem;">
+                <div class="empty-state-icon">📦</div>
+                <div class="empty-state-text">Inicia una ronda para ver el mensaje</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Intentos en vivo -->
+          <div class="card span-2">
+            <div class="section-title" style="margin-bottom: 1rem;">
+              Intentos en Vivo
+              <span class="badge badge-accent" id="intentos-count" style="margin-left: 8px;">0</span>
+            </div>
+            <div id="intentos-list" class="intentos-list">
+              <div class="empty-state" style="padding: 2rem;">
+                <div class="empty-state-icon">📡</div>
+                <div class="empty-state-text">Los intentos de los equipos aparecerán aquí</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Marcador -->
+          <div class="card span-2">
+            <div class="section-title" style="margin-bottom: 1rem;">Marcador Global</div>
+            <div id="marcador-panel" class="marcador-panel">
+              <div class="empty-state" style="padding: 2rem;">
+                <div class="empty-state-icon">🏆</div>
+                <div class="empty-state-text">El marcador aparecerá cuando haya equipos</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Pista Modal -->
+  <div id="pista-modal" class="modal-overlay hidden">
+    <div class="modal card-glass" style="max-width: 460px;">
+      <button class="modal-close" id="pista-modal-close">✕</button>
+      <h3 style="margin-bottom: 1rem;">💡 Emitir Pista</h3>
+      <p class="text-muted" style="font-size:0.875rem; margin-bottom: 1.5rem;">
+        Elige qué tipo de pista emitir. Todos los equipos la recibirán simultáneamente.
+      </p>
+      <div class="pista-options">
+        <button class="pista-btn" data-tipo="tipo_cifrado">🔑 Tipo de cifrado (César/Vigenère)</button>
+        <button class="pista-btn" data-tipo="primera_letra">🔤 Primera letra del mensaje</button>
+        <button class="pista-btn" data-tipo="longitud">📏 Longitud del mensaje</button>
+        <button class="pista-btn" data-tipo="palabra_clave">💬 Una palabra clave del mensaje</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <div id="toast-container"></div>
+  <script src="js/cifrado.js"></script>
+  <script type="module" src="js/sala_profesor.js"></script>
+</body>
+</html>

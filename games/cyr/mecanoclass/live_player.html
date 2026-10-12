@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MecanoClass Live - Jugador</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- CSS Changes -->
+    <link rel="stylesheet" href="../../../css/common/reset.css">
+    <link rel="stylesheet" href="../../../css/common/design-system.css">
+    <link rel="stylesheet" href="../../../css/common/layout.css">
+    <link rel="stylesheet" href="../../../css/common/components.css">
+    <link rel="stylesheet" href="./css/mecanoclass.css">
+    
+    <style>
+        .char-correct {
+            color: #4ade80;
+        }
+
+        .char-incorrect {
+            color: #f87171;
+            text-decoration: underline;
+        }
+
+        .char-current {
+            background-color: rgba(99, 102, 241, 0.4);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        #hiddenInput {
+            position: absolute;
+            opacity: 0;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-header"></div>
+
+    <!-- Join Screen -->
+    <div id="joinScreen" class="container d-flex flex-column align-items-center justify-content-center" style="min-height: calc(100vh - var(--navbar-height, 72px)); margin-top: calc(var(--navbar-height, 72px));">
+        <div class="glass-panel p-5 text-center" style="max-width: 420px; width: 100%;">
+            <div style="font-size: 2.5rem; margin-bottom: 8px;">🏎️</div>
+            <h2 class="title-gradient mb-2" style="font-size: 1.6rem;">Unirse a la Carrera</h2>
+            <p class="text-dim mb-4" style="font-size: 0.9rem;">Introduce el código PIN que muestra el profesor en la pantalla.</p>
+            
+            <input type="text" id="gamePinInput"
+                class="form-control mb-4 text-center" style="font-size: 1.5rem; letter-spacing: 6px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--glass-border); color: #ffffff; border-radius: 12px; padding: 12px;" placeholder="PIN"
+                maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false">
+            
+            <button id="btnJoinGame" class="btn-premium-glow w-100" style="padding: 14px; font-size: 1.1rem;">
+                🚀 Entrar a la Sala
+            </button>
+            <div class="mt-4">
+                <a href="index.html" class="text-dim" style="font-size: 0.85rem; text-decoration: none;">← Volver al menú</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waiting Screen -->
+    <div id="waitingScreen" class="container d-none flex-column align-items-center justify-content-center" style="min-height: calc(100vh - var(--navbar-height, 72px)); margin-top: calc(var(--navbar-height, 72px));">
+        <div class="glass-panel p-5 text-center fade-in" style="max-width: 450px;">
+            <div style="font-size: 3rem; margin-bottom: 12px;" class="animate-pulse">🚦</div>
+            <h2 class="text-light mb-2" style="font-size: 1.8rem;">¡Estás dentro de la sala!</h2>
+            <p class="text-dim" style="font-size: 1.05rem;">Mira a la pantalla principal del aula. La carrera comenzará cuando el profesor dé la salida...</p>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="container d-none flex-column p-4" style="margin-top: calc(var(--navbar-height, 72px) + var(--space-4));">
+
+        <div class="glass-panel p-3 mb-4 d-flex justify-content-between" style="display: flex; justify-content: space-between;">
+            <span class="text-dim">PPM: <span id="wpmDisplay" class="text-light fw-bold" style="color: #818cf8; font-weight: bold; font-size: 1.2rem;">0</span></span>
+            <span class="text-dim">Progreso: <span id="progressDisplay" class="text-light fw-bold" style="color: #4ade80; font-weight: bold; font-size: 1.2rem;">0%</span></span>
+        </div>
+
+        <div class="glass-panel p-4 flex-grow-1 position-relative" style="position: relative; min-height: 300px; cursor: text;"
+            onclick="document.getElementById('hiddenInput').focus()">
+            <div id="textDisplay"
+                style="font-family: 'JetBrains Mono', 'Courier New', monospace; line-height: 1.8; font-size: 1.3rem; color: #cbd5e1;"></div>
+            <input type="text" id="hiddenInput" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+
+        <div id="resultOverlay"
+            class="game-overlay position-fixed top-0 start-0 w-100 h-100 d-none flex-column align-items-center justify-content-center"
+            style="z-index: 200;">
+            <div class="overlay-card overlay-card--success">
+                <div class="overlay-icon">🏁</div>
+                <h2 class="overlay-title-success">¡Carrera Terminada!</h2>
+                <p style="color: var(--text-dim); margin: 0; font-size: 1rem;">Mira el podio final en la pantalla del profesor.</p>
+                <div class="overlay-actions mt-4">
+                    <a href="index.html" class="btn-secondary-glow" style="text-decoration: none; padding: 12px 24px;">
+                        ← Salir al Menú
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/typing-engine.js"></script>
+    <script type="module" src="./js/live_player.js"></script>
+</body>
+</html>

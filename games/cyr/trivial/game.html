@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyR Trivial - Desafío Kahoot</title>
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="trivial-container">
+    <div class="header">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress"></div></div>
+      <div class="header-info">
+        <span>Pregunta <span id="q-curr">1</span>/<span id="q-total">10</span></span>
+        <span>Puntos: <span id="score">0</span></span>
+      </div>
+    </div>
+    
+    <div class="question-area">
+      <h1 id="question-text">Cargando pregunta...</h1>
+    </div>
+    
+    <div class="answers-area" id="answers-area">
+      <button class="ans-btn ans-red" id="btn-0"></button>
+      <button class="ans-btn ans-blue" id="btn-1"></button>
+      <button class="ans-btn ans-yellow" id="btn-2"></button>
+      <button class="ans-btn ans-green" id="btn-3"></button>
+    </div>
+    
+    <div id="game-over" class="overlay" style="display:none;">
+      <h1>¡Trivial Completado!</h1>
+      <p class="final-score-text">Has acertado <span id="go-correct">0</span> de 10 preguntas.</p>
+      <button id="btn-restart" class="btn btn-primary">Volver al Panel</button>
+    </div>
+  </div>
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

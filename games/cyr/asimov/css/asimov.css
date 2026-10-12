@@ -1,0 +1,194 @@
+.asimov-body {
+  background-color: #1a1a2e;
+  color: #fff;
+  font-family: var(--font-sans);
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.game-wrapper {
+  width: 100%;
+  max-width: 450px;
+  height: 100%;
+  max-height: 800px;
+  background: #16213e;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  background: #0f3460;
+  border-bottom: 2px solid #e94560;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 30%;
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+
+.stat-bar-bg {
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.card-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  position: relative;
+}
+
+.dilemma-card {
+  width: 100%;
+  max-width: 350px;
+  background: white;
+  color: #333;
+  border-radius: 15px;
+  padding: 25px;
+  text-align: center;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dilemma-card.swipe-left {
+  transform: translateX(-150%) rotate(-15deg);
+  opacity: 0;
+}
+
+.dilemma-card.swipe-right {
+  transform: translateX(150%) rotate(15deg);
+  opacity: 0;
+}
+
+.card-image-box {
+  font-size: 5rem;
+  margin-bottom: 20px;
+  background: #f1f5f9;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.card-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-bottom: 15px;
+  color: #0f3460;
+}
+
+.card-desc {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.controls-area {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  gap: 15px;
+}
+
+.btn-swipe {
+  flex: 1;
+  padding: 15px 10px;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+  color: white;
+}
+
+.btn-left {
+  background-color: #e94560;
+  box-shadow: 0 4px 0 #b3354a;
+}
+.btn-left:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0;
+}
+
+.btn-right {
+  background-color: #4caf50;
+  box-shadow: 0 4px 0 #388e3c;
+}
+.btn-right:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0;
+}
+
+.info-footer {
+  text-align: center;
+  padding: 10px;
+  font-size: 0.9rem;
+  color: #a0aab2;
+}
+
+.end-screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 52, 96, 0.95);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  text-align: center;
+  z-index: 100;
+}
+
+#end-title {
+  font-size: 2.5rem;
+  color: #e94560;
+  margin-bottom: 20px;
+}
+
+#end-desc {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+}
+
+.end-score {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: rgba(255,255,255,0.1);
+  padding: 15px 25px;
+  border-radius: 10px;
+}

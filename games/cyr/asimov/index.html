@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asimov.IO - Redirigiendo...</title>
+</head>
+<body>
+  <script type="module">
+    import { requireAuth } from '../../../../js/common/auth.js';
+    import { getUrlParams } from '../../../../js/common/utils.js';
+    
+    requireAuth({
+      allowedRoles: ['student', 'teacher', 'admin'],
+      onAuthorized: () => {
+        const params = getUrlParams();
+        const classStr = params.classId ? `?classId=${params.classId}` : '';
+        window.location.href = `game.html${classStr}`;
+      }
+    });
+  </script>
+</body>
+</html>

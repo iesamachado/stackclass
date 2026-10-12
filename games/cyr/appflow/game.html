@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppFlow 📱 | Simulador</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="../../../css/common/layout.css">
+  <link rel="stylesheet" href="../../../css/common/components.css">
+  <link rel="stylesheet" href="css/appflow.css">
+</head>
+<body class="page">
+  <header class="main-header" style="background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="font-family: sans-serif; font-weight: bold; font-size: 1.5rem; color: var(--primary);">
+      📱 AppFlow Studio
+    </div>
+    <div>
+      <a href="index.html" class="btn btn-outline" style="font-size: 0.9rem;">🔙 Salir</a>
+    </div>
+  </header>
+
+  <main class="page-content" style="width: 100%; max-width: 1400px; margin: 0 auto; padding-top: 20px;">
+    
+    <!-- HEADER JUEGO -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;">
+      <div class="card" style="flex: 1; border-left: 4px solid var(--primary); background: #f8fbff;">
+        <div style="font-weight: bold; color: var(--text-secondary); margin-bottom: 5px; font-size: 0.85rem;">📝 REQUERIMIENTO DEL CLIENTE (<span id="level-display">Nivel 1</span>/5)</div>
+        <div id="ticket-text" style="font-size: 1.1rem; line-height: 1.4;">
+          Cargando nivel...
+        </div>
+      </div>
+      
+      <div class="card" style="display: flex; gap: 30px; font-weight: bold; background: var(--bg-card); align-items: center;">
+        <div>⏱️ Tiempo: <span id="timer-display" style="color: var(--accent);">03:00</span></div>
+        <div>🎯 Puntos: <span id="score-display" style="color: var(--success);">0</span></div>
+        <button id="btn-compile" class="btn btn-primary">⚡ Compilar</button>
+      </div>
+    </div>
+
+    <div class="taller-layout" id="game-area">
+      <!-- INVENTARIO -->
+      <aside class="inventario">
+        <h3 style="font-size: 1rem; color: #ff9800; border-bottom: 2px solid #ff9800; padding-bottom: 5px; margin-bottom: 10px;">🔌 Sensores/Inputs</h3>
+        <div id="inventory-sensors"></div>
+        
+        <h3 style="font-size: 1rem; color: #2196f3; border-bottom: 2px solid #2196f3; padding-bottom: 5px; margin-top: 20px; margin-bottom: 10px;">⚡ Eventos</h3>
+        <div id="inventory-events"></div>
+
+        <h3 style="font-size: 1rem; color: #9c27b0; border-bottom: 2px solid #9c27b0; padding-bottom: 5px; margin-top: 20px; margin-bottom: 10px;">🧠 Condiciones</h3>
+        <div id="inventory-logic"></div>
+        
+        <h3 style="font-size: 1rem; color: #4caf50; border-bottom: 2px solid #4caf50; padding-bottom: 5px; margin-top: 20px; margin-bottom: 10px;">🚀 Acciones</h3>
+        <div id="inventory-actions"></div>
+      </aside>
+
+      <!-- MESA DE TRABAJO -->
+      <section class="mesa-trabajo">
+        <h2 style="color: var(--text-secondary); margin-bottom: 10px;">Lógica de la App</h2>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Arrastra los bloques desde el inventario a las casillas.</p>
+        
+        <div class="flow-container" id="flow-container">
+          <!-- Inyectado dinámicamente -->
+        </div>
+        
+        <div style="margin-top: 40px;">
+          <button id="btn-clear" class="btn btn-outline">🗑️ Limpiar Bloques</button>
+        </div>
+      </section>
+
+      <!-- SIMULADOR -->
+      <aside class="diagnostico">
+        <h3 style="text-align: center; margin-bottom: 15px; color: var(--text-secondary);">📱 Simulador</h3>
+        <div class="mobile-simulator" id="mobile-sim">
+          <div class="mobile-notch"></div>
+          <div class="mobile-screen">
+            <div id="app-feedback" class="app-feedback">
+              Esperando compilación...
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  </main>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

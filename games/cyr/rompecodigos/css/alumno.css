@@ -1,0 +1,201 @@
+/* ===================================================
+   alumno.css — Student Lobby
+   =================================================== */
+
+.main-content {
+  padding: var(--space-2xl) 0 var(--space-3xl);
+}
+
+/* ─── Step Card ──────────────────────────────────── */
+.step-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: var(--space-2xl) 0;
+}
+
+.step-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.step-icon {
+  font-size: 3.5rem;
+  margin-bottom: var(--space-sm);
+}
+
+.waiting-pulse {
+  animation: emojipulse 2s ease-in-out infinite;
+}
+
+@keyframes emojipulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+
+.step-header h1 {
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+}
+
+/* ─── Code Input ─────────────────────────────────── */
+.code-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.code-input-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.code-input {
+  font-family: var(--font-head) !important;
+  font-size: 1.5rem !important;
+  letter-spacing: 0.3em !important;
+  text-align: center;
+  text-transform: uppercase;
+  flex: 1;
+  background: var(--bg-surface2) !important;
+  border: 2px solid var(--border) !important;
+  padding: 1rem !important;
+  color: var(--primary) !important;
+}
+
+.code-input:focus {
+  border-color: var(--secondary) !important;
+  box-shadow: 0 0 0 3px var(--secondary-dim) !important;
+}
+
+.input-hint {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ─── Sala Info ──────────────────────────────────── */
+.sala-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.sala-info-header {
+  margin-bottom: var(--space-sm);
+}
+
+.sala-detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.9rem;
+}
+
+.sala-detail:last-child { border-bottom: none; }
+
+.sala-label { color: var(--text-muted); }
+.sala-value { font-weight: 600; color: var(--text); }
+.font-mono  { font-family: var(--font-mono); }
+.font-bold  { font-weight: 700; }
+
+/* ─── Team Setup ─────────────────────────────────── */
+.team-setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* ─── Waiting Room ───────────────────────────────── */
+.waiting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.waiting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.waiting-row:last-child { border-bottom: none; }
+
+/* ─── Equipos Waiting ────────────────────────────── */
+.equipos-waiting-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.equipos-waiting-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.equipo-waiting-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  animation: slideIn 200ms ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.equipo-waiting-item.my-team {
+  border-color: rgba(123, 47, 255, 0.4);
+  background: var(--secondary-dim);
+}
+
+.equipo-waiting-nombre {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.equipo-waiting-badge { flex-shrink: 0; }
+
+/* ─── Pulse Animation ────────────────────────────── */
+.waiting-animation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 80px;
+}
+
+.pulse-ring {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--secondary);
+  border-radius: 50%;
+  animation: pulsering 2s ease-out infinite;
+  opacity: 0;
+}
+
+@keyframes pulsering {
+  0%   { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(3);   opacity: 0;   }
+}
+
+/* ─── Responsive ─────────────────────────────────── */
+@media (max-width: 480px) {
+  .code-input-row { flex-direction: column; }
+  .step-header h1 { font-size: 1.8rem; }
+}

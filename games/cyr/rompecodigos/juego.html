@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Misión en Curso — Código: Rompehielos</title>
+  <meta name="description" content="Agente Analista: descifra el mensaje usando análisis de frecuencias y sustitución.">
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+  <link rel="stylesheet" href="../../../css/common/reset.css">
+  <link rel="stylesheet" href="../../../css/common/design-system.css">
+  <link rel="stylesheet" href="../../../css/common/layout.css">
+  <link rel="stylesheet" href="../../../css/common/components.css">
+  <link rel="stylesheet" href="css/rompecodigos-base.css">
+  <link rel="stylesheet" href="css/juego.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div id="app-header"></div>
+
+  <!-- TOP HUD -->
+  <div class="hud-bar" id="hud-bar">
+    <div class="hud-brand">
+      <img src="img/logo.png" alt="Logo" height="24">
+      <span>AGENTE ANALISTA</span>
+    </div>
+    <div class="hud-center">
+      <div class="hud-ronda">
+        <span class="hud-label">RONDA</span>
+        <span class="hud-val" id="hud-ronda">—</span>
+      </div>
+      <div class="hud-timer-wrap">
+        <div id="hud-timer" class="hud-timer timer-display">--:--</div>
+        <div class="hud-timer-label">tiempo</div>
+      </div>
+      <div class="hud-equipo">
+        <span class="hud-label">EQUIPO</span>
+        <span class="hud-val text-secondary" id="hud-equipo">—</span>
+      </div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-puntos">
+        <span class="hud-label">PUNTOS</span>
+        <span class="hud-val text-accent" id="hud-puntos">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GAME LAYOUT -->
+  <main class="game-layout">
+
+    <!-- ── COLUMNA IZQUIERDA: Texto ── -->
+    <aside class="panel panel-texto">
+
+      <!-- Cifrado -->
+      <div class="panel-section">
+        <div class="section-title">📦 Agente Mensaje — Texto Cifrado</div>
+        <div class="texto-cifrado-display scanlines" id="texto-cifrado-display">
+          <div class="texto-cifrado-inner" id="texto-cifrado">
+            <!-- letras clickables -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Descifrado (preview) -->
+      <div class="panel-section">
+        <div class="section-title">🔓 Descifrado (Preview)</div>
+        <div class="texto-descifrado-display" id="texto-descifrado-display">
+          <div id="texto-descifrado" class="texto-descifrado-inner">
+            — escribe sustituciones para ver el preview
+          </div>
+        </div>
+      </div>
+
+      <!-- Pistas -->
+      <div class="panel-section" id="pistas-section">
+        <div class="section-title">💡 Pistas Recibidas</div>
+        <div id="pistas-list" class="pistas-list">
+          <div class="text-muted" style="font-size:0.8rem">Sin pistas todavía</div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ── COLUMNA CENTRAL: Análisis ── -->
+    <section class="panel panel-analisis">
+
+      <!-- Frecuencias chart -->
+      <div class="panel-section">
+        <div class="section-title-row">
+          <div class="section-title">📊 Análisis de Frecuencias</div>
+          <button id="btn-sugerir" class="btn btn-ghost btn-sm">
+            ✨ Sugerir
+          </button>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="freq-chart"></canvas>
+        </div>
+        <p class="chart-hint">Las barras azules son tu texto. Las líneas verdes son el español estándar.</p>
+      </div>
+
+      <!-- Sustitution keyboard -->
+      <div class="panel-section">
+        <div class="section-title-row">
+          <div class="section-title">⌨️ Teclado de Sustitución</div>
+          <button id="btn-reset-sust" class="btn btn-ghost btn-sm">⟳ Resetear</button>
+        </div>
+        <div id="sust-keyboard" class="sust-keyboard">
+          <!-- generado por JS -->
+        </div>
+        <div id="palabras-cortas-juego" style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);"></div>
+      </div>
+
+      <!-- Caesar test -->
+      <div class="panel-section">
+        <div class="section-title">🔢 Probar Desplazamiento César</div>
+        <div class="cesar-tester">
+          <input
+            type="range"
+            id="cesar-slider"
+            min="0"
+            max="25"
+            value="0"
+            class="cesar-slider"
+          >
+          <div class="cesar-info">
+            <span class="text-muted" style="font-size:0.8rem">Desplazamiento:</span>
+            <span id="cesar-val" class="text-primary font-bold">0</span>
+          </div>
+          <div id="cesar-preview" class="cesar-preview text-mono"></div>
+          <div id="cesar-suggestions" style="margin-top:6px;"></div>
+        </div>
+      </div>
+
+      <!-- Vigenère Palabra Conocida -->
+      <div class="panel-section" style="margin-top:12px;">
+        <div class="section-title" style="font-size:0.75rem;">🛡️ Probar Clave Vigenère</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; gap:4px;">
+            <input type="text" id="vigenere-known-juego" placeholder="Palabra que buscar..." maxlength="10"
+                   style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(0,212,255,0.2);
+                          color:rgba(0,212,255,0.9); font-family:'JetBrains Mono',monospace; font-size:0.78rem;
+                          padding:4px 8px; border-radius:4px; text-transform:uppercase;">
+            <button id="btn-known-juego" style="background:rgba(0,212,255,0.1); border:1px solid rgba(0,212,255,0.25);
+                    color:rgba(0,212,255,0.9); font-size:0.72rem; padding:4px 8px; border-radius:4px; cursor:pointer;">
+              🔍
+            </button>
+          </div>
+          <div id="vigenere-known-result-juego" style="font-size:0.78rem;"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── COLUMNA DERECHA: Acción ── -->
+    <aside class="panel panel-accion">
+
+      <!-- Submit solution -->
+      <div class="panel-section">
+        <div class="section-title">🎯 Enviar Solución</div>
+        <div class="submit-area">
+          <div id="puntos-preview" style="font-size:0.78rem; font-family:'JetBrains Mono',monospace; margin-bottom:6px; font-weight:700;">—</div>
+          <textarea
+            id="input-solucion"
+            class="form-input solucion-input"
+            placeholder="Escribe el mensaje descifrado..."
+            rows="3"
+            spellcheck="false"
+          ></textarea>
+          <button id="btn-enviar-solucion" class="btn btn-accent btn-lg w-full">
+            🚀 Enviar
+          </button>
+          <p id="submit-feedback" class="submit-feedback hidden"></p>
+        </div>
+      </div>
+
+      <!-- Historial de intentos -->
+      <div class="panel-section">
+        <div class="section-title">📋 Historial de Intentos</div>
+        <div id="historial-list" class="historial-list">
+          <div class="text-muted" style="font-size:0.78rem; text-align:center">Sin intentos todavía</div>
+        </div>
+      </div>
+
+      <!-- Marcador -->
+      <div class="panel-section">
+        <div class="section-title">🏆 Marcador</div>
+        <div id="marcador-live" class="marcador-live">
+          <!-- se rellena con JS -->
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- Ronda Finalizada Overlay -->
+  <div id="ronda-overlay" class="ronda-overlay hidden">
+    <div class="ronda-overlay-inner card-glass">
+      <div id="ronda-result-icon" class="overlay-icon">🎉</div>
+      <h2 id="ronda-result-title">¡Ronda Finalizada!</h2>
+      <p id="ronda-result-msg" class="text-muted"></p>
+      <div id="ronda-solucion-box" class="solucion-box hidden">
+        <div class="solucion-label">Solución</div>
+        <div id="ronda-solucion-text" class="solucion-text"></div>
+      </div>
+      <p class="overlay-waiting">Esperando a que el profesor inicie la siguiente ronda...</p>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/cifrado.js"></script>
+  <script type="module" src="js/juego.js"></script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RompeCódigos - ClassHub</title>
+    <meta name="description" content="Juego de criptografía y ciberseguridad. Modo Práctica individual y Modo Sala multijugador para clases.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Common styles -->
+    <link rel="stylesheet" href="../../../css/common/reset.css">
+    <link rel="stylesheet" href="../../../css/common/design-system.css">
+    <link rel="stylesheet" href="../../../css/common/layout.css">
+    <link rel="stylesheet" href="../../../css/common/components.css">
+    <!-- Game specific styles -->
+    <link rel="stylesheet" href="css/rompecodigos-base.css">
+    <link rel="stylesheet" href="css/alumno.css">
+    <style>
+        .hero-banner {
+            text-align: center;
+            padding: var(--space-8) var(--space-4) var(--space-6);
+            position: relative;
+            z-index: 2;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(0, 229, 255, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 999px;
+            color: var(--primary);
+            font-family: var(--font-head);
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--space-4);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+        }
+        .hero-title {
+            font-family: var(--font-head);
+            font-size: clamp(2.2rem, 6vw, 3.8rem);
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary) 60%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+            margin-bottom: var(--space-3);
+        }
+        .hero-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 650px;
+            margin: 0 auto var(--space-8);
+            line-height: 1.6;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-6);
+            max-width: 1100px;
+            margin: 0 auto var(--space-8);
+            position: relative;
+            z-index: 2;
+            text-align: left;
+        }
+        .cyber-panel {
+            background: rgba(11, 20, 38, 0.85);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .cyber-panel.highlight {
+            border-color: rgba(0, 229, 255, 0.4);
+            background: linear-gradient(180deg, rgba(0, 229, 255, 0.05) 0%, rgba(11, 20, 38, 0.9) 100%);
+        }
+        .cyber-panel:hover {
+            border-color: var(--primary);
+            box-shadow: 0 12px 40px rgba(0, 229, 255, 0.18);
+            transform: translateY(-4px);
+        }
+        .panel-header-icon {
+            font-size: 2.2rem;
+            margin-bottom: var(--space-3);
+        }
+        .panel-badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: var(--space-2);
+        }
+        .panel-title {
+            font-family: var(--font-head);
+            font-size: 1.3rem;
+            color: var(--text-bright);
+            margin-bottom: var(--space-2);
+        }
+        .panel-desc {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: var(--space-5);
+            flex-grow: 1;
+        }
+        .code-form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+        .features-section {
+            max-width: 1000px;
+            margin: var(--space-8) auto 0;
+            padding: var(--space-6);
+            border-top: 1px solid var(--border);
+            position: relative;
+            z-index: 2;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-top: var(--space-4);
+        }
+        .feature-item {
+            text-align: center;
+            padding: var(--space-4);
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+        .feature-icon {
+            font-size: 1.8rem;
+            margin-bottom: var(--space-2);
+        }
+        .feature-title {
+            font-family: var(--font-head);
+            font-size: 0.95rem;
+            color: var(--text-bright);
+            margin-bottom: 4px;
+        }
+        .feature-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body class="theme-rompecodigos">
+    <canvas id="particles-canvas" class="particles-bg"></canvas>
+    <div id="app-header"></div>
+
+    <main class="container" style="min-height: calc(100vh - var(--navbar-height, 64px)); padding-top: calc(var(--navbar-height, 64px) + var(--space-4));">
+        <div class="hero-banner">
+            <div class="hero-badge">
+                <span>🔐</span> CYBERSECURITY & CRYPTOGRAPHY
+            </div>
+            <h1 class="hero-title glitch-text" data-text="ROMPECÓDIGOS">ROMPECÓDIGOS</h1>
+            <p class="hero-subtitle">
+                Descifra mensajes encriptados, supera retos de criptoanálisis por frecuencias y compite en misiones de equipo en tiempo real.
+            </p>
+
+            <div class="cards-grid">
+                <!-- 1. MODO PRÁCTICA Y LABORATORIO (MONOJUGADOR) -->
+                <div class="cyber-panel highlight">
+                    <div>
+                        <div class="panel-header-icon">🎓</div>
+                        <span class="panel-badge badge-primary">Academia & Lab</span>
+                        <h2 class="panel-title">Academia y Laboratorio</h2>
+                        <p class="panel-desc">Aprende con <strong>demos interactivas paso a paso</strong> de cada cifrado (César, Frecuencias, Vigenère y Transposición), supera 5 misiones guiadas o prueba el <strong>laboratorio libre</strong> con detector automático.</p>
+                    </div>
+                    <div>
+                        <a href="practica.html" class="btn btn-primary btn-lg w-full" style="text-align: center; display: block; box-sizing: border-box;">
+                            ▶ Entrar a la Academia y Lab
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 2. MODO SALA (ALUMNO) -->
+                <div class="cyber-panel">
+                    <div>
+                        <div class="panel-header-icon">👥</div>
+                        <span class="panel-badge badge-secondary">Multijugador</span>
+                        <h2 class="panel-title">Unirse a una Sala</h2>
+                        <p class="panel-desc">Introduce el código PIN de 6 caracteres que te ha proporcionado tu profesor para competir en equipo en una sesión en vivo.</p>
+                    </div>
+                    <form id="form-unirse" class="code-form">
+                        <input type="text" id="input-codigo" class="code-input" placeholder="CÓDIGO (EJ: ABCD12)" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false" required style="width: 100%; box-sizing: border-box; text-align: center; font-family: var(--font-mono); font-size: 1.15rem; letter-spacing: 0.2em; text-transform: uppercase;">
+                        <button type="submit" class="btn btn-accent btn-lg w-full">
+                            🚀 Conectar a la Sala
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 3. MODO SALA (PROFESOR) -->
+                <div class="cyber-panel" id="teacher-section" style="display: none;">
+                    <div>
+                        <div class="panel-header-icon">🧑‍🏫</div>
+                        <span class="panel-badge badge-accent">Docentes</span>
+                        <h2 class="panel-title">Panel del Profesor</h2>
+                        <p class="panel-desc">Crea una sala en vivo para la clase, selecciona rondas y dificultad, proyecta el marcador y gestiona pistas en tiempo real.</p>
+                    </div>
+                    <div>
+                        <button id="btn-crear-sala" class="btn btn-secondary btn-lg w-full" style="width: 100%;">
+                            ⚡ Crear Sala de Misión
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <section class="features-section">
+                <h3 style="font-family: var(--font-head); color: var(--text-muted); font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: var(--space-3); text-align: center;">Técnicas de Criptografía Incluidas</h3>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon">🏛️</div>
+                        <div class="feature-title">César & ROT13</div>
+                        <div class="feature-text">Desplazamiento modular de posiciones del alfabeto</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Análisis de Frecuencias</div>
+                        <div class="feature-text">Estadística de distribución de letras en español</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">⌨️</div>
+                        <div class="feature-title">Sustitución Manual</div>
+                        <div class="feature-text">Mapeo interactivo y deducción de patrones</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🛡️</div>
+                        <div class="feature-title">Cifrado Vigenère</div>
+                        <div class="feature-text">Cifrado polialfabético con claves secretas</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script type="module" src="js/index.js"></script>
+</body>
+</html>

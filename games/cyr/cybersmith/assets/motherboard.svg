@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <!-- Base board -->
+  <rect x="100" y="50" width="650" height="500" fill="#1a3622" stroke="#39ff14" stroke-width="4" rx="10" />
+  
+  <!-- IO Shield / Panel Trasero -->
+  <rect x="80" y="100" width="40" height="250" fill="#777" rx="2" />
+  <!-- Puertos IO (Visuales) -->
+  <rect x="80" y="120" width="40" height="40" fill="#333" stroke="#ff00ff" stroke-width="2" /> <!-- Teclado PS2/USB -->
+  <text x="50" y="145" fill="#ff00ff" font-family="monospace" font-size="12">TECLADO</text>
+  
+  <rect x="80" y="170" width="40" height="40" fill="#333" stroke="#00ffff" stroke-width="2" /> <!-- Raton -->
+  <text x="60" y="195" fill="#00ffff" font-family="monospace" font-size="12">RATÓN</text>
+  
+  <rect x="80" y="230" width="40" height="50" fill="#333" stroke="#ffff00" stroke-width="2" /> <!-- Monitor Display -->
+  <text x="50" y="260" fill="#ffff00" font-family="monospace" font-size="12">MONITOR</text>
+  
+  <!-- CPU Socket area -->
+  <rect x="250" y="150" width="150" height="150" fill="#2a2a2a" stroke="#888" stroke-width="2" />
+  <rect x="260" y="160" width="130" height="130" fill="none" stroke="#ccc" stroke-dasharray="4" />
+  <text x="325" y="235" fill="#888" font-family="monospace" font-size="20" text-anchor="middle">CPU SOCKET</text>
+  
+  <!-- RAM Slots -->
+  <rect x="450" y="120" width="20" height="200" fill="#333" stroke="#ffeb3b" stroke-width="2" />
+  <rect x="490" y="120" width="20" height="200" fill="#333" stroke="#ffeb3b" stroke-width="2" />
+  <text x="460" y="100" fill="#ffeb3b" font-family="monospace" font-size="14" text-anchor="middle">DIMM1</text>
+  <text x="500" y="100" fill="#ffeb3b" font-family="monospace" font-size="14" text-anchor="middle">DIMM2</text>
+
+  <!-- PCIe / GPU Slot -->
+  <rect x="150" y="400" width="300" height="30" fill="#333" stroke="#00e5ff" stroke-width="2" />
+  <text x="300" y="420" fill="#00e5ff" font-family="monospace" font-size="14" text-anchor="middle">PCIe x16 (GPU)</text>
+
+  <!-- SATA / HDD Ports -->
+  <rect x="650" y="400" width="50" height="30" fill="#333" stroke="#ff4444" stroke-width="2" />
+  <rect x="650" y="450" width="50" height="30" fill="#333" stroke="#ff4444" stroke-width="2" />
+  <text x="675" y="385" fill="#ff4444" font-family="monospace" font-size="14" text-anchor="middle">SATA1</text>
+  <text x="675" y="495" fill="#ff4444" font-family="monospace" font-size="14" text-anchor="middle">SATA2</text>
+
+  <!-- ATX Power -->
+  <rect x="680" y="150" width="40" height="120" fill="#333" stroke="#ffffff" stroke-width="2" />
+  <text x="700" y="130" fill="#fff" font-family="monospace" font-size="14" text-anchor="middle">ATX_PWR</text>
+
+  <!-- Decorative Circuits -->
+  <path d="M 120 200 L 200 200 L 250 150" fill="none" stroke="#39ff14" stroke-width="2" />
+  <path d="M 550 200 L 600 200 L 620 250 L 680 250" fill="none" stroke="#39ff14" stroke-width="2" />
+  <path d="M 150 300 L 200 300 L 250 250" fill="none" stroke="#39ff14" stroke-width="2" />
+</svg>
