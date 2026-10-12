@@ -350,3 +350,27 @@ GROUP BY student_id, topic_id, subject_id;
 ALTER PUBLICATION supabase_realtime ADD TABLE live_sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE live_participants;
 ALTER PUBLICATION supabase_realtime ADD TABLE arena_bots;
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- SUPABASE STORAGE: BUCKET PUBLICO assets
+-- ═══════════════════════════════════════════════════════════════════════
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('assets', 'assets', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'assets_public_read'
+  ) THEN
+    CREATE POLICY "assets_public_read" ON storage.objects
+      FOR SELECT USING (bucket_id = 'assets');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'assets_insert_all'
+  ) THEN
+    CREATE POLICY "assets_insert_all" ON storage.objects
+      FOR INSERT WITH CHECK (bucket_id = 'assets');
+  END IF;
+END $$;
