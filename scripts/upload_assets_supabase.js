@@ -63,7 +63,7 @@ async function run() {
     await supabase.storage.createBucket("assets", { public: true });
   }
 
-  const imgDir = path.resolve(__dirname, "../../img");
+  const imgDir = path.resolve(__dirname, "../img");
   await uploadFolder(imgDir);
 
   console.log("🎉 Todas las imágenes se han subido a Supabase Storage!");
