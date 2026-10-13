@@ -2,7 +2,7 @@
 // juego.js — Agente Analista: Game Logic
 // ============================================================
 
-import { requireAuth } from '../../../../../js/common/auth.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
 import { db, doc, collection, getDoc, updateDoc, addDoc, onSnapshot, serverTimestamp, increment, query, orderBy } from '../../../../../js/common/firebase-config.js';
 import { renderHeader, showToast, initParticles } from '../../../../../js/common/ui.js';
 
@@ -29,7 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
   requireAuth({
     allowedRoles: ['teacher', 'student'],
     onAuthorized: async (user, profile) => {
-
+      if (profile.role === 'student') {
+        const allowed = await incrementDigitalWellbeing(user.id, 'game', 'rompecodigos');
+        if (!allowed) return;
+      }
       renderHeader(user, profile);
       initJuego(user);
     }
@@ -725,14 +728,14 @@ function renderPalabrasCortasJuego() {
     <div style="font-size:0.72rem; color:rgba(0,212,255,0.6); margin-bottom:6px;">🔎 Palabras cortas — ataca por aquí:</div>
     ${words.map(word => {
       const candidates = PALABRAS_CORTAS_ES_JUEGO[word.length] || [];
-      return \`<div style="margin-bottom:6px;">
-        <span style="font-family:'JetBrains Mono',monospace; color:rgba(0,212,255,0.9); font-weight:700; font-size:0.85rem;">\${word}</span>
+      return `<div style="margin-bottom:6px;">
+        <span style="font-family:'JetBrains Mono',monospace; color:rgba(0,212,255,0.9); font-weight:700; font-size:0.85rem;">${word}</span>
         <span style="color:rgba(255,255,255,0.25); font-size:0.7rem;"> → </span>
-        \${candidates.map(c => \`<button class="word-cand-juego" data-cipher="\${word}" data-plain="\${c}"
+        ${candidates.map(c => `<button class="word-cand-juego" data-cipher="${word}" data-plain="${c}"
                 style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
                        color:rgba(255,255,255,0.7); font-size:0.7rem; padding:2px 6px;
-                       border-radius:3px; cursor:pointer; margin:1px; font-family:'JetBrains Mono',monospace;">\${c}</button>\`).join('')}
-      </div>\`;
+                       border-radius:3px; cursor:pointer; margin:1px; font-family:'JetBrains Mono',monospace;">${c}</button>`).join('')}
+      </div>`;
     }).join('')}
   `;
 
@@ -744,7 +747,7 @@ function renderPalabrasCortasJuego() {
         const cChar = cipher[i];
         const pChar = plain[i];
         state.tablaSustitucion[cChar] = pChar;
-        const input = document.querySelector(\`.sust-key-input[data-source="\${cChar}"]\`);
+        const input = document.querySelector(`.sust-key-input[data-source="${cChar}"]`);
         if (input) { input.value = pChar; input.classList.add('filled'); }
       }
       updatePreviewDescifrado();
@@ -764,19 +767,19 @@ function initVigenereKnownPlaintextJuego() {
     if (!word) return;
     const results = knownPlaintextVigenere(state.textoCifrado, word);
     if (!results.length) {
-      result.innerHTML = \`<span style="color:rgba(255,255,255,0.3); font-size:0.72rem;">No encontrado en este texto.</span>\`;
+      result.innerHTML = `<span style="color:rgba(255,255,255,0.3); font-size:0.72rem;">No encontrado en este texto.</span>`;
       return;
     }
-    result.innerHTML = results.slice(0, 4).map(r => \`
+    result.innerHTML = results.slice(0, 4).map(r => `
       <div style="margin-bottom:3px;">
-        <span style="color:rgba(255,255,255,0.3); font-size:0.68rem;">pos \${r.position}:</span>
-        <button class="vig-frag-juego" data-frag="\${r.keyFragment}"
+        <span style="color:rgba(255,255,255,0.3); font-size:0.68rem;">pos ${r.position}:</span>
+        <button class="vig-frag-juego" data-frag="${r.keyFragment}"
                 style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; color:#00ff88;
                        background:rgba(0,255,136,0.08); border:1px solid rgba(0,255,136,0.2);
                        padding:2px 8px; border-radius:3px; cursor:pointer; font-weight:700;">
-          \${r.keyFragment}
+          ${r.keyFragment}
         </button>
-      </div>\`).join('');
+      </div>`).join('');
 
     result.querySelectorAll('.vig-frag-juego').forEach(b => {
       b.addEventListener('click', () => {
@@ -791,7 +794,7 @@ function initVigenereKnownPlaintextJuego() {
         }
         updatePreviewDescifrado();
         renderTextoCifrado();
-        showToast(\`Clave "\${frag}" aplicada como Vigenère\`, 'info');
+        showToast(`Clave "${frag}" aplicada como Vigenère`, 'info');
         guardarSustitucionEnFirestore();
       });
     });
@@ -806,7 +809,7 @@ function updatePuntosPreview(remaining) {
   else if (remaining > 120) pts = 100;
   else if (remaining > 60) pts = 75;
   else pts = 50;
-  el.textContent = \`Si lo resuelves ahora: +\${pts} pts\`;
+  el.textContent = `Si lo resuelves ahora: +${pts} pts`;
   el.style.color = remaining > 120 ? '#00ff88' : remaining > 60 ? '#ffcc00' : '#ff4466';
 }
 

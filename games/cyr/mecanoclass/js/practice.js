@@ -26,13 +26,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (!currentClassId && classId) {
-                currentClassId = classId;
+                currentClassId = (typeof classId === 'object' && classId?.id) ? classId.id : classId;
             }
 
-            if (currentClassId && (profile.role === 'teacher' || profile.role === 'admin' || isAdmin(user, profile))) {
+            if (currentClassId && (profile.role === 'teacher' || isAdmin(user, profile))) {
                 try {
                     const cls = await getClass(currentClassId);
-                    if (cls && (cls.teacherId === user.uid || profile.role === 'admin' || isAdmin(user, profile))) {
+                    if (cls && (cls.teacherId === user.uid || isAdmin(user, profile))) {
                         const btnCreate = document.getElementById('btnCreateLive');
                         if (btnCreate) btnCreate.style.display = 'inline-flex';
                     }
@@ -180,7 +180,7 @@ async function saveAndExit() {
                 ? Math.round((engine.endTime - engine.startTime) / 1000)
                 : null;
 
-            await saveGameResult('mecanoclass', currentUser.uid, currentClassId, engine.finalStats.wpm, {
+            const savedRes = await saveGameResult('mecanoclass', currentUser.uid, currentClassId, engine.finalStats.wpm, {
                 wpm: engine.finalStats.wpm,
                 accuracy: engine.finalStats.accuracy,
                 duration: duration,
@@ -188,10 +188,12 @@ async function saveAndExit() {
             });
             showToast("¡Resultado guardado correctamente!", 'success');
 
-            if (currentClassId) {
+            const hasClass = currentClassId || savedRes?.class_id;
+            if (hasClass) {
                 showToast("Guardado con éxito. Redirigiendo...", 'success');
                 setTimeout(() => {
-                    window.location.href = '../../../dashboard_student.html';
+                    const isStaff = currentUser && (currentUser.role === 'teacher' || currentUser.is_superadmin);
+                    window.location.href = isStaff ? '../../../dashboard_teacher.html' : '../../../dashboard_student.html';
                 }, 1500);
             } else {
                 window.history.back();

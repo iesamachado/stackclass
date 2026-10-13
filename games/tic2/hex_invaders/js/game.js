@@ -1,7 +1,6 @@
-import { requireAuth } from "../../../../../js/common/auth.js";
+import { requireAuth, incrementDigitalWellbeing } from "../../../../../js/common/auth.js";
 import { showToast } from '../../../../../js/common/ui.js';
 import { saveGameResult } from "../../../../../js/common/db.js";
-import { addPointsAndCheckLogros, awardMedal } from "../../../../../js/common/gamification.js";
 
 const GAME_ID = 'hex_invaders';
 let currentUser = null;
@@ -26,10 +25,21 @@ const ui = {
 };
 
 // Auth
+let isGameAllowed = false;
 requireAuth({
-  allowedRoles: ['student', 'teacher', 'admin'],
-  onAuthorized: (user, profile) => {
+  allowedRoles: ['student', 'teacher'],
+  onAuthorized: async (user, profile) => {
     currentUser = user;
+    const btnStart = document.getElementById('btn-start');
+    if (profile.role === 'student') {
+      const allowed = await incrementDigitalWellbeing(user.id, 'game', GAME_ID);
+      if (!allowed) {
+        if (btnStart) { btnStart.disabled = true; btnStart.style.opacity = '0.3'; }
+        return;
+      }
+    }
+    isGameAllowed = true;
+    if (btnStart) btnStart.onclick = startGame;
     if (document.getElementById('auth-warning')) {
       document.getElementById('auth-warning').style.display = 'none';
     }
@@ -59,6 +69,7 @@ function getRandomHex() {
 }
 
 function startGame() {
+  if (!isGameAllowed) return;
   score = 0;
   lives = 3;
   isPlaying = true;
@@ -222,14 +233,6 @@ async function endGame() {
   if (currentUser) {
     try {
       await saveGameResult(GAME_ID, currentUser.uid, classId, score);
-      
-      const result = await addPointsAndCheckLogros(currentUser.uid, score, null, 'tic2_users');
-      await awardMedal(currentUser.uid, 'first_blood', 'tic2_users');
-      
-      if (result.leagueUp) {
-        showToast('¡Nueva Liga Desbloqueada!', `¡Has ascendido a la ${result.newLeague.name} ${result.newLeague.icon}!`, 'success', 5000);
-      }
-      
       console.log('Puntuación Hex Invaders guardada.');
     } catch (e) {
       console.error('Error al guardar puntuación:', e);
@@ -238,5 +241,4 @@ async function endGame() {
 }
 
 // Botones
-document.getElementById('btn-start').onclick = startGame;
 document.getElementById('btn-restart').onclick = () => window.location.reload();

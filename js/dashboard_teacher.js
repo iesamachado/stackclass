@@ -2,32 +2,38 @@
 //  CLASSHUB — dashboard_teacher.js
 // ═══════════════════════════════════════════════════════════════════════
 
-import { requireAuth, currentUser, currentProfile, classroomToken, refreshClassroomToken, updateUserProfileData } from './common/auth.js';
+import { requireAuth, currentUser, currentProfile, classroomToken, refreshClassroomToken, updateUserProfileData, isAdmin } from './common/auth.js';
 import { getTeacherClasses, createClass, getClassMembers, getClassResults, getStudentResults, addStudentsToClass } from './common/db.js';
 import { fetchClassroomCourses, importClassroomStudents } from './common/classroom.js';
 import { renderHeader, showToast, showModal, showLoading, hideLoading } from './common/ui.js';
-import { TOPICS, GAMES, copyToClipboard, $, escapeHtml, formatDate, getUrlParams } from './common/utils.js';
+import { COURSES, getCourseStats, copyToClipboard, $, escapeHtml, formatDate, getUrlParams } from './common/utils.js';
 
 let myClasses = [];
 
 // ── Guard de autenticación ──────────────────────────────────────
 requireAuth({
-  allowedRoles: ['teacher', 'admin'],
+  allowedRoles: ['teacher'],
   onAuthorized: async (user, profile) => {
     renderHeader(user, profile);
-    $('teacher-welcome').textContent = `Hola, ${profile.displayName || 'Docente'} 👋`;
+    const displayName = profile.display_name || profile.displayName || user.email?.split('@')[0] || 'Docente';
+    $('teacher-welcome').textContent = `Hola, ${displayName} 👋`;
+
+    if (isAdmin(user, profile)) {
+      const btnAdmin = $('btn-admin-panel');
+      if (btnAdmin) btnAdmin.style.display = 'inline-flex';
+    }
+
     await loadAll(user, profile);
     setupModals();
-    renderTeacherGameCards();
-    renderTeacherTopicCards();
-    await loadTeacherHistory(user.uid);
+    renderTeacherCourseCards();
+    await loadTeacherHistory(user.id || user.uid);
   }
 });
 
 // ── Carga principal ─────────────────────────────────────────────
 async function loadAll(user, profile) {
   try {
-    myClasses = await getTeacherClasses(user.uid);
+    myClasses = await getTeacherClasses(user.id || user.uid);
     renderClasses(myClasses);
     updateStats(myClasses);
   } catch (err) {
@@ -66,7 +72,8 @@ function renderClasses(classes) {
 }
 
 function renderClassCard(cls) {
-  const enabledGames = cls.enabledGames || [];
+  const enabledGames = cls.enabledGames || cls.enabled_games || [];
+  const members = cls.members || cls.class_members || [];
   
   return `
     <div class="class-card">
@@ -78,7 +85,7 @@ function renderClassCard(cls) {
         </button>
       </div>
       <div class="class-card-meta">
-        <span>👨‍🎓 ${(cls.members || []).length} alumnos</span>
+        <span>👨‍🎓 ${members.length} alumnos</span>
         <span>🎮 ${enabledGames.length} juegos activos</span>
       </div>
       <div class="class-card-actions">
@@ -95,8 +102,10 @@ async function updateStats(classes) {
   let totalGamesEnabled = 0;
 
   for (const cls of classes) {
-    totalStudents    += (cls.members || []).length;
-    totalGamesEnabled += (cls.enabledGames || []).length;
+    const members = cls.members || cls.class_members || [];
+    const enabledGames = cls.enabledGames || cls.enabled_games || [];
+    totalStudents    += members.length;
+    totalGamesEnabled += enabledGames.length;
   }
 
   $('stat-classes').textContent  = classes.length;
@@ -105,32 +114,42 @@ async function updateStats(classes) {
   $('stat-results').textContent  = '—'; // Se podría añadir query de game_results
 }
 
-// ── Tarjetas de juego para el docente ──────────────────────────
-function renderTeacherGameCards() {
-  const grid = $('teacher-games-grid');
+// ── Tarjetas de Cursos para el docente ──────────────────────────
+function renderTeacherCourseCards() {
+  const grid = $('teacher-courses-grid');
   if (!grid) return;
-  grid.innerHTML = Object.values(GAMES).map(g => `
-    <a class="game-card" href="${g.gamePath}" style="--game-color:${g.color}; --game-color-dark:${g.colorDark}; text-decoration: none;">
-      <div class="game-card-link" style="pointer-events: none;">
-        <div class="game-card-icon">${g.icon}</div>
-        <div class="game-card-name">${escapeHtml(g.name)}</div>
-        <div class="game-card-desc">${escapeHtml(g.description)}</div>
-      </div>
-    </a>`).join('');
-}
 
-// ── Tarjetas de Temario para el docente ──────────────────────────
-function renderTeacherTopicCards() {
-  const grid = $('teacher-topics-grid');
-  if (!grid) return;
-  grid.innerHTML = Object.values(TOPICS).map(t => `
-    <a class="game-card" href="${t.htmlPath || t.pdfPath}" target="_blank" style="--game-color:${t.color}; --game-color-dark:${t.colorDark}; text-decoration: none;">
-      <div class="game-card-link" style="pointer-events: none;">
-        <div class="game-card-icon">${t.icon}</div>
-        <div class="game-card-name">${escapeHtml(t.name)}</div>
-        <div class="game-card-desc">${escapeHtml(t.description || 'Ver temario')}</div>
-      </div>
-    </a>`).join('');
+  grid.innerHTML = Object.values(COURSES).map(c => {
+    const stats = getCourseStats(c.id);
+    return `
+      <div class="class-card" style="border-top: 4px solid ${c.color}; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <div class="class-card-header" style="margin-bottom: var(--space-2);">
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <span style="font-size: 2rem;">${c.icon}</span>
+              <div>
+                <h3 class="class-card-name" style="margin: 0; font-size: var(--text-lg);">${escapeHtml(c.name)}</h3>
+                <span class="badge" style="background: ${c.color}20; color: ${c.colorDark || c.color}; font-weight: 600; margin-top: 4px; display: inline-block;">
+                  ${escapeHtml(c.level)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: var(--space-3) 0; line-height: 1.5;">
+            ${escapeHtml(c.description)}
+          </p>
+          <div class="class-card-meta" style="margin-bottom: var(--space-4); display: flex; gap: var(--space-4); flex-wrap: wrap;">
+            <span>📚 <strong>${stats.topicsCount}</strong> bloques temáticos</span>
+            <span>🎮 <strong>${stats.gamesCount}</strong> juegos educativos</span>
+          </div>
+        </div>
+        <div class="class-card-actions" style="margin-top: var(--space-2);">
+          <a href="course_detail.html?courseId=${c.id}" class="btn btn-primary btn--sm" style="width: 100%; text-decoration: none; justify-content: center; display: inline-flex; align-items: center; gap: 6px;">
+            <span>Explorar Bloques y Juegos</span> <span>→</span>
+          </a>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ── Historial de partidas del Docente ──────────────────────────
@@ -204,7 +223,8 @@ function setupModals() {
 
     try {
       showLoading('Creando clase...');
-      const cls = await createClass(currentUser.uid, name, level);
+      const teacherId = currentUser.id || currentUser.uid;
+      const cls = await createClass(teacherId, name, level);
       
       let addedInfo = '';
       if (studentsRaw.trim()) {
@@ -217,7 +237,7 @@ function setupModals() {
       closeModalNew();
       showToast('Clase creada', `PIN: ${cls.pin}${addedInfo} — ya puedes compartirlo con tus alumnos.`, 'success', 5000);
       
-      myClasses = await getTeacherClasses(currentUser.uid);
+      myClasses = await getTeacherClasses(teacherId);
       renderClasses(myClasses);
       updateStats(myClasses);
     } catch (err) {

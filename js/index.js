@@ -9,6 +9,13 @@ import { $ } from "./common/utils.js";
 // Inicializar partículas de fondo
 initParticles("particles-canvas");
 
+// ── Comprobar mensajes de error en URL ─────────────────────────
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('error') === 'not_authorized') {
+  showError('⚠️ Tu cuenta no está autorizada. Si eres docente, debes ser invitado previamente por un administrador del centro. Si eres alumno, tu profesor debe darte de alta o facilitar el PIN de la clase.');
+  showToast('Acceso no autorizado', 'Tu cuenta no está en la lista de docentes autorizados.', 'error', 7000);
+}
+
 // ── Si ya hay sesión activa, redirigir ─────────────────────────
 setupAuthListener((user, profile) => {
   if (!user || !profile) return;

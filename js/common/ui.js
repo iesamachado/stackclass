@@ -22,7 +22,7 @@ export function renderHeader(user, profile) {
       <nav class="navbar">
         <a class="navbar-brand" href="#">
           <span class="brand-icon">🎓</span>
-          <span class="brand-name">TIC2Hub</span>
+          <span class="brand-name">StackClass</span>
         </a>
       </nav>`;
     return;
@@ -35,16 +35,36 @@ export function renderHeader(user, profile) {
     : getAppUrl('dashboard_student.html');
   const adminUrl    = getAppUrl('admin.html');
   const profileUrl  = getAppUrl('profile.html');
+  const bancoUrl    = getAppUrl('banco_preguntas.html');
+  const logrosUrl   = getAppUrl('logros.html');
 
   const badgeIcon = userIsAdmin ? '👑' : isTeacher ? '👨‍🏫' : '👨‍🎓';
   const badgeText = userIsAdmin ? 'Admin' : isTeacher ? 'Docente' : 'Alumno';
   const badgeClass = userIsAdmin ? 'user-badge--admin' : isTeacher ? 'user-badge--teacher' : 'user-badge--student';
 
+  const rawName   = profile.display_name || profile.displayName || user?.user_metadata?.full_name || user?.user_metadata?.name || profile.email?.split('@')[0] || user?.email?.split('@')[0] || 'Usuario';
+  const fullName  = escapeHtml(rawName);
+  const firstName = escapeHtml(rawName.split(' ')[0] || rawName);
+  const userEmail = escapeHtml(profile.email || user?.email || '');
+
+  const rawAvatar = profile.avatar || profile.photoURL || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || '';
+  const isEmoji   = rawAvatar && !rawAvatar.startsWith('http') && !rawAvatar.startsWith('/') && !rawAvatar.startsWith('data:');
+  const fallbackAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user?.id || profile?.id || 'usuario')}`;
+  const avatarSrc = escapeHtml(rawAvatar || fallbackAvatar);
+
+  const avatarNavHtml = isEmoji
+    ? `<div class="navbar-avatar" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;line-height:1;">${rawAvatar}</div>`
+    : `<img class="navbar-avatar" src="${avatarSrc}" alt="${fullName}" onerror="this.onerror=null;this.src='${fallbackAvatar}'">`;
+
+  const avatarDropdownHtml = isEmoji
+    ? `<div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:var(--bg-surface);border:1px solid var(--border);">${rawAvatar}</div>`
+    : `<img src="${avatarSrc}" alt="Avatar" onerror="this.onerror=null;this.src='${fallbackAvatar}'">`;
+
   header.innerHTML = `
     <nav class="navbar">
       <a class="navbar-brand" href="${dashUrl}">
         <span class="brand-icon">🎓</span>
-        <span class="brand-name">TIC2Hub</span>
+        <span class="brand-name">StackClass</span>
       </a>
 
       <div class="navbar-center" id="navbar-breadcrumb"></div>
@@ -62,21 +82,17 @@ export function renderHeader(user, profile) {
           </div>
         `}
         <div class="navbar-avatar-wrapper" id="user-menu-trigger">
-          <img class="navbar-avatar" 
-               src="${escapeHtml(profile.photoURL || '')}" 
-               alt="${escapeHtml(profile.displayName || 'Usuario')}"
-               onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${escapeHtml(user.uid)}'">
-          <span class="navbar-username">${escapeHtml((profile.displayName || 'Usuario').split(' ')[0])}</span>
+          ${avatarNavHtml}
+          <span class="navbar-username">${firstName}</span>
           <span class="navbar-caret">▾</span>
         </div>
 
         <div class="user-dropdown" id="user-dropdown" aria-hidden="true">
           <div class="user-dropdown-info">
-            <img src="${escapeHtml(profile.photoURL || '')}" alt="Avatar"
-                 onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${escapeHtml(user.uid)}'">
+            ${avatarDropdownHtml}
             <div>
-              <strong>${escapeHtml(profile.displayName || 'Usuario')}</strong>
-              <small>${escapeHtml(profile.email || '')}</small>
+              <strong>${fullName}</strong>
+              <small>${userEmail}</small>
             </div>
           </div>
 
@@ -84,8 +100,8 @@ export function renderHeader(user, profile) {
           <a class="dropdown-item" href="${dashUrl}">🏠 Mi Dashboard</a>
           ${userIsAdmin ? `<a class="dropdown-item" href="${adminUrl}">⚙️ Panel de Administración</a>` : ''}
           <a class="dropdown-item" href="${profileUrl}">👤 Mi Perfil</a>
-          ${isTeacher ? `<a class="dropdown-item" href="${getAppUrl('banco_preguntas.html')}">📝 Banco de Preguntas</a>` : ''}
-          ${profile.role === 'student' ? `<a class="dropdown-item" href="${getAppUrl('logros.html')}">🏆 Mis Logros</a>` : ''}
+          ${isTeacher ? `<a class="dropdown-item" href="${bancoUrl}">📝 Banco de Preguntas</a>` : ''}
+          ${profile.role === 'student' ? `<a class="dropdown-item" href="${logrosUrl}">🏆 Mis Logros</a>` : ''}
           <button class="dropdown-item dropdown-item--danger" id="btn-logout">🚪 Cerrar sesión</button>
         </div>
       </div>
@@ -162,10 +178,10 @@ export function showToast(title, message = '', type = 'info', duration = 3500) {
 // ══════════════════════════════════════════════════════════════════
 
 export function showModal(arg1, arg2, arg3, arg4) {
-  let title, body, confirmText, cancelText, onConfirm, dangerous, hideCancel;
+  let title, body, confirmText, cancelText, onConfirm, dangerous, hideCancel, className;
   
   if (typeof arg1 === 'object' && arg1 !== null) {
-    ({ title, body, confirmText = 'Confirmar', cancelText = 'Cancelar', onConfirm, dangerous = false, hideCancel = false } = arg1);
+    ({ title, body, confirmText = 'Confirmar', cancelText = 'Cancelar', onConfirm, dangerous = false, hideCancel = false, className = '' } = arg1);
   } else {
     title = arg1;
     body = arg2;
@@ -175,15 +191,16 @@ export function showModal(arg1, arg2, arg3, arg4) {
     cancelText = opts.cancelText || 'Cancelar';
     dangerous = opts.dangerous || false;
     hideCancel = opts.hideCancel || false;
+    className = opts.className || '';
   }
   // Eliminar modal previo si existe
   document.getElementById('tic2hub-modal')?.remove();
 
   const modal = document.createElement('div');
   modal.id    = 'tic2hub-modal';
-  modal.className = 'modal-backdrop';
+  modal.className = `modal-backdrop ${className}`.trim();
   modal.innerHTML = `
-    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box ${className ? className + '-box' : ''}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
         <h3 id="modal-title">${escapeHtml(title)}</h3>
         ${hideCancel ? '' : '<button class="modal-close" id="modal-btn-cancel" aria-label="Cerrar">✕</button>'}
@@ -209,7 +226,9 @@ export function showModal(arg1, arg2, arg3, arg4) {
     if (onConfirm) onConfirm();
     close();
   });
-  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  modal.addEventListener('click', e => {
+    if (e.target === modal && !hideCancel) close();
+  });
 
   return { close };
 }
@@ -421,4 +440,10 @@ export function renderRankingTable(ranking, containerId, { myUid = null } = {}) 
         `).join('')}
       </tbody>
     </table>`;
+}
+
+export function triggerConfetti() {
+  if (typeof window !== 'undefined' && typeof window.confetti === 'function') {
+    window.confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+  }
 }

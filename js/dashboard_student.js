@@ -16,21 +16,23 @@ requireAuth({
   allowedRoles: ['student', 'teacher'],
   onAuthorized: async (user, profile) => {
     renderHeader(user, profile);
-    const name = profile.displayNameAnonymized || profile.displayName || 'Alumno';
+    const name = profile.display_name || profile.displayName || user?.user_metadata?.full_name || user?.user_metadata?.name || profile.displayNameAnonymized || 'Alumno';
     $('student-welcome').textContent = `¡Hola, ${name.split(' ')[0]}! 👋`;
 
     // Gamification
-    const pts = profile.puntosTotal || 0;
-    const { getLeague } = await import('./common/gamification.js');
+    const pts = profile.puntosTotal !== undefined ? profile.puntosTotal : (profile.xp || 0);
+    const { getLeague, initGamification } = await import('./common/gamification.js');
+    await initGamification();
     const league = getLeague(pts);
     
     if ($('hero-league-icon')) $('hero-league-icon').textContent = league.icon;
     if ($('hero-league-name')) $('hero-league-name').textContent = league.name;
     if ($('hero-xp')) $('hero-xp').textContent = pts + ' XP';
     
-    if (profile.gremio && $('hero-guild-info')) {
+    const gremio = profile.gremio || profile.guild_id;
+    if (gremio && $('hero-guild-info')) {
       $('hero-guild-info').style.display = 'block';
-      if ($('hero-guild-name')) $('hero-guild-name').textContent = profile.gremio;
+      if ($('hero-guild-name')) $('hero-guild-name').textContent = gremio;
     }
 
     checkNoAccessAlert();
@@ -92,8 +94,11 @@ function renderStudentClassCard(cls) {
   if (enabledGames.length === 0 && enabledTopics.length === 0) {
     return `
       <div class="class-card">
-        <div class="class-card-header">
-          <h3 class="class-card-name">${escapeHtml(cls.name)}</h3>
+        <div class="class-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <h3 class="class-card-name" style="margin:0;">${escapeHtml(cls.name)}</h3>
+          <a href="logros.html?classId=${cls.id}" class="btn btn--secondary btn--sm" style="display:inline-flex; align-items:center; gap:5px; text-decoration:none;">
+            🏆 Podio y Gremios
+          </a>
         </div>
         <p class="empty-state" style="padding:var(--space-4) 0; font-size:var(--text-sm)">
           Ningún contenido o juego habilitado en esta clase todavía.
@@ -132,10 +137,13 @@ function renderStudentClassCard(cls) {
 
   return `
     <div class="class-card">
-      <div class="class-card-header">
-        <h3 class="class-card-name">${escapeHtml(cls.name)}</h3>
-        <div style="display:flex; gap:8px;">
+      <div class="class-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <h3 class="class-card-name" style="margin:0;">${escapeHtml(cls.name)}</h3>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           ${badges.map(b => `<span class="badge badge--accent">${b}</span>`).join('')}
+          <a href="logros.html?classId=${cls.id}" class="btn btn--secondary btn--sm" style="display:inline-flex; align-items:center; gap:5px; text-decoration:none;">
+            🏆 Podio y Gremios
+          </a>
         </div>
       </div>
       
@@ -330,6 +338,7 @@ async function loadExams(user, classes) {
     answersSnap.forEach(doc => {
       const data = doc.data();
       if (data.examenId) submittedExamIds.add(data.examenId);
+      if (data.examId) submittedExamIds.add(data.examId);
     });
     
     const pendingExams = activeExams.filter(e => !submittedExamIds.has(e.id));
@@ -409,17 +418,33 @@ async function loadGrades(user) {
       tests.push(data);
     });
     
+    const getMillis = (val) => {
+      if (!val) return 0;
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (typeof val.toDate === 'function') return val.toDate().getTime();
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    };
+
+    const getDateObj = (val) => {
+      if (!val) return null;
+      if (typeof val.toDate === 'function') return val.toDate();
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
     // Sort chronologically to find the "last" one properly
     tests.sort((a, b) => {
-      const ta = a.fecha ? a.fecha.toMillis() : 0;
-      const tb = b.fecha ? b.fecha.toMillis() : 0;
+      const ta = getMillis(a.fecha || a.timestamp || a.created_at);
+      const tb = getMillis(b.fecha || b.timestamp || b.created_at);
       return ta - tb;
     });
     
     // Determine the last test for each topic
     const lastPerTopic = {};
     tests.forEach(t => {
-      lastPerTopic[t.topicId] = t; // Since it's sorted, the last one processed will overwrite
+      const tid = t.topicId || t.topic || t.block;
+      if (tid) lastPerTopic[tid] = t;
     });
     
     const tbody = $('grades-tbody');
@@ -441,12 +466,13 @@ async function loadGrades(user) {
     tests.reverse();
     
     tbody.innerHTML = tests.map(t => {
-      const isLast = (lastPerTopic[t.topicId] === t);
-      const isPassed = t.score >= 5;
+      const tid = t.topicId || t.topic || t.block;
+      const isLast = (lastPerTopic[tid] === t);
+      const isPassed = Number(t.score) >= 5;
       
       let dateStr = '—';
-      if (t.fecha) {
-        const d = t.fecha.toDate();
+      const d = getDateObj(t.fecha || t.timestamp || t.created_at);
+      if (d) {
         dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       }
       
@@ -455,9 +481,11 @@ async function loadGrades(user) {
         : `<span class="badge badge--ghost" style="font-size:0.7rem; margin-left:8px; opacity:0.6;">📝 INTENTO ANTERIOR</span>`;
         
       const scoreColor = isPassed ? 'var(--success)' : 'var(--error)';
+      const tObj = TOPICS[tid];
+      const displayName = tObj ? tObj.name : (t.topicName || tid || 'Tema');
       
       return `<tr>
-        <td style="font-weight:bold;">${escapeHtml(t.topicName || t.topicId)}</td>
+        <td style="font-weight:bold;">${escapeHtml(displayName)}</td>
         <td style="font-weight:900; font-size:1.1rem; color:${scoreColor}">${t.score} / 10</td>
         <td style="color:var(--text-muted); font-size:var(--text-sm)">${dateStr}</td>
         <td>${badge}</td>

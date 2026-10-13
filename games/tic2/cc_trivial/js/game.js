@@ -1,7 +1,6 @@
-import { requireAuth } from "../../../../../js/common/auth.js";
+import { requireAuth, incrementDigitalWellbeing } from "../../../../../js/common/auth.js";
 import { showToast } from '../../../../../js/common/ui.js';
 import { saveGameResult } from "../../../../../js/common/db.js";
-import { addPointsAndCheckLogros, awardMedal } from "../../../../../js/common/gamification.js";
 import { QUESTIONS } from "./questions.js";
 
 // Game State
@@ -40,10 +39,20 @@ const UI = {
 };
 
 // Auth Listener
+let isGameAllowed = false;
 requireAuth({
-  allowedRoles: ['student', 'teacher', 'admin'],
-  onAuthorized: (user, profile) => {
+  allowedRoles: ['student', 'teacher'],
+  onAuthorized: async (user, profile) => {
     currentUser = user;
+    if (profile.role === 'student') {
+      const allowed = await incrementDigitalWellbeing(user.id, 'game', GAME_ID);
+      if (!allowed) {
+        if (UI.btnStart) { UI.btnStart.disabled = true; UI.btnStart.style.opacity = '0.3'; }
+        return;
+      }
+    }
+    isGameAllowed = true;
+    if (UI.btnStart) UI.btnStart.onclick = initGame;
     if (UI.authWarning) {
       UI.authWarning.style.display = 'none';
     }
@@ -52,6 +61,7 @@ requireAuth({
 
 // Initialization
 function initGame() {
+  if (!isGameAllowed) return;
   score = 0;
   currentQuestionIndex = 0;
   UI.score.innerText = score;
@@ -151,16 +161,6 @@ async function endGame() {
   if (currentUser) {
     try {
       await saveGameResult(GAME_ID, currentUser.uid, classId, score);
-      
-      const gamificationPts = score * 10;
-      const result = await addPointsAndCheckLogros(currentUser.uid, gamificationPts, null, 'tic2_users');
-      await awardMedal(currentUser.uid, 'first_blood', 'tic2_users');
-      if (score === TOTAL_QUESTIONS) await awardMedal(currentUser.uid, 'perfeccionista', 'tic2_users');
-      
-      if (result.leagueUp) {
-        showToast('¡Nueva Liga Desbloqueada!', `¡Has ascendido a la ${result.newLeague.name} ${result.newLeague.icon}!`, 'success', 5000);
-      }
-      
       console.log('Puntuación guardada exitosamente.');
     } catch (e) {
       console.error('Error guardando puntuación:', e);
@@ -174,5 +174,4 @@ function showScreen(screenName) {
 }
 
 // Event Listeners
-UI.btnStart.onclick = initGame;
 UI.btnRestart.onclick = () => window.location.reload();

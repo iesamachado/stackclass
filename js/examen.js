@@ -21,7 +21,7 @@ async function init() {
   }
   
   requireAuth({
-    allowedRoles: ['student', 'teacher', 'admin'],
+    allowedRoles: ['student', 'teacher'],
     onAuthorized: async (u, profile) => {
       user = u;
       currentProfile = profile;

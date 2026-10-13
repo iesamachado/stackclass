@@ -2,18 +2,22 @@
 //  CLASSHUB — admin.js (Panel de Administración)
 // ═══════════════════════════════════════════════════════════════════════
 
-import { requireAuth, currentUser, currentProfile, SUPERADMIN_EMAIL } from './common/auth.js';
+import { requireAuth, currentUser, currentProfile, isAdmin } from './common/auth.js';
 import { getAllowedTeachers, authorizeTeacher, removeAllowedTeacher } from './common/db.js';
 import { renderHeader, showToast, showLoading, hideLoading } from './common/ui.js';
-import { $, $$, escapeHtml, formatDate } from './common/utils.js';
+import { $, $$, escapeHtml, formatDate, copyToClipboard } from './common/utils.js';
 
 let teacherList = [];
 let searchQuery = '';
 
 // ── Guard de Administrador ──────────────────────────────────────────
 requireAuth({
-  allowedRoles: ['admin'],
+  allowedRoles: ['teacher'],
   onAuthorized: async (user, profile) => {
+    if (!isAdmin(user, profile)) {
+      window.location.href = 'dashboard_teacher.html';
+      return;
+    }
     renderHeader(user, profile);
     setupEvents(user);
     await loadTeachers();
@@ -25,21 +29,6 @@ async function loadTeachers() {
   try {
     showLoading('Cargando docentes autorizados...');
     const list = await getAllowedTeachers();
-
-    // Asegurar que el superadmin aparezca si aún no está en Firestore
-    const hasSuperAdmin = list.some(t => t.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase());
-    if (!hasSuperAdmin) {
-      list.unshift({
-        id: SUPERADMIN_EMAIL.toLowerCase(),
-        email: SUPERADMIN_EMAIL.toLowerCase(),
-        name: 'Superadministrador Principal',
-        role: 'admin',
-        isSuperAdmin: true,
-        createdAt: null,
-        addedBy: 'Sistema'
-      });
-    }
-
     teacherList = list;
     updateStats(teacherList);
     renderTeacherList();
@@ -54,7 +43,7 @@ async function loadTeachers() {
 // ── Actualizar Estadísticas ─────────────────────────────────────────
 function updateStats(list) {
   const total = list.length;
-  const admins = list.filter(t => t.role === 'admin' || t.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase()).length;
+  const admins = list.filter(t => t.isSuperAdmin || t.is_superadmin).length;
   
   const domains = new Set(
     list.map(t => {
@@ -80,8 +69,7 @@ function renderTeacherList() {
     if (!query) return true;
     const matchEmail = (t.email || '').toLowerCase().includes(query);
     const matchName  = (t.name || '').toLowerCase().includes(query);
-    const matchRole  = (t.role || '').toLowerCase().includes(query);
-    return matchEmail || matchName || matchRole;
+    return matchEmail || matchName;
   });
 
   if (filtered.length === 0) {
@@ -93,10 +81,9 @@ function renderTeacherList() {
   emptyMsg.style.display = 'none';
 
   container.innerHTML = filtered.map(t => {
-    const isSuperAdmin = t.email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase();
-    const isAdminRole = t.role === 'admin' || isSuperAdmin;
-    const roleBadge = isAdminRole
-      ? `<span class="badge" style="background:#ffc300; color:#000; font-weight:800; border:1px solid #000;">👑 Admin</span>`
+    const isSuperAdmin = t.isSuperAdmin === true || t.is_superadmin === true;
+    const roleBadge = isSuperAdmin
+      ? `<span class="badge" style="background:#8e44ad; color:#fff; font-weight:800; border:1px solid #000;">⚡ Superadmin</span>`
       : `<span class="badge badge--accent" style="font-weight:700;">👨‍🏫 Docente</span>`;
 
     const dateStr = t.createdAt ? formatDate(t.createdAt) : 'Creador inicial';
@@ -106,7 +93,7 @@ function renderTeacherList() {
       <div class="teacher-item-row" id="teacher-row-${escapeHtml(t.id)}">
         <div class="teacher-item-info">
           <div class="teacher-item-avatar">
-            ${isAdminRole ? '👑' : '👨‍🏫'}
+            ${isSuperAdmin ? '⚡' : '👨‍🏫'}
           </div>
           <div>
             <div style="display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap;">
@@ -124,11 +111,11 @@ function renderTeacherList() {
         <div class="teacher-item-actions">
           ${isSuperAdmin ? `
             <span class="badge" style="background:var(--bg-body); border:1px solid var(--border); color:var(--text-muted);">
-              🔒 Superadmin Principal
+              🔒 Superadministrador
             </span>
           ` : `
-            <button class="btn btn-outline btn--sm" data-action="toggle-role" data-email="${escapeHtml(t.email)}" data-current-role="${t.role || 'teacher'}">
-              ${isAdminRole ? 'Convertir en Docente' : 'Hacer Admin'}
+            <button class="btn btn-outline btn--sm" data-action="toggle-admin" data-email="${escapeHtml(t.email)}" data-is-superadmin="${isSuperAdmin}">
+              ${isSuperAdmin ? 'Quitar Superadmin' : 'Hacer Superadmin'}
             </button>
             <button class="btn btn-ghost btn--sm" data-action="remove" data-email="${escapeHtml(t.email)}" style="color:var(--error); padding:6px 10px;" title="Revocar autorización">
               🗑️ Revocar
@@ -140,19 +127,19 @@ function renderTeacherList() {
   }).join('');
 
   // Event Listeners en botones de acción
-  container.querySelectorAll('[data-action="toggle-role"]').forEach(btn => {
+  container.querySelectorAll('[data-action="toggle-admin"]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const email = btn.dataset.email;
-      const current = btn.dataset.currentRole;
-      const newRole = current === 'admin' ? 'teacher' : 'admin';
-      const roleName = newRole === 'admin' ? 'Administrador' : 'Docente';
+      const currentIsSuper = btn.dataset.isSuperadmin === 'true';
+      const newSuper = !currentIsSuper;
+      const label = newSuper ? 'Superadministrador' : 'Docente';
 
-      if (!confirm(`¿Cambiar el rol de ${email} a "${roleName}"?`)) return;
+      if (!confirm(`¿Cambiar permisos de ${email} a "${label}"?`)) return;
 
       try {
-        showLoading('Actualizando rol...');
-        await authorizeTeacher(email, { role: newRole, addedBy: currentUser.email });
-        showToast('Rol actualizado', `${email} ahora es ${roleName}.`, 'success');
+        showLoading('Actualizando permisos...');
+        await authorizeTeacher(email, { role: 'teacher', isSuperAdmin: newSuper, addedBy: currentUser.email });
+        showToast('Permisos actualizados', `${email} ahora es ${label}.`, 'success');
         await loadTeachers();
       } catch (err) {
         showToast('Error', err.message, 'error');
@@ -197,7 +184,7 @@ function setupEvents(user) {
 
     const rawEmails = $('input-teacher-emails')?.value || '';
     const nameNote  = $('input-teacher-name')?.value.trim() || '';
-    const role      = $('select-teacher-role')?.value || 'teacher';
+    const isSuperAdmin = $('select-teacher-role')?.value === 'superadmin';
 
     const emails = rawEmails
       .split(/[\n,;]+/)
@@ -216,7 +203,8 @@ function setupEvents(user) {
       for (const email of emails) {
         await authorizeTeacher(email, {
           name: nameNote || undefined,
-          role: role,
+          role: 'teacher',
+          isSuperAdmin: isSuperAdmin,
           addedBy: user.email || 'Admin'
         });
         successCount++;
@@ -230,6 +218,14 @@ function setupEvents(user) {
     } finally {
       hideLoading();
     }
+  });
+
+  // Copiar plantilla de invitación
+  $('btn-copy-invite-link')?.addEventListener('click', () => {
+    const origin = window.location.origin;
+    const msg = `¡Hola! Has sido dado de alta como docente en StackClass.\n\nPuedes acceder iniciando sesión con tu cuenta de Google en:\n${origin}/index.html\n\n¡Bienvenido/a a la plataforma!`;
+    copyToClipboard(msg);
+    showToast('Plantilla copiada', 'Mensaje de invitación copiado al portapapeles.', 'success');
   });
 
   // Gamification Migration

@@ -9,7 +9,7 @@ import { getHostLiveSessions, getLiveParticipants, getUserProfile } from '../../
 
 document.addEventListener('DOMContentLoaded', () => {
     requireAuth({
-        allowedRoles: ['teacher', 'student', 'admin'],
+        allowedRoles: ['teacher', 'student'],
         onAuthorized: (user, profile) => {
             renderHeader(user, profile);
             setupUI(user, profile);
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupUI(user, profile) {
-    const isTeacherOrAdmin = profile.role === 'teacher' || profile.role === 'admin' || isAdmin(user, profile);
+    const isTeacherOrAdmin = profile.role === 'teacher' || isAdmin(user, profile);
 
     // Reenviar classId al modo entrenamiento si existe
     const params = getUrlParams();

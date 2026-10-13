@@ -1,4 +1,4 @@
-import { requireGameAccess } from '../../../../../js/common/auth.js';
+import { requireGameAccess, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
 import { saveGameResult } from '../../../../../js/common/db.js';
 import { renderHeader, showToast } from '../../../../../js/common/ui.js';
 
@@ -74,7 +74,16 @@ function fmtCost(cost) {
   return cost === 0.5 ? "½⚡" : `-${cost}⚡`;
 }
 
-function startNewGame() {
+async function startNewGame() {
+  if (currentUser) {
+    const allowed = await incrementDigitalWellbeing(currentUser.uid, 'game', 'moon');
+    if (!allowed) {
+      $("victory-overlay")?.classList.add("hidden");
+      $("gameover-overlay")?.classList.add("hidden");
+      return;
+    }
+  }
+
   state.moves    = 0;
   state.won      = false;
   state.gameOver = false;
@@ -210,7 +219,7 @@ function triggerVictory() {
   $("victory-overlay").classList.remove("hidden");
 }
 
-function triggerGameOver() {
+async function triggerGameOver() {
   state.gameOver = true;
   if (state.targets.length > 0) {
     $("gameover-bits").textContent = bin(state.targets[state.targets.length - 1]);
@@ -231,7 +240,17 @@ function triggerGameOver() {
   }
 
   if (currentUser) {
-    saveGameResult('moon', currentUser.uid, currentClassId, state.score, { level: state.numBits, highScore: state.score });
+    try {
+      await saveGameResult('moon', currentUser.uid, currentClassId, state.score, { level: state.numBits, highScore: state.score });
+    } catch (err) {
+      console.warn('saveGameResult en moon:', err);
+    }
+
+    const allowed = await incrementDigitalWellbeing(currentUser.uid, 'game', 'moon');
+    if (!allowed) {
+      $("gameover-overlay")?.classList.add("hidden");
+      return;
+    }
   }
 
   $("gameover-overlay").classList.remove("hidden");

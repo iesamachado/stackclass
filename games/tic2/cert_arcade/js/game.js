@@ -1,7 +1,6 @@
-import { requireAuth } from "../../../../../js/common/auth.js";
+import { requireAuth, incrementDigitalWellbeing } from "../../../../../js/common/auth.js";
 import { showToast } from '../../../../../js/common/ui.js';
 import { saveGameResult } from "../../../../../js/common/db.js";
-import { addPointsAndCheckLogros, awardMedal } from "../../../../../js/common/gamification.js";
 
 
 // Utilidad: Validar DNI Español
@@ -86,11 +85,28 @@ const screens = {
 
 // Auth
 requireAuth({
-  allowedRoles: ['student', 'teacher', 'admin'],
-  onAuthorized: (user, profile) => {
+  allowedRoles: ['student', 'teacher'],
+  onAuthorized: async (user, profile) => {
     currentUser = user;
+    const btnStart = document.getElementById('btn-start');
+    if (profile.role === 'student') {
+      const allowed = await incrementDigitalWellbeing(user.id, 'game', GAME_ID);
+      if (!allowed) {
+        if (btnStart) { btnStart.disabled = true; btnStart.style.opacity = '0.3'; }
+        return;
+      }
+    }
     if (document.getElementById('auth-warning')) {
       document.getElementById('auth-warning').style.display = 'none';
+    }
+    if (btnStart) {
+      btnStart.onclick = () => {
+        score = 100;
+        errors = 0;
+        generatedCode = ''; playerDNI = '';
+        showScreen('phase1');
+        setSprite('💻', '10%');
+      };
     }
   }
 });
@@ -100,14 +116,6 @@ function showScreen(screenId) {
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   screens[screenId].classList.remove('hidden');
 }
-
-document.getElementById('btn-start').onclick = () => {
-  score = 100;
-  errors = 0;
-  generatedCode = ''; playerDNI = '';
-  showScreen('phase1');
-  setSprite('💻', '10%');
-};
 
 document.getElementById('btn-restart').onclick = () => window.location.reload();
   setSprite('🧍', '10%');
@@ -259,15 +267,6 @@ async function endGame() {
   if (currentUser) {
     try {
       await saveGameResult(GAME_ID, currentUser.uid, classId, score);
-      
-      const result = await addPointsAndCheckLogros(currentUser.uid, score, null, 'tic2_users');
-      await awardMedal(currentUser.uid, 'first_blood', 'tic2_users');
-      if (score >= 100) await awardMedal(currentUser.uid, 'perfeccionista', 'tic2_users');
-      
-      if (result.leagueUp) {
-        showToast('¡Nueva Liga Desbloqueada!', `¡Has ascendido a la ${result.newLeague.name} ${result.newLeague.icon}!`, 'success', 5000);
-      }
-      
       console.log('Puntuación del certificado guardada.');
     } catch (e) {
       console.error('Error guardando puntuación:', e);

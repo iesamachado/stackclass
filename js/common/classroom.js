@@ -5,7 +5,6 @@
 //  Obtenerlo con loginAsTeacher() o refreshClassroomToken() de auth.js
 // ═══════════════════════════════════════════════════════════════════════
 
-import { db, doc, updateDoc, addDoc, collection, getDocs, getDoc, setDoc, arrayUnion } from './firebase-config.js';
 import { findUserByEmail, addMemberToClass, addPendingMember, createAssignment, getClassMembers } from './db.js';
 import { scoreToGrade } from './utils.js';
 
@@ -46,7 +45,7 @@ export async function fetchClassroomCourses(token) {
 }
 
 // ──────────────────────────────────────────────────────────────────────
-//  Importar alumnos de un curso a una clase de TIC2Hub
+//  Importar alumnos de un curso a una clase de TIC2Hub / StackClass
 //  Devuelve { matched, pending }
 // ──────────────────────────────────────────────────────────────────────
 export async function importClassroomStudents(token, courseId, classId) {
@@ -56,32 +55,28 @@ export async function importClassroomStudents(token, courseId, classId) {
   let matched = 0;
   let pending = 0;
 
-  // Obtener el doc de la clase para no duplicar
-  const classDoc = await getDoc(doc(db, 'tic2_classes', classId));
-  const existingMembers = new Set((classDoc.data()?.members || [])
-    .map(m => typeof m === 'string' ? m : m?.email)
-    .filter(Boolean)
+  // Obtener miembros existentes de la clase para no duplicar
+  const currentMembers = await getClassMembers(classId);
+  const existingEmails = new Set(
+    currentMembers.map(m => (m.email || '').toLowerCase()).filter(Boolean)
   );
 
   for (const student of students) {
-    const email = student.profile?.emailAddress;
+    const email = student.profile?.emailAddress?.toLowerCase();
     const name  = student.profile?.name?.fullName || email;
     if (!email) continue;
-    if (existingMembers.has(email)) continue;
+    if (existingEmails.has(email)) continue;
 
     const userProfile = await findUserByEmail(email);
     if (userProfile) {
-      await addMemberToClass(classId, userProfile.uid);
-      existingMembers.add(email);
+      await addMemberToClass(classId, userProfile.id);
+      existingEmails.add(email);
       matched++;
     } else {
       await addPendingMember(classId, email, name);
-      existingMembers.add(email);
+      existingEmails.add(email);
       pending++;
     }
-    
-    // Permitir el acceso al alumno
-    await setDoc(doc(db, 'tic2_allowed_students', email.toLowerCase()), { allowed: true });
   }
 
   return { matched, pending };
@@ -161,7 +156,7 @@ export async function syncClassroomGrades(token, courseId, classId, assignmentId
     if (!email || !emailToGid[email]) continue;
 
     const googleUserId = emailToGid[email];
-    const score = await getStudentBestScore(member.uid, gameId, classId);
+    const score = await getStudentBestScore(member.id || member.uid, gameId, classId);
     const grade = scoreToGrade(score, targetScore);
 
     try {

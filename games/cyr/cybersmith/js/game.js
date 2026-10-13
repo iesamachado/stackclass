@@ -1,4 +1,4 @@
-import { requireAuth } from '../../../../../js/common/auth.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
 import { getUrlParams } from '../../../../../js/common/utils.js';
 import { saveGameResult } from '../../../../../js/common/db.js';
 
@@ -153,10 +153,19 @@ const ORDER_TEMPLATES = [
 
 let lastOrderTemplate = null;
 
+let isGameAllowed = false;
+
 requireAuth({
   allowedRoles: ['student', 'teacher'],
   onAuthorized: async (user, profile) => {
-
+    if (profile.role === 'student') {
+      const allowed = await incrementDigitalWellbeing(user.id, 'game', 'cybersmith');
+      if (!allowed) {
+        if (btnStart) { btnStart.disabled = true; btnStart.style.opacity = '0.3'; }
+        return;
+      }
+    }
+    isGameAllowed = true;
     currentUserInfo = { user, profile };
   }
 });
@@ -361,6 +370,7 @@ initDropzones();
 btnStart.addEventListener('click', startGame);
 
 function startGame() {
+  if (!isGameAllowed) return;
   isPlaying = true;
   score = 0;
   timeLeft = 300;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roadmap de Juegos - ClassHub</title>
+  <title>Roadmap de Juegos — StackClass</title>
   <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
   
   <link rel="stylesheet" href="css/common/reset.css">
@@ -235,7 +235,7 @@
     import { requireAuth } from './js/common/auth.js';
     import { renderHeader } from './js/common/ui.js';
     requireAuth({
-      allowedRoles: ['teacher', 'admin'],
+      allowedRoles: ['teacher'],
       onAuthorized: (user, profile) => {
         renderHeader(user, profile);
       }

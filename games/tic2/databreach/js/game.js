@@ -1,9 +1,8 @@
 import { LEVELS } from './levels.js';
 import { showToast } from '../../../../../js/common/ui.js';
-import { requireAuth } from '../../../../../js/common/auth.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
 import { saveGameResult } from '../../../../../js/common/db.js';
 import { escapeHtml, getUrlParams } from '../../../../../js/common/utils.js';
-import { addPointsAndCheckLogros, awardMedal } from '../../../../../js/common/gamification.js';
 
 let currentUser = null;
 let classId = null;
@@ -34,6 +33,10 @@ requireAuth({
   allowedRoles: ['student', 'teacher'],
   onAuthorized: async (user, profile) => {
     currentUser = user;
+    if (profile.role === 'student') {
+      const allowed = await incrementDigitalWellbeing(user.id, 'game', 'databreach');
+      if (!allowed) return;
+    }
     classId = getUrlParams().classId;
     
     ui.userDisplay.textContent = profile.displayNameAnonymized || profile.displayName || user.email;
@@ -222,16 +225,9 @@ async function handleLevelComplete(level) {
     
     // Guardar puntuación en DB
     try {
-      if (classId) {
-        await saveGameResult('databreach', currentUser.uid, classId, 250, {});
-      }
-      // Gamificación
-      const result = await addPointsAndCheckLogros(currentUser.uid, 250);
-      await awardMedal(currentUser.uid, 'hacker_novato');
-      await awardMedal(currentUser.uid, 'first_blood'); // Quizás sea su primer reto
-      
-      if (result.leagueUp) {
-        showToast('¡Nueva Liga Desbloqueada!', `¡Has ascendido a la ${result.newLeague.name} ${result.newLeague.icon}!`, 'success', 5000);
+      if (currentUser) {
+        await saveGameResult('databreach', currentUser.uid, classId || null, 250, {});
+        console.log("Puntuación de Databreach guardada.");
       }
     } catch(e) {
       console.error("Error guardando score", e);

@@ -12,7 +12,7 @@ let currentUser = null;
 
 async function init() {
   requireAuth({
-    allowedRoles: ['teacher', 'admin'],
+    allowedRoles: ['teacher'],
     onAuthorized: async (user, profile) => {
       currentUser = user;
       renderHeader(user, profile);
@@ -132,16 +132,29 @@ async function loadPreguntas() {
     const querySnapshot = await getDocs(collection(db, 'preguntas'));
     preguntas = [];
     
-    querySnapshot.forEach(docSnap => {
+    const iterateDocs = (snap, cb) => {
+      if (snap && typeof snap.forEach === 'function') {
+        snap.forEach(cb);
+      } else if (snap && Array.isArray(snap.docs)) {
+        snap.docs.forEach(cb);
+      } else if (Array.isArray(snap)) {
+        snap.forEach(cb);
+      }
+    };
+
+    iterateDocs(querySnapshot, docSnap => {
+      const data = typeof docSnap.data === 'function' ? docSnap.data() : docSnap;
       preguntas.push({
-        id: docSnap.id,
-        ...docSnap.data()
+        id: docSnap.id || data.id,
+        ...data
       });
     });
     
     // Sort by block, then CE
     preguntas.sort((a, b) => {
-      if (a.block !== b.block) return a.block.localeCompare(b.block);
+      const blockA = a.block || a.topicId || a.topic_id || '';
+      const blockB = b.block || b.topicId || b.topic_id || '';
+      if (blockA !== blockB) return blockA.localeCompare(blockB);
       return (a.ce || 0) - (b.ce || 0);
     });
     

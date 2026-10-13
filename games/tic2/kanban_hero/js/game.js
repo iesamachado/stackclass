@@ -1,5 +1,4 @@
-import { requireAuth } from '../../../../../js/common/auth.js';
-import { addPointsAndCheckLogros, awardMedal } from '../../../../../js/common/gamification.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
 import { showToast } from '../../../../../js/common/ui.js';
 import { $, getUrlParams } from '../../../../../js/common/utils.js';
 import { saveGameResult } from '../../../../../js/common/db.js';
@@ -49,10 +48,14 @@ const taskTemplates = [
 ];
 
 requireAuth({
-  allowedRoles: ['student', 'teacher', 'admin'],
-  onAuthorized: (user, profile) => {
+  allowedRoles: ['student', 'teacher'],
+  onAuthorized: async (user, profile) => {
     currentUser = user;
     currentProfile = profile;
+    if (profile.role === 'student') {
+      const allowed = await incrementDigitalWellbeing(user.id, 'game', 'kanban_hero');
+      if (!allowed) return;
+    }
     classId = getUrlParams().classId || null;
     $('btn-start').addEventListener('click', startGame);
   }
@@ -103,18 +106,7 @@ async function saveScore() {
   
   try {
     await saveGameResult('kanban_hero', currentUser.uid, classId, score, {});
-    const res = await addPointsAndCheckLogros(currentUser.uid, score, null, 'tic2_users');
-    
-    // Medallas específicas del juego
-    await awardMedal(currentUser.uid, 'first_blood');
-    await awardMedal(currentUser.uid, 'agilista');
-    if (score >= 150) {
-      await awardMedal(currentUser.uid, 'productividad_extrema');
-    }
-
-    if (res && res.leagueUp) {
-      showToast('¡Nueva Liga Desbloqueada!', `¡Has ascendido a la ${res.newLeague.name} ${res.newLeague.icon}!`, 'success', 5000);
-    }
+    console.log("Puntuación de Kanban Hero guardada exitosamente.");
   } catch (err) {
     console.error("Error guardando score:", err);
   }

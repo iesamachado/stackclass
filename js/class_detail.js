@@ -8,8 +8,8 @@ import {
 } from './common/db.js';
 import { createClassroomAssignment, syncClassroomGrades } from './common/classroom.js';
 import { renderHeader, showToast, showLoading, hideLoading, renderPodium, renderRankingTable } from './common/ui.js';
-import { GAMES, TOPICS, $, $$, escapeHtml, formatDate, getUrlParams, copyToClipboard } from './common/utils.js';
-import { GUILDS_CATALOG, MEDALS_CATALOG, MEDAL_XP, getLeague } from './common/gamification.js';
+import { GAMES, TOPICS, COURSES, $, $$, escapeHtml, formatDate, getUrlParams, copyToClipboard } from './common/utils.js';
+import { getGuildsForSubject, getMedalsForSubject, MEDAL_XP, getLeague } from './common/gamification.js';
 import { collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp, db } from './common/firebase-config.js';
 
 let classData = null;
@@ -21,7 +21,7 @@ let rankingInterval = null;
 
 // ── Guard ───────────────────────────────────────────────────────
 requireAuth({
-  allowedRoles: ['teacher', 'admin'],
+  allowedRoles: ['teacher'],
   onAuthorized: async (user, profile) => {
     renderHeader(user, profile);
     const { classId } = getUrlParams();
@@ -29,7 +29,8 @@ requireAuth({
 
     try {
       classData = await getClass(classId);
-      const isOwner = classData && classData.teacherId === user.uid;
+      const uid = user.id || user.uid;
+      const isOwner = classData && ((classData.teacherId || classData.teacher_id) === uid);
       const userIsAdmin = isAdmin(user, profile);
 
       if (!classData || (!isOwner && !userIsAdmin)) {
@@ -113,27 +114,69 @@ async function loadGamesTab() {
   if (!list) return;
 
   const enabled = classData.enabledGames || [];
+  const classSubject = classData.subject_id || classData.subjectId;
+  const allGames = Object.values(GAMES);
 
-  list.innerHTML = Object.values(GAMES).map(g => `
-    <div class="game-toggle-row" id="game-row-${g.id}">
-      <div class="game-toggle-info">
-        <span class="game-toggle-icon">${g.icon}</span>
-        <div>
-          <strong>${escapeHtml(g.name)}</strong>
-          <small>${escapeHtml(g.description)}</small>
+  const subjectGames = classSubject ? allGames.filter(g => g.subjectId === classSubject) : allGames;
+  const otherGames = classSubject ? allGames.filter(g => g.subjectId !== classSubject) : [];
+
+  function renderGameRow(g, badge = null) {
+    const isChecked = enabled.includes(g.id);
+    return `
+      <div class="game-toggle-row" id="game-row-${g.id}">
+        <div class="game-toggle-info">
+          <span class="game-toggle-icon">${g.icon}</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <strong>${escapeHtml(g.name)}</strong>
+              ${badge ? `<span class="badge badge--ghost" style="font-size:0.7rem; padding:2px 6px;">${escapeHtml(badge)}</span>` : ''}
+            </div>
+            <small>${escapeHtml(g.description || '')}</small>
+          </div>
         </div>
-      </div>
-      <div class="game-toggle-actions">
-        <a class="btn btn-ghost btn--sm" href="${g.gamePath}?classId=${classData.id}" target="_blank">🎮 Probar</a>
-        <label class="toggle-switch" title="${enabled.includes(g.id) ? 'Desactivar' : 'Activar'}">
-          <input type="checkbox" 
-                 id="toggle-${g.id}"
-                 data-game-id="${g.id}"
-                 ${enabled.includes(g.id) ? 'checked' : ''}>
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>`).join('');
+        <div class="game-toggle-actions">
+          <a class="btn btn-ghost btn--sm" href="${g.gamePath}?classId=${classData.id}" target="_blank">🎮 Probar</a>
+          <label class="toggle-switch" title="${isChecked ? 'Desactivar' : 'Activar'}">
+            <input type="checkbox" 
+                   id="toggle-${g.id}"
+                   data-game-id="${g.id}"
+                   ${isChecked ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>`;
+  }
+
+  let html = subjectGames.map(g => renderGameRow(g)).join('');
+
+  if (otherGames.length > 0) {
+    const activeOtherCount = otherGames.filter(g => enabled.includes(g.id)).length;
+    html += `
+      <details class="more-games-details" style="margin-top:var(--space-4); border:1px solid var(--border); border-radius:var(--radius-md); background:var(--bg-surface); overflow:hidden;">
+        <summary style="cursor:pointer; font-weight:600; padding:var(--space-3) var(--space-4); background:var(--bg-body); display:flex; align-items:center; justify-content:space-between; user-select:none;">
+          <span style="display:flex; align-items:center; gap:8px;">
+            🎮 Más juegos (Otras asignaturas)
+            <span class="badge badge--ghost" style="font-size:0.75rem;">${otherGames.length}</span>
+          </span>
+          <span id="other-games-count-label" style="font-size:var(--text-xs); color:var(--text-muted); font-weight:normal;">
+            ${activeOtherCount > 0 ? `(${activeOtherCount} activado${activeOtherCount > 1 ? 's' : ''})` : 'Plegado'} ▾
+          </span>
+        </summary>
+        <div style="padding:var(--space-3); display:flex; flex-direction:column; gap:var(--space-1);">
+          <p class="form-hint" style="margin-bottom:var(--space-2); font-size:var(--text-xs);">
+            Juegos de otras asignaturas que puedes habilitar para esta clase bajo tu criterio:
+          </p>
+          ${otherGames.map(g => {
+            const course = COURSES?.[g.subjectId];
+            const badgeText = course ? course.shortName : (g.subjectId || '').toUpperCase();
+            return renderGameRow(g, badgeText);
+          }).join('')}
+        </div>
+      </details>
+    `;
+  }
+
+  list.innerHTML = html;
 
   // Eventos toggle
   $$('[data-game-id]').forEach(input => {
@@ -147,6 +190,14 @@ async function loadGamesTab() {
         } else {
           classData.enabledGames = (classData.enabledGames || []).filter(g => g !== gameId);
         }
+
+        // Actualizar contador visual si el juego pertenece a 'otherGames'
+        const countLabel = $('other-games-count-label');
+        if (countLabel && otherGames.length > 0) {
+          const currentActiveOther = otherGames.filter(g => classData.enabledGames.includes(g.id)).length;
+          countLabel.textContent = currentActiveOther > 0 ? `(${currentActiveOther} activado${currentActiveOther > 1 ? 's' : ''}) ▾` : 'Plegado ▾';
+        }
+
         showToast(
           active ? `${GAMES[gameId].icon} ${GAMES[gameId].name} activado` : `${GAMES[gameId].name} desactivado`,
           '',
@@ -170,14 +221,21 @@ async function loadTopicsTab() {
   if (!list) return;
 
   const enabled = classData.enabledTopics || [];
+  const classSubject = classData.subject_id || classData.subjectId;
+  const filteredTopics = Object.values(TOPICS).filter(t => !classSubject || t.subjectId === classSubject);
 
-  list.innerHTML = Object.values(TOPICS).map(t => `
+  if (filteredTopics.length === 0) {
+    list.innerHTML = `<p class="empty-state" style="padding:var(--space-4); text-align:center;">No hay bloques temáticos configurados para esta asignatura.</p>`;
+    return;
+  }
+
+  list.innerHTML = filteredTopics.map(t => `
     <div class="game-toggle-row" id="topic-row-${t.id}">
       <div class="game-toggle-info">
         <span class="game-toggle-icon">${t.icon}</span>
         <div>
           <strong>${escapeHtml(t.name)}</strong>
-          <small>${escapeHtml(t.description)}</small>
+          <small>${escapeHtml(t.description || '')}</small>
         </div>
       </div>
       <div class="game-toggle-actions" style="display:flex; align-items:center; gap: 15px;">
@@ -525,23 +583,8 @@ async function showStudentHistory(studentId, studentName) {
     const userSnap = await getDoc(doc(db, 'users', studentId));
     const userLogros = userSnap.data()?.logros || [];
     
-    // Mapeo de XP para las medallas conocidas
-    const MEDAL_XP = {
-        netdefender_300: 50, guardian_red: 100, netdefender_700: 150, netdefender_1000: 200,
-        mecanoclass_20: 20, mecanografo: 50, mecanoclass_60: 100, velocista: 120, mecanoclass_100: 250,
-        rompecodigos_200: 50, rompecodigos_500: 100, criptologo: 150, rompecodigos_1200: 200,
-        helados_1000: 100, helados_1500: 150, helados_2000: 200, helados_2500: 250, helados_3000: 300, helados_35000: 1000,
-        moon_3: 50, explorador_lunar: 100, moon_10: 150, moon_15: 200,
-        arenabots_50: 50, arenabots_100: 100, arenabots_150: 150, arquitecto_bot: 250,
-        cybersmith_100: 50, cybersmith_250: 100, ingeniero: 150, cybersmith_600: 200,
-        asimov_20: 30, asimov_50: 60, leyes_robotica: 100, asimov_100: 150,
-        appflow_50: 50, appflow_100: 100, unicornio: 150, appflow_300: 200,
-        trivial_30: 30, trivial_60: 60, sabiondo: 100,
-        madrugador: 10, finde: 10, constancia: 10
-    };
-    
     userLogros.forEach(medal => {
-        const extraXP = MEDAL_XP[medal.id] || 0;
+        const extraXP = medal.xp_value || MEDAL_XP[medal.id] || 0;
         timeline.push({
             type: 'medal',
             title: `🏅 Medalla: ${medal.icon} ${medal.name}`,
@@ -927,9 +970,10 @@ async function loadGuildsTab() {
     }
   }
 
+  const guilds = getGuildsForSubject(classData?.subject_id);
   const counts = {};
   const points = {};
-  GUILDS_CATALOG.forEach(g => { counts[g.name] = 0; points[g.name] = 0; });
+  guilds.forEach(g => { counts[g.name] = 0; points[g.name] = 0; });
   members.forEach(m => {
     if (m.gremio && counts[m.gremio] !== undefined) {
       counts[m.gremio]++;
@@ -937,7 +981,7 @@ async function loadGuildsTab() {
     }
   });
   
-  const ranking = GUILDS_CATALOG.map(g => ({
+  const ranking = guilds.map(g => ({
     name: g.name, icon: g.icon, image: g.image, color: g.color,
     points: points[g.name], members: counts[g.name]
   })).sort((a,b) => b.points - a.points);
@@ -1016,10 +1060,14 @@ async function loadExamsTab() {
   }
 
   if (unsubscribeExams) unsubscribeExams();
-  const examsRef = collection(db, 'classes', classData.id, 'examenes_test');
   unsubscribeExams = onSnapshot(examsRef, (snap) => {
     const exams = [];
-    snap.forEach(d => exams.push({ id: d.id, ...d.data() }));
+    const docs = snap?.docs || (Array.isArray(snap) ? snap : []);
+    if (typeof snap?.forEach === 'function') {
+      snap.forEach(d => exams.push({ id: d.id, ...d.data() }));
+    } else {
+      docs.forEach(d => exams.push({ id: d.id, ...(typeof d.data === 'function' ? d.data() : d) }));
+    }
     
     const list = $('examenes-test-list');
     if (!exams.length) {
@@ -1061,12 +1109,15 @@ async function loadExamsTab() {
     // Instead of complex chunks, we can just get ALL from the collection and filter by class. (Since we are teacher).
     getDocs(collection(db, 'test_teoria_respuestas')).then(snap => {
       let results = [];
-      snap.forEach(d => {
-        let data = d.data();
+      const docs = snap?.docs || (Array.isArray(snap) ? snap : []);
+      const cb = d => {
+        let data = typeof d.data === 'function' ? d.data() : d;
         if (studentIds.includes(data.uid)) {
           results.push(data);
         }
-      });
+      };
+      if (typeof snap?.forEach === 'function') snap.forEach(cb);
+      else docs.forEach(cb);
       
       // Filtrar para quedarse solo con el último intento de cada alumno en cada bloque
       // Agrupamos por uid_topicId y nos quedamos con la fecha más reciente
@@ -1172,8 +1223,9 @@ function setupModals(user) {
     const conseguidas = [];
     const noConseguidas = [];
     
-    MEDALS_CATALOG.forEach(m => {
-      if (logrosObtenidos.some(l => l.id === m.id)) {
+    const subjectMedals = getMedalsForSubject(classData?.subject_id);
+    subjectMedals.forEach(m => {
+      if (logrosObtenidos.some(l => (typeof l === 'string' ? l === m.id : (l.id || l.medal_id) === m.id))) {
         conseguidas.push(m);
       } else {
         noConseguidas.push(m);
@@ -1610,15 +1662,20 @@ async function loadOfflineTasksTab() {
   // Cargar configuración de tareas
   const configSnap = await getDocs(query(collection(db, 'offline_tasks_config'), where('classId', '==', classData.id)));
   offlineTasksConfig = {};
-  configSnap.forEach(d => {
-    offlineTasksConfig[d.data().taskId] = { id: d.id, ...d.data() };
+  const iterateSnap = (s, cb) => {
+    if (s && typeof s.forEach === 'function') s.forEach(cb);
+    else if (s && Array.isArray(s.docs)) s.docs.forEach(cb);
+  };
+  iterateSnap(configSnap, d => {
+    const data = typeof d.data === 'function' ? d.data() : d;
+    offlineTasksConfig[data.taskId] = { id: d.id, ...data };
   });
 
   // Cargar notas offline
   const gradesSnap = await getDocs(query(collection(db, 'offline_grades'), where('classId', '==', classData.id)));
   const offlineGrades = {};
-  gradesSnap.forEach(d => {
-    const data = d.data();
+  iterateSnap(gradesSnap, d => {
+    const data = typeof d.data === 'function' ? d.data() : d;
     if (!offlineGrades[data.taskId]) offlineGrades[data.taskId] = {};
     offlineGrades[data.taskId][data.studentId] = { id: d.id, ...data };
   });

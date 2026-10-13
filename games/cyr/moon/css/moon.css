@@ -1698,3 +1698,68 @@ body::after {
   padding: 20px;
   font-family: 'Share Tech Mono', monospace;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   POPUP DE BIENESTAR DIGITAL (Fondo blanco forzado)
+   ═══════════════════════════════════════════════════════════ */
+#tic2hub-modal .modal-box,
+body.theme-moon #tic2hub-modal .modal-box,
+.theme-moon .modal-box,
+.modal-wellbeing .modal-box,
+.modal-wellbeing-box {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45) !important;
+}
+
+#tic2hub-modal .modal-header,
+body.theme-moon #tic2hub-modal .modal-header,
+.modal-wellbeing .modal-header {
+  border-bottom: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+}
+
+#tic2hub-modal .modal-footer,
+body.theme-moon #tic2hub-modal .modal-footer,
+.modal-wellbeing .modal-footer {
+  border-top: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+}
+
+#tic2hub-modal #modal-title,
+#tic2hub-modal h3,
+body.theme-moon #tic2hub-modal #modal-title,
+body.theme-moon #tic2hub-modal h3,
+body.theme-moon .modal-box h3,
+.modal-wellbeing #modal-title,
+.modal-wellbeing h3 {
+  color: #0f172a !important;
+  font-family: var(--font-body), 'Inter', sans-serif !important;
+}
+
+#tic2hub-modal p,
+body.theme-moon #tic2hub-modal p,
+body.theme-moon .modal-box p,
+.modal-wellbeing p {
+  color: #334155 !important;
+  font-family: var(--font-body), 'Inter', sans-serif !important;
+}
+
+#tic2hub-modal strong,
+body.theme-moon #tic2hub-modal strong,
+body.theme-moon .modal-box strong,
+.modal-wellbeing strong {
+  color: #0f172a !important;
+}
+
+#tic2hub-modal .modal-close,
+body.theme-moon #tic2hub-modal .modal-close {
+  color: #64748b !important;
+}
+#tic2hub-modal .modal-close:hover,
+body.theme-moon #tic2hub-modal .modal-close:hover {
+  color: #0f172a !important;
+}
+

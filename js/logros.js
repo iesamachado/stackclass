@@ -1,43 +1,75 @@
 import { requireAuth } from './common/auth.js';
-import { renderHeader, showToast } from './common/ui.js';
-import { $, escapeHtml } from './common/utils.js';
-import { getLeague, MEDALS_CATALOG, MEDAL_XP, LEAGUES, GUILDS_CATALOG } from './common/gamification.js';
-import { getStudentClasses, getClassMembers } from './common/db.js';
+import { renderHeader, showToast, renderPodium, renderRankingTable } from './common/ui.js';
+import { $, escapeHtml, getUrlParams } from './common/utils.js';
+import { getLeague, LEAGUES, getGuildsForSubject, getMedalsForSubject, MEDAL_XP, initGamificationRealtime, initGamification } from './common/gamification.js';
+import { getStudentClasses, getClassMembers, getClassRanking, updateUserProfile } from './common/db.js';
 import { db, doc, updateDoc, deleteField } from './common/firebase-config.js';
 
+let myClasses = [];
+let activeClass = null;
+
 requireAuth({
-  allowedRoles: ['student', 'teacher', 'admin'],
+  allowedRoles: ['student', 'teacher'],
   onAuthorized: async (user, profile) => {
     renderHeader(user, profile);
+    await initGamification();
 
-  // Render hero
-  const xp = profile.puntosTotal || 0;
-  const league = getLeague(xp);
-  const userLogros = profile.logros || [];
+    // Cargar clases del alumno y determinar la clase activa
+    try {
+      myClasses = await getStudentClasses(user.uid);
+    } catch (e) {
+      console.error('Error cargando clases:', e);
+      myClasses = [];
+    }
 
-  const avatarUrl = profile.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`;
-  const displayName = profile.displayName || profile.email?.split('@')[0] || 'Alumno';
+    const params = getUrlParams();
+    activeClass = myClasses.find(c => c.id === params.classId) || myClasses[0] || null;
 
-  $('logros-avatar').src = avatarUrl;
-  $('logros-name').textContent = displayName;
-  $('stat-xp').textContent = xp;
-  $('stat-league-icon').textContent = league.icon;
-  $('stat-league-name').textContent = league.name;
-  $('stat-league-card').style.borderColor = league.color;
-  $('stat-league-card').style.color = league.color;
-  $('stat-medals').textContent = userLogros.length;
+    // Configurar barra de contexto de clase activa
+    setupClassContextBar(user, profile);
 
-  // Render gremios
-  await renderGremioSection(user, profile);
+    // Render hero
+    const xp = profile.xp || profile.puntosTotal || 0;
+    const league = getLeague(xp);
+    const userLogros = profile.logros || [];
 
-  // Render ligas
-  renderLeagues(xp, league);
+    const avatarUrl = profile.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`;
+    const displayName = profile.displayName || profile.email?.split('@')[0] || 'Alumno';
 
-  // Render medallas
-  renderMedals(userLogros);
+    $('logros-avatar').src = avatarUrl;
+    $('logros-name').textContent = displayName;
+    $('stat-xp').textContent = xp;
+    $('stat-league-icon').textContent = league.icon;
+    $('stat-league-name').textContent = league.name;
+    $('stat-league-card').style.borderColor = league.color;
+    $('stat-league-card').style.color = league.color;
+    $('stat-medals').textContent = userLogros.length;
 
-  // Modal de Detalle de XP
-  const btnXpDetail = $('btn-xp-detail');
+    // Render ligas
+    renderLeagues(xp, league);
+
+    // Render podio y ranking de la clase activa
+    await renderClassPodium(activeClass, user.uid);
+
+    // Render gremios de la clase activa
+    await renderGremioSection(user, profile, activeClass);
+
+    // Render medallas de la asignatura activa
+    renderMedals(userLogros, activeClass?.subject_id);
+
+    // Suscripción en tiempo real a actualizaciones de XP y medallas
+    initGamificationRealtime(user.uid, (data) => {
+      $('stat-xp').textContent = data.user.xp;
+      $('stat-medals').textContent = (data.user.logros || []).length;
+      const newL = getLeague(data.user.xp);
+      $('stat-league-icon').textContent = newL.icon;
+      $('stat-league-name').textContent = newL.name;
+      renderLeagues(data.user.xp, newL);
+    });
+
+    // Modal de Detalle de XP
+    const btnXpDetail = $('btn-xp-detail');
+
   const modalXpDetail = $('modal-xp-detail');
   if (btnXpDetail && modalXpDetail) {
     $('close-xp-modal').addEventListener('click', () => modalXpDetail.classList.remove('modal-backdrop--visible'));
@@ -176,23 +208,8 @@ requireAuth({
         const userSnap = await getDoc(doc(db, 'users', studentId));
         const userLogros = userSnap.data()?.logros || [];
         
-        // Mapeo de XP para las medallas conocidas
-        const MEDAL_XP = {
-            netdefender_300: 50, guardian_red: 100, netdefender_700: 150, netdefender_1000: 200,
-            mecanoclass_20: 20, mecanografo: 50, mecanoclass_60: 100, velocista: 120, mecanoclass_100: 250,
-            rompecodigos_200: 50, rompecodigos_500: 100, criptologo: 150, rompecodigos_1200: 200,
-            helados_1000: 100, helados_1500: 150, helados_2000: 200, helados_2500: 250, helados_3000: 300, helados_35000: 1000,
-            moon_3: 50, explorador_lunar: 100, moon_10: 150, moon_15: 200,
-            arenabots_50: 50, arenabots_100: 100, arenabots_150: 150, arquitecto_bot: 250,
-            cybersmith_100: 50, cybersmith_250: 100, ingeniero: 150, cybersmith_600: 200,
-            asimov_20: 30, asimov_50: 60, leyes_robotica: 100, asimov_100: 150,
-            appflow_50: 50, appflow_100: 100, unicornio: 150, appflow_300: 200,
-            trivial_30: 30, trivial_60: 60, sabiondo: 100,
-            madrugador: 10, finde: 10, constancia: 10 // Assuming 10 XP for global time medals if any, usually 0 in code but just in case
-        };
-        
         userLogros.forEach(medal => {
-            const extraXP = MEDAL_XP[medal.id] || 0;
+            const extraXP = medal.xp_value || MEDAL_XP[medal.id] || 0;
             timeline.push({
                 type: 'medal',
                 title: `🏅 Medalla: ${medal.icon} ${medal.name}`,
@@ -252,10 +269,68 @@ requireAuth({
   }
 });
 
-export async function renderGremioSection(user, profile) {
+// ── Barra de Selección y Contexto de Clase Activa ───────────────
+function setupClassContextBar(user, profile) {
+  const nameEl = $('active-class-name');
+  const wrapper = $('class-selector-wrapper');
+  const select = $('class-select');
+
+  if (nameEl) {
+    nameEl.textContent = activeClass ? `${activeClass.name} (${String(activeClass.subject_id || '').toUpperCase()})` : 'Sin clase activa asignada';
+  }
+
+  if (wrapper && select && myClasses.length > 1) {
+    wrapper.style.display = 'flex';
+    select.innerHTML = myClasses.map(c => `
+      <option value="${c.id}" ${activeClass && activeClass.id === c.id ? 'selected' : ''}>
+        ${escapeHtml(c.name)} (${String(c.subject_id || '').toUpperCase()})
+      </option>
+    `).join('');
+
+    select.onchange = async () => {
+      activeClass = myClasses.find(c => c.id === select.value) || myClasses[0];
+      if (nameEl) {
+        nameEl.textContent = `${activeClass.name} (${String(activeClass.subject_id || '').toUpperCase()})`;
+      }
+      await renderClassPodium(activeClass, user.uid);
+      await renderGremioSection(user, profile, activeClass);
+      renderMedals(profile.logros || [], activeClass?.subject_id);
+    };
+  }
+}
+
+// ── Podio y Clasificación de la Clase Activa ────────────────────
+async function renderClassPodium(cls, currentUid) {
+  const podiumEl = $('class-podium-container');
+  const rankingEl = $('class-ranking-container');
+  if (!podiumEl || !rankingEl) return;
+
+  if (!cls) {
+    podiumEl.innerHTML = '<p class="empty-state">Únete a una clase para competir en el podio.</p>';
+    rankingEl.innerHTML = '';
+    return;
+  }
+
+  podiumEl.innerHTML = '<div style="text-align:center; padding:15px;"><div class="spinner"></div> Cargando podio de la clase...</div>';
+  rankingEl.innerHTML = '';
+
+  try {
+    const ranking = await getClassRanking(cls.id);
+    renderPodium(ranking, 'class-podium-container');
+    renderRankingTable(ranking, 'class-ranking-container', { myUid: currentUid });
+  } catch (err) {
+    console.error('Error cargando podio de la clase:', err);
+    podiumEl.innerHTML = '<p class="empty-state">No se pudieron cargar las puntuaciones de esta clase.</p>';
+  }
+}
+
+export async function renderGremioSection(user, profile, cls = null) {
   const container = $('gremio-container');
   if (!container) return;
   const mainLayout = document.querySelector('.layout-logros');
+
+  const subjectId = cls?.subject_id || profile.subject_id || 'cyr';
+  const classGuilds = getGuildsForSubject(subjectId);
 
   function showGuildConfirm(title, msg, onConfirm) {
     const div = document.createElement('div');
@@ -283,10 +358,11 @@ export async function renderGremioSection(user, profile) {
   window.leaveGuild = function() {
     showGuildConfirm('Abandonar Gremio', '¿Estás seguro de que quieres abandonar tu gremio? Perderás tu plaza y otro alumno podría ocuparla.', async () => {
       try {
-        await updateDoc(doc(db, 'users', user.uid), { gremio: deleteField() });
+        await updateUserProfile(user.uid, { gremio: '', guild_id: '' });
         profile.gremio = '';
+        profile.guild_id = '';
         renderHeader(user, profile);
-        await renderGremioSection(user, profile);
+        await renderGremioSection(user, profile, cls);
         showToast('Gremio abandonado', '', 'info');
       } catch(e) {
         showToast('Error', 'No se pudo abandonar el gremio.', 'error');
@@ -297,10 +373,12 @@ export async function renderGremioSection(user, profile) {
   window.joinGuild = function(guildName) {
     showGuildConfirm('Unirse a Gremio', `¿Estás seguro de que quieres unirte a <strong>${escapeHtml(guildName)}</strong>?`, async () => {
       try {
-        await updateDoc(doc(db, 'users', user.uid), { gremio: guildName });
+        const found = classGuilds.find(g => g.name === guildName);
+        await updateUserProfile(user.uid, { gremio: guildName, guild_id: found?.id || guildName });
         profile.gremio = guildName;
+        profile.guild_id = found?.id || guildName;
         renderHeader(user, profile);
-        await renderGremioSection(user, profile);
+        await renderGremioSection(user, profile, cls);
         showToast('¡Bienvenido al gremio!', guildName, 'success');
       } catch(e) {
         showToast('Error', 'No se pudo unir al gremio.', 'error');
@@ -308,69 +386,68 @@ export async function renderGremioSection(user, profile) {
     });
   };
 
-  // Obtener miembros de la clase para calcular cupos y puntos
+  // Obtener miembros de la clase activa para calcular cupos y puntos
   let classMembers = [];
   let totalInClass = 4;
-  try {
-    const myClasses = await getStudentClasses(user.uid);
-    if (myClasses.length > 0) {
-      classMembers = await getClassMembers(myClasses[0].id);
+  if (cls) {
+    try {
+      classMembers = await getClassMembers(cls.id);
       totalInClass = Math.max(4, classMembers.length);
-    }
-  } catch(e) { console.error('Error obteniendo clase:', e); }
+    } catch(e) { console.error('Error obteniendo miembros de clase:', e); }
+  }
 
-  // Calcular cupos y puntos por gremio
-  const maxPerGuild = Math.max(1, Math.ceil(totalInClass / 4));
+  // Calcular cupos y puntos exclusivamente para los gremios de la asignatura de esta clase
+  const maxPerGuild = Math.max(1, Math.ceil(totalInClass / classGuilds.length));
   const guildCounts = {};
   const guildPoints = {};
-  GUILDS_CATALOG.forEach(g => { guildCounts[g.name] = 0; guildPoints[g.name] = 0; });
+  classGuilds.forEach(g => { guildCounts[g.name] = 0; guildPoints[g.name] = 0; });
+
   classMembers.forEach(m => {
-    if (m.gremio && guildCounts[m.gremio] !== undefined) {
-      guildCounts[m.gremio]++;
-      guildPoints[m.gremio] += (m.puntosTotal || 0);
+    const gName = classGuilds.find(g => g.name === m.gremio || g.id === m.guild_id)?.name;
+    if (gName && guildCounts[gName] !== undefined) {
+      guildCounts[gName]++;
+      guildPoints[gName] += (m.xp || m.puntosTotal || 0);
     }
   });
 
-  const guildRanking = GUILDS_CATALOG.map(g => ({
-    name: g.name, icon: g.icon, image: g.image, color: g.color,
+  const guildRanking = classGuilds.map(g => ({
+    name: g.name, id: g.id, icon: g.icon, image: g.image, color: g.color, desc: g.desc,
     points: guildPoints[g.name] || 0,
     members: guildCounts[g.name] || 0
   })).sort((a,b) => b.points - a.points);
 
-  if (profile.gremio) {
+  const myGuildInfo = classGuilds.find(g => g.name === profile.gremio || g.id === profile.guild_id);
+
+  if (myGuildInfo) {
     if (mainLayout) {
       mainLayout.style.flexDirection = '';
       mainLayout.classList.remove('no-guild-layout');
     }
-    // TIENE GREMIO: mostrar info del gremio + ranking
-    const guildInfo = GUILDS_CATALOG.find(g => g.name === profile.gremio);
-    const color = guildInfo?.color || '#6c63ff';
-    const icon = guildInfo?.icon || '🛡️';
-    const myGuildData = guildRanking.find(g => g.name === profile.gremio);
-    const myGuildPos = guildRanking.findIndex(g => g.name === profile.gremio) + 1;
+    const color = myGuildInfo.color || '#6c63ff';
+    const myGuildData = guildRanking.find(g => g.name === myGuildInfo.name);
+    const myGuildPos = guildRanking.findIndex(g => g.name === myGuildInfo.name) + 1;
     const myGuildPoints = myGuildData?.points || 0;
-    const count = guildCounts[profile.gremio] || 0;
+    const count = guildCounts[myGuildInfo.name] || 0;
 
-    const membersInMyGuild = classMembers.filter(m => m.gremio === profile.gremio);
+    const membersInMyGuild = classMembers.filter(m => m.gremio === myGuildInfo.name || m.guild_id === myGuildInfo.id);
     const membersHtml = membersInMyGuild.map(m => `
       <div style="display:flex; align-items:center; gap:8px; background:#f9f9f9; padding:5px 10px; border-radius:20px; border:1px solid #eee;">
-        <img src="${escapeHtml(m.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.uid}`)}" style="width:24px; height:24px; border-radius:50%;">
-        <span style="font-size:0.85rem; font-weight:bold;">${escapeHtml(m.displayNameAnonymized || m.displayName || m.email?.split('@')[0] || 'Alumno')}</span>
+        <img src="${escapeHtml(m.avatar || m.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.id || m.uid}`)}" style="width:24px; height:24px; border-radius:50%;">
+        <span style="font-size:0.85rem; font-weight:bold;">${escapeHtml(m.display_name_anon || m.displayNameAnonymized || m.display_name || m.displayName || 'Alumno')}</span>
       </div>
     `).join('');
 
     const rankingHtml = guildRanking.map((g, idx) => {
-      // Buscar al MVP de este gremio
-      const gMembers = classMembers.filter(m => m.gremio === g.name).sort((a,b) => (b.puntosTotal||0) - (a.puntosTotal||0));
+      const gMembers = classMembers.filter(m => m.gremio === g.name || m.guild_id === g.id)
+        .sort((a,b) => (b.xp || b.puntosTotal || 0) - (a.xp || a.puntosTotal || 0));
       const mvp = gMembers.length > 0 ? gMembers[0] : null;
       let mvpHtml = '';
-      if (mvp && mvp.puntosTotal > 0) {
+      if (mvp && (mvp.xp || mvp.puntosTotal) > 0) {
         mvpHtml = `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px; margin-left:32px;">
-          👑 MVP: <strong style="color:var(--text-primary);">${escapeHtml(mvp.displayNameAnonymized || mvp.displayName || mvp.email?.split('@')[0])}</strong> (${mvp.puntosTotal} XP)
+          👑 MVP: <strong style="color:var(--text-primary);">${escapeHtml(mvp.display_name_anon || mvp.displayNameAnonymized || mvp.display_name || mvp.displayName)}</strong> (${mvp.xp || mvp.puntosTotal} XP)
         </div>`;
       }
 
-      // Calcular distancia con el anterior
       let distanceHtml = '';
       if (idx > 0 && guildRanking[idx-1].points > 0) {
         const diff = guildRanking[idx-1].points - g.points;
@@ -382,14 +459,14 @@ export async function renderGremioSection(user, profile) {
       }
 
       return `
-        <div class="guild-ranking-row" style="flex-direction:column; align-items:stretch; padding:12px 8px; border-bottom:1px solid var(--border); ${g.name === profile.gremio ? 'background:var(--surface-2,#f9f9f9); border-left:3px solid ' + g.color + ';' : ''}">
+        <div class="guild-ranking-row" style="flex-direction:column; align-items:stretch; padding:12px 8px; border-bottom:1px solid var(--border); ${g.name === myGuildInfo.name ? 'background:var(--surface-2,#f9f9f9); border-left:3px solid ' + g.color + ';' : ''}">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; gap:8px; align-items:center;">
               <span style="width:20px; text-align:center;">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx+1}.`}</span>
               <div style="width:24px; height:24px; border-radius:50%; background-color:${g.color}; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--text-primary);">
                 <img src="${g.image}" alt="" style="width:100%; height:100%; object-fit:contain; mix-blend-mode:multiply;">
               </div>
-              <span style="color:${g.color}; font-weight:${g.name === profile.gremio ? 'bold' : 'normal'};">${escapeHtml(g.name)}</span>
+              <span style="color:${g.color}; font-weight:${g.name === myGuildInfo.name ? 'bold' : 'normal'};">${escapeHtml(g.name)}</span>
             </div>
             <div style="text-align:right;">
               <span style="color:var(--warning); font-weight:bold;">⭐ ${g.points} XP</span>
@@ -409,9 +486,9 @@ export async function renderGremioSection(user, profile) {
       </div>
       <div style="text-align:center;">
         <div style="margin: 0 auto 15px auto; width: 100px; height: 100px; border-radius: 50%; background-color: ${color}; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 4px solid var(--text-primary); box-shadow: 5px 5px 0px rgba(0,0,0,1);">
-          <img src="${guildInfo?.image || ''}" alt="${escapeHtml(profile.gremio)}" style="width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply;">
+          <img src="${myGuildInfo.image || ''}" alt="${escapeHtml(myGuildInfo.name)}" style="width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply;">
         </div>
-        <div style="font-size:1.5rem; font-weight:bold; color:${color};">${escapeHtml(profile.gremio)}</div>
+        <div style="font-size:1.5rem; font-weight:bold; color:${color};">${escapeHtml(myGuildInfo.name)}</div>
         <div style="margin-top:15px; display:flex; justify-content:center; gap:15px; flex-wrap:wrap;">
           <div style="background:#fdfbf7; border:1px solid #f1c40f; border-radius:8px; padding:8px 15px; text-align:center;">
             <div style="font-size:1.2rem; font-weight:bold; color:#f39c12;">⭐ ${myGuildPoints}</div>
@@ -426,13 +503,13 @@ export async function renderGremioSection(user, profile) {
             <div style="font-size:0.75rem; color:#7f8c8d; text-transform:uppercase;">Plazas en tu clase</div>
           </div>
         </div>
-        <p style="margin-top:15px; color:var(--text-muted,#888); font-size:0.9rem; max-width:600px; margin-left:auto; margin-right:auto; line-height:1.4;">${escapeHtml(guildInfo?.desc || '')}</p>
+        <p style="margin-top:15px; color:var(--text-muted,#888); font-size:0.9rem; max-width:600px; margin-left:auto; margin-right:auto; line-height:1.4;">${escapeHtml(myGuildInfo.desc || '')}</p>
         <div style="margin-top:25px; text-align:left; background:var(--bg-card,#fff); padding:15px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border-left:3px solid ${color};">
-          <h4 style="font-size:0.9rem; margin-bottom:10px; text-transform:uppercase;">👥 Tus compañeros de gremio en tu clase:</h4>
+          <h4 style="font-size:0.9rem; margin-bottom:10px; text-transform:uppercase;">👥 Tus compañeros de gremio en esta clase:</h4>
           <div style="display:flex; flex-wrap:wrap; gap:10px;">${membersHtml || '<span style="color:var(--text-muted,#888); font-size:0.85rem;">Aún no hay nadie más en este gremio en tu clase.</span>'}</div>
         </div>
         <div style="margin-top:20px; text-align:left; background:var(--bg-card,#fff); padding:15px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-          <h4 style="font-size:0.9rem; margin-bottom:10px; text-transform:uppercase;">🏆 Ranking de Gremios</h4>
+          <h4 style="font-size:0.9rem; margin-bottom:10px; text-transform:uppercase;">🏆 Ranking de Gremios en tu Clase</h4>
           ${rankingHtml}
         </div>
       </div>
@@ -442,8 +519,8 @@ export async function renderGremioSection(user, profile) {
       mainLayout.style.flexDirection = '';
       mainLayout.classList.add('no-guild-layout');
     }
-    // SIN GREMIO: mostrar selector de gremios
-    const cardsHtml = GUILDS_CATALOG.map(g => {
+    // SIN GREMIO: mostrar selector con los gremios de ESTA asignatura
+    const cardsHtml = classGuilds.map(g => {
       const count = guildCounts[g.name] || 0;
       const isFull = count >= maxPerGuild;
       return `
@@ -464,8 +541,8 @@ export async function renderGremioSection(user, profile) {
 
     container.innerHTML = `
       <div style="text-align:center; margin-bottom:var(--space-4,16px);">
-        <h4 style="margin-bottom:5px;">Es hora de elegir tu destino</h4>
-        <p style="color:var(--text-muted,#888); font-size:0.9rem;">Los gremios tienen plazas limitadas en tu clase para mantener el equilibrio.</p>
+        <h4 style="margin-bottom:5px;">Elige el gremio para tu clase</h4>
+        <p style="color:var(--text-muted,#888); font-size:0.9rem;">Gremios disponibles para ${escapeHtml(cls?.name || 'tu asignatura')}:</p>
       </div>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:var(--space-4,16px);">
         ${cardsHtml}
@@ -473,6 +550,7 @@ export async function renderGremioSection(user, profile) {
     `;
   }
 }
+
 
 function renderLeagues(currentXp, currentLeague) {
   const container = $('student-leagues-list');
@@ -525,14 +603,15 @@ function renderLeagues(currentXp, currentLeague) {
   container.style.gap = 'var(--space-3)';
 }
 
-function renderMedals(userLogros) {
+function renderMedals(userLogros, subjectId = null) {
   const container = $('student-medals-list');
   if (!container) return;
 
-  const unlockedIds = userLogros.map(l => l.id);
+  const unlockedIds = userLogros.map(l => (typeof l === 'string' ? l : (l.id || l.medal_id)));
+  const catalog = getMedalsForSubject(subjectId);
   
   // Sort: Unlocked first, then locked (public first, hidden last)
-  const sortedMedals = [...MEDALS_CATALOG].sort((a,b) => {
+  const sortedMedals = [...catalog].sort((a,b) => {
     const aUnl = unlockedIds.includes(a.id);
     const bUnl = unlockedIds.includes(b.id);
     if (aUnl && !bUnl) return -1;

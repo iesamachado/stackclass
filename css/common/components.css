@@ -421,6 +421,49 @@
   border-top: 1px solid var(--border);
 }
 
+/* ── Modal de Bienestar Digital (Fondo blanco forzado) ── */
+.modal-wellbeing .modal-box,
+.modal-wellbeing-box {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
+}
+
+.modal-wellbeing .modal-header {
+  border-bottom: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+}
+
+.modal-wellbeing .modal-footer {
+  border-top: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+}
+
+.modal-wellbeing #modal-title,
+.modal-wellbeing h3,
+.modal-wellbeing-box h3 {
+  color: #0f172a !important;
+}
+
+.modal-wellbeing p,
+.modal-wellbeing-box p {
+  color: #334155 !important;
+}
+
+.modal-wellbeing strong,
+.modal-wellbeing-box strong {
+  color: #0f172a !important;
+}
+
+.modal-wellbeing .modal-close {
+  color: #64748b !important;
+}
+.modal-wellbeing .modal-close:hover {
+  color: #0f172a !important;
+}
+
 /* ══════════════════════════════════════════════════════
    TOASTS
 ══════════════════════════════════════════════════════ */

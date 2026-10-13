@@ -11,7 +11,7 @@
     import { getUrlParams } from '../../../../js/common/utils.js';
     
     requireAuth({
-      allowedRoles: ['student', 'teacher', 'admin'],
+      allowedRoles: ['student', 'teacher'],
       onAuthorized: () => {
         const params = getUrlParams();
         const classStr = params.classId ? `?classId=${params.classId}` : '';

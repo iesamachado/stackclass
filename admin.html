@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ClassHub — Panel de Administración. Gestión de docentes autorizados y administradores del sistema.">
-  <title>ClassHub — Panel de Administración</title>
+  <meta name="description" content="StackClass — Panel de Administración. Gestión de docentes autorizados y administradores del sistema.">
+  <title>StackClass — Panel de Administración</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
 
   <link rel="stylesheet" href="css/common/design-system.css">
@@ -117,14 +117,14 @@
       <!-- Sección de Lista y Acciones -->
       <div class="dashboard-grid dashboard-grid--sidebar animate-fade-up delay-2">
         
-        <!-- Sidebar: Autorizar nuevo docente -->
+        <!-- Sidebar: Invitar / Autorizar nuevo docente -->
         <aside>
           <div class="card" style="position: sticky; top: calc(var(--navbar-height) + var(--space-4));">
             <div class="card-header">
-              <h2 class="card-title">➕ Autorizar Docente</h2>
+              <h2 class="card-title">➕ Invitar / Autorizar Docente</h2>
             </div>
             <p class="form-hint" style="margin-bottom: var(--space-4);">
-              Añade uno o varios correos electrónicos para concederles acceso docente inmediato.
+              Los docentes deben ser invitados previamente para poder iniciar sesión. Puedes asignarles acceso como <strong>Docente</strong> o con permisos de <strong>Superadministrador</strong>.
             </p>
 
             <form id="form-add-teacher" novalidate>
@@ -141,16 +141,19 @@
               </div>
 
               <div class="form-group" style="margin-top: var(--space-3);">
-                <label class="form-label" for="select-teacher-role">Rol asignado</label>
+                <label class="form-label" for="select-teacher-role">Permisos</label>
                 <select id="select-teacher-role">
-                  <option value="teacher" selected>👨‍🏫 Docente (crear y gestionar sus clases)</option>
-                  <option value="admin">👑 Administrador (acceso total + panel admin)</option>
+                  <option value="teacher" selected>👨‍🏫 Docente (gestión de sus clases)</option>
+                  <option value="superadmin">⚡ Superadministrador (acceso y configuración total)</option>
                 </select>
               </div>
 
-              <div style="margin-top: var(--space-6);">
+              <div style="margin-top: var(--space-6); display: flex; flex-direction: column; gap: var(--space-2);">
                 <button type="submit" class="btn btn-primary btn--full" id="btn-submit-teacher">
-                  <span>➕</span> Autorizar Acceso
+                  <span>✉️</span> Guardar e Invitar
+                </button>
+                <button type="button" class="btn btn-outline btn--full" id="btn-copy-invite-link">
+                  <span>📋</span> Copiar Plantilla de Invitación
                 </button>
               </div>
             </form>

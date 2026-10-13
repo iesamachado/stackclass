@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cargando Test... — StackClass</title>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const topic = params.get('topic') || params.get('topicId') || params.get('id') || 'block1';
+    const subject = params.get('subject') || params.get('subjectId') || '';
+    let target = 'index.html?topicId=' + encodeURIComponent(topic) + '&startTest=true';
+    if (subject) target += '&subjectId=' + encodeURIComponent(subject);
+    window.location.replace(target);
+  </script>
+</head>
+<body style="font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #334155;">
+  <div style="text-align: center; padding: 24px;">
+    <h2>📝 Cargando test de evaluación...</h2>
+    <p style="color: #64748b;">Redirigiendo al temario interactivo de StackClass.</p>
+  </div>
+</body>
+</html>

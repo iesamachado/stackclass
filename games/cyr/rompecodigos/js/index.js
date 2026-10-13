@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initParticles('particles-canvas', '#00e5ff', '#ff3366');
 
     requireAuth({
-        allowedRoles: ['teacher', 'student', 'admin'],
+        allowedRoles: ['teacher', 'student'],
         onAuthorized: (user, profile) => {
             renderHeader(user, profile);
             setupUI(user, profile);
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupUI(user, profile) {
-    const isTeacherOrAdmin = profile.role === 'teacher' || profile.role === 'admin' || isAdmin(user, profile);
+    const isTeacherOrAdmin = profile.role === 'teacher' || isAdmin(user, profile);
     
     if (isTeacherOrAdmin) {
         const teacherSection = $('teacher-section');

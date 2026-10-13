@@ -2,4 +2,16 @@
 data/
 node_modules/
 node_modules
+scripts/
+scripts
+.well-known/
+.well-know/
+.well-know*
+
+# Banco de preguntas tipo test y seeds sensibles
+supabase/seed_topics.sql
+*seed_topics*.sql
+*questions*.sql
+
+
 

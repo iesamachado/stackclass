@@ -2,7 +2,6 @@ import { db, doc, getDoc, getDocs, collection, query, where, updateDoc, serverTi
 import { renderHeader, showToast } from './common/ui.js';
 import { requireAuth } from './common/auth.js';
 import { $, $$, escapeHtml, getUrlParams, TOPICS } from './common/utils.js';
-import { addXPAndCheckLogros, awardMedal } from './common/gamification.js';
 
 let examenId = null;
 let examen = null;
@@ -14,7 +13,7 @@ async function init() {
   if (!examenId) return;
   
   requireAuth({
-    allowedRoles: ['teacher', 'admin'],
+    allowedRoles: ['teacher'],
     onAuthorized: async (user, profile) => {
       renderHeader(profile);
       await loadExamen();
@@ -237,15 +236,6 @@ async function toggleResultados() {
     
     for (let entrega of entregas) {
       if (entrega.puntosOtorgados) continue;
-      const nota = entrega.calculado.nota;
-      let xp = 5 + (nota >= 5 ? 5 : 0) + (nota > 9 ? 5 : 0);
-      
-      await addXPAndCheckLogros(entrega.uid, xp);
-      await awardMedal(entrega.uid, 'primer_examen');
-      if (nota >= 9.5) await awardMedal(entrega.uid, 'maestro_teoria');
-      if (nota >= 8.5 && nota < 9.5) await awardMedal(entrega.uid, 'casi_perfecto');
-      if (Math.abs(nota - 5.0) < 0.1) await awardMedal(entrega.uid, 'por_los_pelos');
-      
       await updateDoc(doc(db, 'respuestas_test', entrega.id), { puntosOtorgados: true });
     }
     

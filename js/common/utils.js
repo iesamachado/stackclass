@@ -27,6 +27,21 @@ export function formatDateTime(ts) {
   return d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+export function timeAgo(ts) {
+  if (!ts) return '—';
+  const d = ts instanceof Date ? ts : new Date(ts);
+  const now = new Date();
+  const diffSec = Math.floor((now - d) / 1000);
+  if (diffSec < 60) return 'hace un momento';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `hace ${diffHours} h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `hace ${diffDays} d`;
+  return formatDate(d);
+}
+
 // ──────────────────────────────────────────────────────────────────────
 //  URL helpers
 // ──────────────────────────────────────────────────────────────────────
@@ -36,10 +51,50 @@ export function getUrlParams() {
   return params;
 }
 
-export function getAppUrl() {
-  const parts = window.location.pathname.split('/');
-  parts.pop();
-  return window.location.origin + parts.join('/');
+export function getAppUrl(path = '') {
+  const origin = window.location.origin;
+  const pathname = window.location.pathname;
+
+  let basePath = '';
+  const gamesIdx = pathname.indexOf('/games/');
+  if (gamesIdx !== -1) {
+    basePath = pathname.substring(0, gamesIdx);
+  } else {
+    const parts = pathname.split('/');
+    parts.pop(); // quitar archivo actual
+    basePath = parts.join('/');
+  }
+
+  basePath = basePath.replace(/\/+$/, '');
+  const cleanPath = path ? (path.startsWith('/') ? path : '/' + path) : '';
+
+  return `${origin}${basePath}${cleanPath}`;
+}
+
+export function scoreToGrade(score, targetScore = 100) {
+  if (!score || score <= 0) return 0;
+  if (!targetScore || targetScore <= 0) return Math.min(10, score);
+  const ratio = Math.min(1, score / targetScore);
+  return Math.round(ratio * 10 * 100) / 100;
+}
+
+export async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const input = document.createElement('textarea');
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    return true;
+  } catch (err) {
+    console.error('Error al copiar al portapapeles:', err);
+    return false;
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -334,3 +389,45 @@ export const TOPICS = {
   block4: { id: "block4", subjectId: "cyr", name: "Bloque 4: IoT y Móvil", icon: "📱", color: "#00bcd4", htmlPath: "temario/index.html?topicId=block4&subjectId=cyr" },
   block5: { id: "block5", subjectId: "cyr", name: "Bloque 5: Inteligencia Artificial", icon: "🧠", color: "#9013fe", htmlPath: "temario/index.html?topicId=block5&subjectId=cyr" }
 };
+
+// ──────────────────────────────────────────────────────────────────────
+//  CURSOS / MATERIAS OFICIALES
+// ──────────────────────────────────────────────────────────────────────
+export const COURSES = {
+  cyr: {
+    id: 'cyr',
+    name: 'Computación y Robótica',
+    shortName: 'CyR',
+    level: '1º a 3º ESO',
+    icon: '🤖',
+    color: '#6c63ff',
+    colorDark: '#4f46e5',
+    description: 'Alfabetización digital, programación por bloques, robótica, IA y ciberseguridad para Educación Secundaria.',
+    levels: ['1º ESO', '2º ESO', '3º ESO']
+  },
+  tic2: {
+    id: 'tic2',
+    name: 'Tecnologías de la Información y Comunicación II',
+    shortName: 'TIC II',
+    level: '2º Bachillerato',
+    icon: '💻',
+    color: '#0073aa',
+    colorDark: '#005177',
+    description: 'Desarrollo web, ciberseguridad, programación, bases de datos y metodologías ágiles.',
+    levels: ['2º Bachillerato']
+  }
+};
+
+export const SUBJECTS = COURSES;
+
+export function getCourseStats(courseId) {
+  const topics = Object.values(TOPICS).filter(t => t.subjectId === courseId);
+  const games = Object.values(GAMES).filter(g => g.subjectId === courseId);
+  return {
+    topicsCount: topics.length,
+    gamesCount: games.length,
+    topics,
+    games
+  };
+}
+

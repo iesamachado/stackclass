@@ -220,3 +220,34 @@
   color: var(--accent-light);
   font-weight: 600;
 }
+
+/* ── More games collapsible section ────────────────────────── */
+
+.more-games-details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+.more-games-details:hover {
+  border-color: var(--border-hover);
+}
+.more-games-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-body);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  transition: background var(--transition-fast);
+}
+.more-games-details summary:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.more-games-details[open] summary {
+  border-bottom: 1px solid var(--border);
+}
+

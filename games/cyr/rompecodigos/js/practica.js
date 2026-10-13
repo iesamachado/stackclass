@@ -2,7 +2,7 @@
 // practica.js — Laboratorio Criptográfico y Modo Práctica RompeCódigos
 // ============================================================
 
-import { requireAuth, currentProfile } from '../../../../../js/common/auth.js';
+import { requireAuth, currentProfile, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
 import { renderHeader, showToast, initParticles } from '../../../../../js/common/ui.js';
 import { saveGameResult } from '../../../../../js/common/db.js';
 
@@ -116,9 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initParticles('particles-canvas', '#00e5ff', '#ff3366');
 
   requireAuth({
-    allowedRoles: ['teacher', 'student', 'admin'],
+    allowedRoles: ['teacher', 'student'],
     onAuthorized: async (user, profile) => {
-
+      if (profile.role === 'student') {
+        const allowed = await incrementDigitalWellbeing(user.id, 'game', 'rompecodigos');
+        if (!allowed) return;
+      }
       state.user = user;
       state.profile = profile;
       renderHeader(user, profile);

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="StackClass — Detalle de Curso. Explora los bloques temáticos y juegos educativos de la asignatura.">
+  <title>Detalle de Curso — StackClass</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+
+  <link rel="stylesheet" href="css/common/design-system.css">
+  <link rel="stylesheet" href="css/common/reset.css">
+  <link rel="stylesheet" href="css/common/layout.css">
+  <link rel="stylesheet" href="css/common/components.css">
+  <link rel="stylesheet" href="css/course_detail.css">
+</head>
+<body class="page">
+
+  <!-- Header (renderizado por ui.js) -->
+  <div id="app-header"></div>
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- Navegación superior -->
+      <div style="margin-bottom: var(--space-4); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-2);">
+        <a href="dashboard_teacher.html" class="btn btn-ghost btn--sm" style="display: inline-flex; align-items: center; gap: 6px;">
+          ← <span>Volver al Panel Docente</span>
+        </a>
+        <div style="display: flex; gap: var(--space-2);">
+          <a href="evaluation.html" class="btn btn-outline btn--sm" style="display: inline-flex; align-items: center; gap: 6px;">
+            📊 <span>Criterios y Tareas</span>
+          </a>
+          <a href="roadmap.html" class="btn btn-outline btn--sm" style="display: inline-flex; align-items: center; gap: 6px;">
+            🚀 <span>Roadmap de Juegos</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Hero del Curso -->
+      <section class="course-hero animate-fade-up" id="course-hero">
+        <div class="course-hero-top">
+          <div class="course-hero-main">
+            <div class="course-hero-icon" id="course-icon">📚</div>
+            <div>
+              <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+                <h1 class="course-hero-title" id="course-title">Cargando curso...</h1>
+                <span class="badge" id="course-badge">...</span>
+              </div>
+              <p class="course-hero-desc" id="course-desc">...</p>
+            </div>
+          </div>
+        </div>
+        <div class="course-stats-bar" id="course-stats-bar">
+          <div class="course-stat-pill">
+            <span>📚</span> <span id="stat-topics-count">— bloques temáticos</span>
+          </div>
+          <div class="course-stat-pill">
+            <span>🎮</span> <span id="stat-games-count">— juegos educativos</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pestañas de navegación -->
+      <nav class="course-tabs-nav animate-fade-up delay-1" role="tablist">
+        <button class="course-tab-btn course-tab-btn--active" id="tab-btn-topics" data-tab="topics" role="tab" aria-selected="true">
+          <span>📚</span> <span>Bloques Temáticos (Temario)</span>
+        </button>
+        <button class="course-tab-btn" id="tab-btn-games" data-tab="games" role="tab" aria-selected="false">
+          <span>🎮</span> <span>Juegos Educativos</span>
+        </button>
+      </nav>
+
+      <!-- Contenido Tab 1: Bloques Temáticos -->
+      <section id="section-topics" class="animate-fade-up delay-2">
+        <div class="section-header" style="margin-bottom: var(--space-4);">
+          <h2 class="section-title">Contenido Teórico y Bloques</h2>
+          <p class="section-desc">Accede a las unidades didácticas para proyectarlas en clase, preparar lecciones o compartirlas con el alumnado.</p>
+        </div>
+        <div class="classes-grid" id="course-topics-grid">
+          <!-- Renderizado por JS -->
+        </div>
+      </section>
+
+      <!-- Contenido Tab 2: Juegos Educativos -->
+      <section id="section-games" style="display: none;" class="animate-fade-up delay-2">
+        <div class="section-header" style="margin-bottom: var(--space-4); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-3);">
+          <div>
+            <h2 class="section-title">Catálogo de Juegos del Curso</h2>
+            <p class="section-desc" style="margin-bottom: 0;">Juegos interactivos y simuladores diseñados para trabajar los criterios de esta asignatura.</p>
+          </div>
+          <!-- Filtro de nivel (para CyR) -->
+          <div class="level-filters" id="level-filters-container" style="display: none; margin-bottom: 0;">
+            <!-- Renderizado por JS -->
+          </div>
+        </div>
+        <div class="games-grid" id="course-games-grid">
+          <!-- Renderizado por JS -->
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script type="module" src="js/course_detail.js"></script>
+</body>
+</html>

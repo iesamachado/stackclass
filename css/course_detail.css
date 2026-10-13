@@ -1,0 +1,192 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STACKCLASS — course_detail.css (Detalle de Curso)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.course-hero {
+  background: var(--bg-surface);
+  border: var(--border-width, 2px) solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.course-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--course-color, var(--primary));
+}
+
+.course-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.course-hero-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.course-hero-icon {
+  font-size: 3rem;
+  line-height: 1;
+  background: var(--bg-body);
+  border: var(--border-width, 2px) solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.course-hero-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-family: var(--font-heading);
+}
+
+.course-hero-desc {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  margin: var(--space-2) 0 var(--space-4) 0;
+  max-width: 800px;
+  line-height: 1.5;
+}
+
+.course-stats-bar {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.course-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--bg-body);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* Tabs */
+.course-tabs-nav {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 2px solid var(--border);
+  margin-bottom: var(--space-6);
+  padding-bottom: 2px;
+}
+
+.course-tab-btn {
+  background: none;
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: all var(--transition-fast);
+}
+
+.course-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.course-tab-btn--active {
+  color: var(--course-color-dark, var(--text-primary));
+  border-bottom-color: var(--course-color, var(--primary));
+}
+
+/* Topic Card */
+.topic-card {
+  background: var(--bg-surface);
+  border: var(--border-width, 2px) solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.topic-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.topic-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.topic-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.topic-card-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-family: var(--font-heading);
+}
+
+.topic-card-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-4);
+  flex-grow: 1;
+}
+
+/* Filters */
+.level-filters {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+
+.level-filter-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.level-filter-btn:hover {
+  border-color: var(--border-hover);
+}
+
+.level-filter-btn--active {
+  background: var(--text-primary);
+  color: #fff;
+  border-color: var(--text-primary);
+}

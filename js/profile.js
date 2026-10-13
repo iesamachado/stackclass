@@ -15,7 +15,7 @@ let currentStyle = 'bottts';
 let selectedUrl = '';
 
 requireAuth({
-  allowedRoles: ['teacher', 'student', 'admin'],
+  allowedRoles: ['teacher', 'student'],
   onAuthorized: async (user, profile) => {
     renderHeader(user, profile);
     initProfile(user, profile);
@@ -29,8 +29,9 @@ function initProfile(user, profile) {
   const preview = $('avatar-preview');
   
   // Set current values
-  nameInput.value = profile.displayName || '';
-  const initialAvatar = profile.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`;
+  const currentName = profile.display_name || profile.displayName || '';
+  nameInput.value = currentName;
+  const initialAvatar = profile.avatar || profile.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id || user.uid}`;
   urlInput.value = initialAvatar;
   preview.src = initialAvatar;
   selectedUrl = initialAvatar;
@@ -66,8 +67,9 @@ function initProfile(user, profile) {
     try {
       showLoading('Guardando perfil...');
       
-      const updateData = { photoURL: urlInput.value };
-      if (isTeacher && newName !== profile.displayName) {
+      const updateData = { avatar: urlInput.value, photoURL: urlInput.value };
+      if (isTeacher && newName !== currentName) {
+        updateData.display_name = newName;
         updateData.displayName = newName;
       }
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ClassHub — Panel de control del docente. Gestiona clases, habilita juegos y sincroniza con Google Classroom.">
-  <title>ClassHub — Dashboard Docente</title>
+  <meta name="description" content="StackClass — Panel de control del docente. Gestiona clases, habilita juegos y sincroniza con Google Classroom.">
+  <title>StackClass — Dashboard Docente</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
 
   <link rel="stylesheet" href="css/common/design-system.css">
@@ -58,6 +58,9 @@
         <div class="section-header">
           <h2 class="section-title" id="section-classes-title">🏫 Mis Clases</h2>
           <div class="section-actions">
+            <a href="admin.html" class="btn btn-outline btn--sm" id="btn-admin-panel" style="display:none; border-color: #ffc300; background: rgba(255,195,0,0.1);">
+              <span>👑</span> Panel Admin
+            </a>
             <a href="banco_preguntas.html" class="btn btn-ghost btn--sm">
               <span>📚</span> Banco de Preguntas
             </a>
@@ -83,29 +86,23 @@
         </p>
       </section>
       
-      <!-- Sección: Temario -->
-      <section class="animate-fade-up delay-2" aria-labelledby="section-topics-title">
-        <div class="section-header">
-          <h2 class="section-title" id="section-topics-title">📚 Bloques Temáticos (Temario)</h2>
-        </div>
-        <p class="section-desc">Accede al contenido teórico de la asignatura para repasarlo o proyectarlo en clase.</p>
-        <div class="games-grid" id="teacher-topics-grid">
-          <!-- Renderizado por JS -->
-        </div>
-      </section>
-
-      <!-- Sección: También puedes jugar -->
-      <section class="animate-fade-up delay-3" aria-labelledby="section-play-title">
-        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <!-- Sección: Cursos y Asignaturas -->
+      <section class="animate-fade-up delay-2" aria-labelledby="section-courses-title">
+        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--space-3);">
           <div>
-            <h2 class="section-title" id="section-play-title">🎮 También puedes jugar</h2>
-            <p class="section-desc" style="margin-bottom:0;">Como docente puedes acceder a cualquier juego para probarlo o practicar.</p>
+            <h2 class="section-title" id="section-courses-title">📚 Cursos y Asignaturas</h2>
+            <p class="section-desc" style="margin-bottom:0;">Explora los bloques temáticos teóricos y el catálogo de juegos educativos agrupados por curso.</p>
           </div>
-          <a href="roadmap.html" class="btn btn-ghost btn--sm" style="display:flex; align-items:center; gap:6px;">
-            🚀 <span>Ver Roadmap de Juegos</span>
-          </a>
+          <div style="display:flex; gap:var(--space-2); align-items:center;">
+            <a href="evaluation.html" class="btn btn-ghost btn--sm" style="display:flex; align-items:center; gap:6px;">
+              📊 <span>Criterios y Tareas</span>
+            </a>
+            <a href="roadmap.html" class="btn btn-ghost btn--sm" style="display:flex; align-items:center; gap:6px;">
+              🚀 <span>Roadmap de Juegos</span>
+            </a>
+          </div>
         </div>
-        <div class="games-grid" id="teacher-games-grid" style="margin-top: var(--space-4);">
+        <div class="classes-grid" id="teacher-courses-grid" style="margin-top: var(--space-4);">
           <!-- Renderizado por JS -->
         </div>
       </section>

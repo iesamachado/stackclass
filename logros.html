@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="CyR ClassHub — Mis Logros, Gremio y Medallas">
-  <title>CyR ClassHub — Mis Logros</title>
+  <meta name="description" content="StackClass — Mis Logros, Gremio y Medallas">
+  <title>StackClass — Mis Logros</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
   <link rel="stylesheet" href="css/common/design-system.css">
   <link rel="stylesheet" href="css/common/reset.css">
@@ -92,6 +92,21 @@
         </div>
       </header>
 
+      <!-- Selector / Contexto de Clase Activa -->
+      <div id="class-context-bar" class="animate-fade-up" style="margin-top:var(--space-4); margin-bottom:var(--space-4); background:var(--bg-card); padding:12px 18px; border-radius:8px; border:2px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.4rem;">🏫</span>
+          <div>
+            <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:bold;">Clase Activa</div>
+            <strong id="active-class-name" style="font-size:1.1rem; color:var(--text-primary);">Cargando clase...</strong>
+          </div>
+        </div>
+        <div id="class-selector-wrapper" style="display:none; align-items:center; gap:8px;">
+          <label for="class-select" style="font-size:0.85rem; color:var(--text-secondary); font-weight:bold;">Cambiar clase:</label>
+          <select id="class-select" class="form-input" style="padding:6px 12px; font-size:0.9rem; border-radius:6px;"></select>
+        </div>
+      </div>
+
       <!-- Sección Ligas -->
       <section class="animate-fade-up delay-1" aria-labelledby="leagues-title" style="margin-bottom:var(--space-5);">
         <div class="section-header">
@@ -103,6 +118,18 @@
           </div>
         </div>
       </section>
+
+      <!-- Podio y Clasificación de la Clase -->
+      <section class="animate-fade-up delay-1" aria-labelledby="podium-title" style="margin-bottom:var(--space-5);">
+        <div class="section-header">
+          <h2 class="section-title" id="podium-title">🏆 Podio y Clasificación de mi Clase</h2>
+        </div>
+        <div class="card" style="padding:var(--space-4,16px);">
+          <div id="class-podium-container" style="margin-bottom:var(--space-4);"></div>
+          <div id="class-ranking-container"></div>
+        </div>
+      </section>
+
 
       <div class="layout-logros animate-fade-up delay-2">
         <div class="layout-logros-left">

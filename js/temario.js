@@ -4,7 +4,6 @@
 
 import { requireAuth, currentUser, currentProfile, incrementDigitalWellbeing } from "./common/auth.js";
 import { getTopic, getTopicQuestions, saveTopicTestResult, getSubject } from "./common/db.js";
-import { addXPAndCheckLogros, awardMedal } from "./common/gamification.js";
 import { $, $$, escapeHtml, getUrlParams } from "./common/utils.js";
 import { showToast, showModal } from "./common/ui.js";
 
@@ -21,7 +20,7 @@ let currentSlide = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
   requireAuth({
-    allowedRoles: ["student", "teacher", "admin"],
+    allowedRoles: ["student", "teacher"],
     onAuthorized: async (user, profile) => {
       await initTopicPage(user, profile);
     }
@@ -30,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function initTopicPage(user, profile) {
   const params = getUrlParams();
-  const topicId = params.topicId || params.id || "block1";
+  const topicId = params.topicId || params.topic || params.id || "block1";
 
   try {
     currentTopic = await getTopic(topicId);
@@ -60,6 +59,13 @@ async function initTopicPage(user, profile) {
     // Preparar eventos de presentación y test
     setupPresentationMode();
     setupTestEngine();
+
+    // Auto-iniciar test si se solicita por parámetro en la URL
+    if (params.startTest === "true" || params.startTest === "1" || params.test === "true" || params.test === "1") {
+      setTimeout(() => {
+        $("btn-start-test")?.click();
+      }, 200);
+    }
 
   } catch (err) {
     console.error("Error al cargar el tema:", err);
@@ -95,11 +101,19 @@ function renderTopicContent(topic) {
   }
 
   // Corregir rutas relativas de assets si vienen sin prefijo ../
-  html = html.replace(/src="assets\//g, "src="../assets/");
+  html = html.replace(/src="assets\//g, 'src="../assets/');
 
   container.innerHTML = html;
   $("topic-loading").style.display = "none";
   container.style.display = "block";
+
+  // Interceptar botones y enlaces que apunten a test.html para abrir el test modal directamente
+  container.querySelectorAll('a[href*="test.html"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      $("btn-start-test")?.click();
+    });
+  });
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -242,6 +256,10 @@ function setupTestEngine() {
 }
 
 async function startTest() {
+  if (currentProfile && currentProfile.role === 'student') {
+    const ok = await incrementDigitalWellbeing(currentUser.id, "test", currentTopic.id);
+    if (!ok) return;
+  }
   currentQuestions = await getTopicQuestions(currentTopic.id, 15);
   if (currentQuestions.length === 0) {
     showToast("Aviso", "No hay preguntas disponibles para este tema.", "info");
@@ -394,33 +412,8 @@ async function processSubmission(forcedFail = false) {
     console.error("Error al guardar test:", err);
   }
 
-  // Premiar XP y Medallas si aprobó
+  // Gamificación gestionada por triggers en PostgreSQL (trg_after_topic_test_insert)
   let medalsAwarded = [];
-  if (currentProfile.role === "student" && !forcedFail) {
-    try {
-      if (finalScore >= 5) {
-        const xpEarned = Math.round(finalScore * 10);
-        await addXPAndCheckLogros(currentUser.id, xpEarned, currentTopic.subject_id);
-
-        const m1 = await awardMedal(currentUser.id, "raton_biblioteca", currentTopic.subject_id);
-        if (m1?.success) medalsAwarded.push("Ratón de Biblioteca 📖");
-
-        const m2 = await awardMedal(currentUser.id, "primer_examen", currentTopic.subject_id);
-        if (m2?.success) medalsAwarded.push("Primer Examen Superado 🎖️");
-
-        if (finalScore >= 9) {
-          const mGold = await awardMedal(currentUser.id, "casi_perfecto", currentTopic.subject_id);
-          if (mGold?.success) medalsAwarded.push("Casi Perfecto 🥇");
-        }
-        if (finalScore === 10) {
-          const mPerf = await awardMedal(currentUser.id, "maestro_teoria", currentTopic.subject_id);
-          if (mPerf?.success) medalsAwarded.push("Maestro de la Teoría 👑");
-        }
-      }
-    } catch (e) {
-      console.error("Error otorgando medallas:", e);
-    }
-  }
 
   // Mostrar vista de resultados
   $("test-view").style.display = "none";

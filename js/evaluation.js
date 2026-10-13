@@ -8,7 +8,7 @@ let currentLevel = '1';
 
 document.addEventListener('DOMContentLoaded', () => {
   requireAuth({
-    allowedRoles: ['teacher', 'admin'],
+    allowedRoles: ['teacher'],
     onAuthorized: async (user, profile) => {
       renderHeader(user, profile);
       initEvaluationPage();

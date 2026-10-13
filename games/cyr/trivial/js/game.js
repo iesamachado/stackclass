@@ -1,4 +1,4 @@
-import { requireAuth } from '../../../../../js/common/auth.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
 import { getUrlParams } from '../../../../../js/common/utils.js';
 import { saveGameResult } from '../../../../../js/common/db.js';
 
@@ -123,7 +123,10 @@ async function endGame() {
 requireAuth({
   allowedRoles: ['student', 'teacher'],
   onAuthorized: async (user, profile) => {
-
+    if (profile.role === 'student') {
+      const allowed = await incrementDigitalWellbeing(user.id, 'game', 'trivial');
+      if (!allowed) return;
+    }
     currentUserInfo = { user, profile };
     initGame();
   }
