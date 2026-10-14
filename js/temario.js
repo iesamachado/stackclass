@@ -37,7 +37,7 @@ async function initTopicPage(user, profile) {
       $("topic-loading").innerHTML = `
         <h2 style="color:var(--error);">Tema no encontrado</h2>
         <p>No se pudo cargar el tema <code>${escapeHtml(topicId)}</code>.</p>
-        <a href="../dashboard_student.html" class="btn btn-primary" style="margin-top:20px;">Volver al Dashboard</a>
+        <a href="../index.html" class="btn btn-primary" style="margin-top:20px;">Volver al Dashboard</a>
       `;
       return;
     }

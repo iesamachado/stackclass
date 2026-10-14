@@ -26,12 +26,13 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:var(--space-2);">
           <div>
             <h2 id="class-name" style="margin:0; font-size:1.8rem;">Cargando...</h2>
-            <div style="display:flex; gap:var(--space-4); margin-top:var(--space-2); color:var(--text-muted); font-size:0.9rem;">
+            <div style="display:flex; gap:var(--space-4); margin-top:var(--space-2); color:var(--text-muted); font-size:0.9rem; flex-wrap:wrap; align-items:center;">
+              <span id="class-subject-badge" class="badge" style="display:none; font-weight:600;"></span>
               <span id="class-pin" class="badge badge--primary" style="cursor:pointer;" title="Copiar PIN">📋 ---</span>
               <span id="classroom-link-meta" style="display:none; align-items:center; gap:var(--space-2);">
                 <span class="badge badge--accent">🔗 Vinculada a Classroom</span>
               </span>
-              <a href="evaluation.html" class="btn btn-ghost btn--sm" style="display:flex; align-items:center; gap:6px; text-decoration:none;">
+              <a href="evaluation.html" id="btn-eval-class" class="btn btn-ghost btn--sm" style="display:flex; align-items:center; gap:6px; text-decoration:none;">
                 📊 <span>Cómo evaluar (Criterios y Tareas)</span>
               </a>
             </div>

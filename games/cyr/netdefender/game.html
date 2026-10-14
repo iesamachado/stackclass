@@ -10,28 +10,138 @@
 </head>
 <body>
   <div class="game-container">
+    <!-- Header -->
     <div class="header">
       <div class="score">Puntuación: <span id="score">0</span></div>
       <div class="lives">Salud Red: <span id="lives">♥♥♥</span></div>
+      <button type="button" id="btn-guide" class="btn-guide-inline">📖 Ciber-Guía</button>
     </div>
     
+    <!-- Consola SOC / Telemetría Educativa en Tiempo Real -->
+    <div class="soc-terminal" id="soc-terminal">
+      <span class="soc-tag" id="soc-tag">SOC</span>
+      <span class="soc-text" id="soc-text">Centro de operaciones listo. Monitorizando amenazas en tiempo real...</span>
+    </div>
+
+    <!-- Área de Juego -->
     <div class="game-area" id="game-area">
-      <!-- Threats will spawn here -->
+      <!-- Las amenazas caerán aquí -->
       <div class="server-base">SERVIDOR CENTRAL</div>
     </div>
     
+    <!-- Controles con atajos numéricos -->
     <div class="controls">
-      <button class="def-btn btn-firewall" data-def="firewall">🧱<br>Firewall<br><small>(DDoS/Hack)</small></button>
-      <button class="def-btn btn-antivirus" data-def="antivirus">🦠<br>Antivirus<br><small>(Malware/.exe)</small></button>
-      <button class="def-btn btn-spam" data-def="spam">📧<br>Filtro Spam<br><small>(Phishing/Correos)</small></button>
+      <button class="def-btn btn-firewall" data-def="firewall" title="Tecla [1] o [Q]">
+        <span class="btn-key">[1]</span>
+        <div class="btn-icon">🧱</div>
+        <div class="btn-title">Firewall</div>
+        <small class="btn-sub">Ataques de Red<br>(DDoS / SQL)</small>
+      </button>
+      <button class="def-btn btn-antivirus" data-def="antivirus" title="Tecla [2] o [W]">
+        <span class="btn-key">[2]</span>
+        <div class="btn-icon">🦠</div>
+        <div class="btn-title">Antivirus</div>
+        <small class="btn-sub">Malware en Archivos<br>(Ransomware / Troyano)</small>
+      </button>
+      <button class="def-btn btn-spam" data-def="spam" title="Tecla [3] o [E]">
+        <span class="btn-key">[3]</span>
+        <div class="btn-icon">📧</div>
+        <div class="btn-title">Filtro Spam</div>
+        <small class="btn-sub">Correos Trampa<br>(Phishing / Estafas)</small>
+      </button>
     </div>
     
+    <!-- Modal: Introducción y Tutorial -->
+    <div id="intro-modal" class="overlay">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-icon">🛡️</div>
+          <h2>NETDEFENDER</h2>
+          <p class="modal-subtitle">Centro de Operaciones de Ciberseguridad (1º ESO)</p>
+        </div>
+        <div class="modal-content">
+          <div class="info-card">
+            <h4>🎯 Tu Misión de Ciberseguridad</h4>
+            <p>Eres el/la analista de seguridad a cargo del Servidor Central. Tu objetivo es interceptar y neutralizar cada ataque informático antes de que alcance el sistema.</p>
+          </div>
+          <div class="defenses-overview">
+            <div class="def-pill def-pill-firewall">
+              <strong>🧱 Firewall (Tecla 1 / Q):</strong> Detiene ataques dirigidos a la red y servidores, como <em>DDoS masivo</em>, <em>Fuerza Bruta</em> o <em>Inyección SQL</em>.
+            </div>
+            <div class="def-pill def-pill-antivirus">
+              <strong>🦠 Antivirus (Tecla 2 / W):</strong> Detecta y aísla archivos maliciosos ocultos, como <em>Ransomware</em>, <em>Troyanos</em> o <em>Spyware</em>.
+            </div>
+            <div class="def-pill def-pill-spam">
+              <strong>📧 Filtro Anti-Spam (Tecla 3 / E):</strong> Bloquea intentos de engaño y fraude por correo, como <em>Phishing bancario</em> o <em>Estafas</em>.
+            </div>
+          </div>
+          <div class="info-card" style="font-size: 0.84rem; color: #f1f5f9; line-height: 1.45;">
+            💡 <strong style="color: #38bdf8;">Aprende mientras juegas:</strong> Fíjate en el nombre y tipo de ataque mientras cae. La consola superior SOC te explicará cómo actuó tu defensa o qué daño causó el ataque si logra pasar.
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="btn-start" class="btn-block btn-primary">🚀 ¡Iniciar Defensa!</button>
+          <button type="button" id="btn-open-guide-intro" class="btn-block btn-secondary">📖 Consultar Ciber-Guía de Amenazas</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Ciber-Guía de Amenazas (Ciberpedia) -->
+    <div id="guide-modal" class="overlay" style="display:none;">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-icon">📖</div>
+          <h2>CIBER-GUÍA DE AMENAZAS</h2>
+          <p class="modal-subtitle">Conoce los vectores de ataque y sus contramedidas</p>
+        </div>
+        
+        <div class="guide-tabs">
+          <button type="button" class="guide-tab-btn active" data-tab="firewall">🧱 Firewall</button>
+          <button type="button" class="guide-tab-btn" data-tab="antivirus">🦠 Antivirus</button>
+          <button type="button" class="guide-tab-btn" data-tab="spam">📧 Filtro Spam</button>
+        </div>
+
+        <div class="threat-list" id="threat-list-container">
+          <!-- Las tarjetas de amenazas se renderizan dinámicamente -->
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-close-guide" class="btn-block btn-primary">▶ Continuar Partida</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Game Over / Informe Forense -->
     <div id="game-over" class="overlay" style="display:none;">
-      <h1 id="go-title">¡Red Comprometida!</h1>
-      <p>Has defendido la red de <span id="go-score">0</span> amenazas.</p>
-      <button id="btn-restart" class="btn btn-primary">Volver al Panel</button>
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-icon">⚠️</div>
+          <h1 id="go-title">¡Red Comprometida!</h1>
+        </div>
+        <p class="go-summary">Has protegido el servidor de <strong id="go-score">0</strong> ataques cibernéticos.</p>
+        
+        <div class="soc-report">
+          <h4>📊 Informe Forense de Incidentes</h4>
+          <div class="report-stats">
+            <div class="stat-pill">🧱 Firewall: <span id="rep-firewall">0</span></div>
+            <div class="stat-pill">🦠 Antivirus: <span id="rep-antivirus">0</span></div>
+            <div class="stat-pill">📧 Spam: <span id="rep-spam">0</span></div>
+          </div>
+        </div>
+
+        <div class="tip-card">
+          <div class="tip-title">💡 Ciber-Consejo para la vida real:</div>
+          <p id="tip-text">Nunca abras enlaces ni descargues archivos de correos que te pidan contraseñas o datos bancarios.</p>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-play-again" class="btn-block btn-primary">🔄 Reintentar Defensa</button>
+          <button type="button" id="btn-restart" class="btn-block btn-secondary">Volver a ClassHub</button>
+        </div>
+      </div>
     </div>
   </div>
+
   <script type="module" src="js/game.js"></script>
 </body>
 </html>

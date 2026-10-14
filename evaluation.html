@@ -58,6 +58,12 @@
       font-family: var(--font-mono);
       font-size: 0.95rem;
       line-height: 1.6;
+      white-space: pre-wrap;
+      color: #334155;
+      max-height: 60vh;
+      overflow-y: auto;
+      margin-top: var(--space-4);
+      margin-bottom: var(--space-4);
     }
     
     .btn-game-task {
@@ -77,13 +83,6 @@
       box-shadow: 0px 0px 0px var(--text-primary, #000) !important;
       transform: translate(2px, 2px);
     }
-      white-space: pre-wrap;
-      color: #334155;
-      max-height: 60vh;
-      overflow-y: auto;
-      margin-top: var(--space-4);
-      margin-bottom: var(--space-4);
-    }
     
     @media (max-width: 992px) {
       .eval-container {
@@ -100,13 +99,20 @@
   <div id="header-container"></div>
   
   <main class="container py-8">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 15px;">
       <div>
         <a href="dashboard_teacher.html" class="btn btn-sm btn-outline" style="margin-bottom: 15px; display: inline-flex;">← Volver al Panel</a>
-        <h1 class="page-title">📊 Criterios y Tareas</h1>
-        <p class="page-desc">Planificación basada en la normativa de Computación y Robótica de Andalucía.</p>
+        <h1 class="page-title" id="page-title">📊 Criterios y Tareas</h1>
+        <p class="page-desc" id="page-desc">Planificación basada en la normativa de Computación y Robótica de Andalucía.</p>
       </div>
-      <div style="display:flex; gap:15px; align-items:center;">
+      <div style="display:flex; gap:15px; align-items:center; flex-wrap: wrap;">
+        <div id="subject-selector-container">
+          <label for="subject-select" style="font-weight:bold; margin-right: 5px;">Asignatura:</label>
+          <select id="subject-select" class="input" style="width: auto; display: inline-block;">
+            <option value="cyr">Computación y Robótica (ESO)</option>
+            <option value="tic2">TIC II (2º Bachillerato)</option>
+          </select>
+        </div>
         <div>
           <label for="view-mode" style="font-weight:bold; margin-right: 5px;">Agrupar:</label>
           <select id="view-mode" class="input" style="width: auto; display: inline-block;">

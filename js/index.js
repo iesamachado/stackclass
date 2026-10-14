@@ -28,7 +28,8 @@ setupAuthListener((user, profile) => {
     return;
   }
 
-  if (profile.role === "teacher" || profile.role === "admin") {
+  const isTeacher = profile.role === "teacher" || profile.role === "admin" || profile.is_superadmin;
+  if (isTeacher) {
     window.location.href = "./dashboard_teacher.html";
   } else {
     window.location.href = "./dashboard_student.html";

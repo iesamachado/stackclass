@@ -541,17 +541,16 @@ async function endGame() {
   
   alert(`¡Tiempo terminado! Has ensamblado ${score} ordenadores.`);
   
-  if (currentUserInfo && currentUserInfo.profile.role === 'student' && classId) {
+  if (currentUserInfo && currentUserInfo.user) {
     try {
-      await saveGameResult('cybersmith', currentUserInfo.user.uid, classId, score, {
+      const studentId = currentUserInfo.user.id || currentUserInfo.user.uid;
+      await saveGameResult('cybersmith', studentId, classId || null, score, {
         completed: true
       });
-      alert('Puntuación guardada correctamente.');
     } catch (e) {
-      console.error(e);
-      alert('Error guardando puntuación.');
+      console.error('Error guardando puntuación de CyberSmith:', e);
     }
   }
   
-  window.location.href = '../../../dashboard_student.html';
+  window.location.href = '../../../index.html';
 }

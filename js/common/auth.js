@@ -37,6 +37,8 @@ export async function updateUserProfileData(updates) {
   await updateUserProfile(currentUser.id, updates);
   if (currentProfile) {
     Object.assign(currentProfile, updates);
+    if (updates.avatar) currentProfile.photoURL = updates.avatar;
+    if (updates.display_name) currentProfile.displayName = updates.display_name;
   }
   return currentProfile;
 }

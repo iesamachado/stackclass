@@ -71,7 +71,7 @@ function initGame() {
         });
     });
     const menuBtn = document.getElementById('menu-btn');
-    menuBtn?.addEventListener('click', () => { window.location.href = 'index.html'; });
+    menuBtn?.addEventListener('click', () => { window.location.href = '../../../index.html'; });
 }
 
 function startGame() {

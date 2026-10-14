@@ -43,7 +43,7 @@ function initGame() {
   selectedQuestions = bank.slice(0, TOTAL_Q);
   
   document.getElementById('btn-restart').addEventListener('click', () => {
-    window.location.href = '../../../dashboard_student.html';
+    window.location.href = '../../../index.html';
   });
   
   loadQuestion();
@@ -113,10 +113,13 @@ async function endGame() {
   document.getElementById('game-over').style.display = 'flex';
   document.getElementById('go-correct').innerText = score;
   
-  if (classId && currentUserInfo) {
+  if (currentUserInfo && currentUserInfo.user) {
     try {
-      await saveGameResult('trivial', currentUserInfo.user.uid, classId, score * 100, { correct: score });
-    } catch(e) {}
+      const studentId = currentUserInfo.user.id || currentUserInfo.user.uid;
+      await saveGameResult('trivial', studentId, classId || null, score * 100, { correct: score });
+    } catch(e) {
+      console.error('Error guardando partida de trivial:', e);
+    }
   }
 }
 

@@ -67,10 +67,9 @@ function initProfile(user, profile) {
     try {
       showLoading('Guardando perfil...');
       
-      const updateData = { avatar: urlInput.value, photoURL: urlInput.value };
+      const updateData = { avatar: urlInput.value };
       if (isTeacher && newName !== currentName) {
         updateData.display_name = newName;
-        updateData.displayName = newName;
       }
 
       await updateUserProfileData(updateData);

@@ -65,6 +65,22 @@ function initPage(user, profile) {
     $('classroom-link-meta')?.style && ($('classroom-link-meta').style.display = 'flex');
   }
 
+  const classSubj = classData.subject_id || classData.subjectId || 'cyr';
+  const course = COURSES[classSubj];
+  const subjectBadge = $('class-subject-badge');
+  if (subjectBadge && course) {
+    const levelText = classData.level ? (classSubj === 'tic2' && String(classData.level) === '2' ? '2º Bach' : `${classData.level}º ESO`) : course.level;
+    subjectBadge.textContent = `${course.icon} ${course.shortName} (${levelText})`;
+    subjectBadge.style.background = `${course.color}20`;
+    subjectBadge.style.color = course.colorDark || course.color;
+    subjectBadge.style.display = 'inline-flex';
+  }
+
+  const evalBtn = $('btn-eval-class');
+  if (evalBtn && classSubj) {
+    evalBtn.href = `evaluation.html?subject=${encodeURIComponent(classSubj)}`;
+  }
+
   // Tabs
   $$('.tab-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -1326,13 +1342,14 @@ function setupModals(user) {
         const { GAMES_CRITERIA_MAPPING } = await import('./common/utils.js');
         const mapping = GAMES_CRITERIA_MAPPING[gameId];
         
-        if (mapping) {
+        if (mapping && Object.keys(mapping).length > 0) {
+          const listItems = Object.entries(mapping)
+            .map(([lvl, crit]) => `<li><strong>${escapeHtml(lvl)}:</strong> ${escapeHtml(crit)}</li>`)
+            .join('');
           criteriaContainer.innerHTML = `
             <strong>💡 Sugerencia de Criterios (Andalucía)</strong><br>
             <ul style="margin:4px 0 0 16px; padding:0;">
-              <li><strong>1º ESO:</strong> ${escapeHtml(mapping['1º ESO'])}</li>
-              <li><strong>2º ESO:</strong> ${escapeHtml(mapping['2º ESO'])}</li>
-              <li><strong>3º ESO:</strong> ${escapeHtml(mapping['3º ESO'])}</li>
+              ${listItems}
             </ul>
           `;
           criteriaContainer.style.display = 'block';

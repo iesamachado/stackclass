@@ -108,6 +108,96 @@ const CARDS = [
     rightText: 'Arte de IA',
     leftEff: { hap: 10, eff: -10, eth: 10 },
     rightEff: { hap: -5, eff: 15, eth: -10 }
+  },
+  {
+    icon: '📦',
+    title: 'Drones de Reparto',
+    desc: 'Permitir que miles de drones vuelen a baja altura para entregar paquetes en 10 minutos, aumentando el ruido urbano.',
+    leftText: 'Priorizar calma',
+    rightText: 'Permitir entregas',
+    leftEff: { hap: 10, eff: -15, eth: 5 },
+    rightEff: { hap: -10, eff: 20, eth: -5 }
+  },
+  {
+    icon: '🐕',
+    title: 'Mascotas Robóticas',
+    desc: 'Sustituir mascotas reales por perros robot en residencias de ancianos para reducir costes de veterinario y cuidados.',
+    leftText: 'Animales reales',
+    rightText: 'Perros robot',
+    leftEff: { hap: 15, eff: -10, eth: 5 },
+    rightEff: { hap: -10, eff: 15, eth: -10 }
+  },
+  {
+    icon: '🎙️',
+    title: 'Altavoces Domésticos',
+    desc: 'Hacer obligatorio un asistente de voz en cada hogar que grabe conversaciones para detectar emergencias médicas a tiempo.',
+    leftText: 'Privacidad',
+    rightText: 'Vigilancia médica',
+    leftEff: { hap: 10, eff: -5, eth: 15 },
+    rightEff: { hap: -15, eff: 15, eth: -20 }
+  },
+  {
+    icon: '✍️',
+    title: 'Deberes con IA',
+    desc: 'Los estudiantes usan generadores de texto para hacer todos sus ensayos. ¿Prohibir el uso de IA en los colegios?',
+    leftText: 'Permitir IA',
+    rightText: 'Prohibir IA',
+    leftEff: { hap: 15, eff: 10, eth: -15 },
+    rightEff: { hap: -10, eff: -5, eth: 15 }
+  },
+  {
+    icon: '🚦',
+    title: 'Semáforos Inteligentes',
+    desc: 'Cámaras con IA dan prioridad a conductores con coches de alta gama porque pagan más impuestos municipales.',
+    leftText: 'Igualdad',
+    rightText: 'Premio fiscal',
+    leftEff: { hap: 15, eff: -5, eth: 20 },
+    rightEff: { hap: -25, eff: 15, eth: -25 }
+  },
+  {
+    icon: '🗣️',
+    title: 'Clonación de Voz',
+    desc: 'Permitir que una app clone la voz de personas fallecidas para que sus familiares puedan seguir hablando con ellas.',
+    leftText: 'Prohibir app',
+    rightText: 'Permitir app',
+    leftEff: { hap: -5, eff: 0, eth: 15 },
+    rightEff: { hap: 10, eff: 10, eth: -15 }
+  },
+  {
+    icon: '💡',
+    title: 'Apagón Nocturno',
+    desc: 'Una IA decide apagar el 70% de las farolas de noche para reducir la huella de carbono y gasto energético.',
+    leftText: 'Mantener luces',
+    rightText: 'Ahorro energía',
+    leftEff: { hap: 15, eff: -20, eth: 5 },
+    rightEff: { hap: -20, eff: 25, eth: -5 }
+  },
+  {
+    icon: '🧹',
+    title: 'Robots Limpiaplayas',
+    desc: 'Desplegar robots nocturnos en las playas, aunque sus ruedas y luces molestan a las aves y fauna marina.',
+    leftText: 'Cuidar fauna',
+    rightText: 'Playas limpias',
+    leftEff: { hap: 5, eff: -15, eth: 15 },
+    rightEff: { hap: 10, eff: 20, eth: -20 }
+  },
+  {
+    icon: '🏫',
+    title: 'Plazas Escolares IA',
+    desc: 'Un algoritmo secreto asigna el colegio de cada niño según su potencial genético y cognitivo.',
+    leftText: 'Elección libre',
+    rightText: 'Algoritmo óptimo',
+    leftEff: { hap: 20, eff: -10, eth: 20 },
+    rightEff: { hap: -25, eff: 25, eth: -25 }
+  },
+  {
+    icon: '⚖️',
+    title: 'Juez Algorítmico',
+    desc: 'Poner una IA a dictar sentencias y multas de tráfico al instante sin opción de recurso ante un juez humano.',
+    leftText: 'Jueces humanos',
+    rightText: 'Justicia rápida',
+    leftEff: { hap: 10, eff: -15, eth: 15 },
+    rightEff: { hap: -15, eff: 20, eth: -20 }
   }
 ];
 
@@ -121,6 +211,7 @@ function shuffle(array) {
 
 let deck = [];
 let currentCardData = null;
+let isIntroOpen = true;
 
 // DOM Elements
 const barHap = document.getElementById('bar-hap');
@@ -136,12 +227,15 @@ const tLeft = document.getElementById('text-left');
 const tRight = document.getElementById('text-right');
 const daysCount = document.getElementById('days-count');
 const endScreen = document.getElementById('end-screen');
+const introScreen = document.getElementById('intro-screen');
+const btnStartGame = document.getElementById('btn-start-game');
+const btnHelp = document.getElementById('btn-help');
 
 function initGame() {
   deck = [...CARDS];
   shuffle(deck);
   
-  // Si jugamos más de 10 días, repetimos mazo
+  // Si jugamos más de las cartas disponibles, repetimos mazo
   if (MAX_DAYS > deck.length) {
     let extra = [...CARDS];
     shuffle(extra);
@@ -153,8 +247,44 @@ function initGame() {
   
   bLeft.addEventListener('click', () => handleChoice('left'));
   bRight.addEventListener('click', () => handleChoice('right'));
+
+  if (btnStartGame && introScreen) {
+    btnStartGame.addEventListener('click', () => {
+      introScreen.style.display = 'none';
+      isIntroOpen = false;
+    });
+  }
+
+  if (btnHelp && introScreen) {
+    btnHelp.addEventListener('click', () => {
+      introScreen.style.display = 'flex';
+      if (btnStartGame) btnStartGame.innerText = '▶ Continuar Mandato';
+      isIntroOpen = true;
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (isIntroOpen) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        e.preventDefault();
+        if (introScreen) introScreen.style.display = 'none';
+        isIntroOpen = false;
+      }
+      return;
+    }
+    if (gameOver) return;
+
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      e.preventDefault();
+      handleChoice('left');
+    } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      e.preventDefault();
+      handleChoice('right');
+    }
+  });
+
   document.getElementById('btn-finish').addEventListener('click', () => {
-    window.location.href = '../../../dashboard_student.html';
+    window.location.href = '../../../index.html';
   });
 }
 
@@ -208,7 +338,7 @@ function checkGameOver() {
 }
 
 function handleChoice(direction) {
-  if (gameOver) return;
+  if (gameOver || isIntroOpen) return;
   
   // Animation
   cardEl.classList.add(`swipe-${direction}`);
@@ -244,11 +374,12 @@ async function endGame(won, reason) {
   const score = currentDay * 5;
   document.getElementById('final-score').innerText = `${currentDay} días (${score} pts)`;
   
-  if (classId) {
+  if (currentUserInfo && currentUserInfo.user) {
     try {
-      await saveGameResult('asimov', currentUserInfo.user.uid, classId, score, { completed: won });
+      const studentId = currentUserInfo.user.id || currentUserInfo.user.uid;
+      await saveGameResult('asimov', studentId, classId || null, score, { completed: won });
     } catch (e) {
-      console.error(e);
+      console.error('Error guardando partida de Asimov:', e);
     }
   }
 }

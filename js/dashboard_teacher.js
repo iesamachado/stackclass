@@ -6,7 +6,7 @@ import { requireAuth, currentUser, currentProfile, classroomToken, refreshClassr
 import { getTeacherClasses, createClass, getClassMembers, getClassResults, getStudentResults, addStudentsToClass } from './common/db.js';
 import { fetchClassroomCourses, importClassroomStudents } from './common/classroom.js';
 import { renderHeader, showToast, showModal, showLoading, hideLoading } from './common/ui.js';
-import { COURSES, getCourseStats, copyToClipboard, $, escapeHtml, formatDate, getUrlParams } from './common/utils.js';
+import { COURSES, GAMES, getCourseStats, copyToClipboard, $, escapeHtml, formatDate, getUrlParams } from './common/utils.js';
 
 let myClasses = [];
 
@@ -74,11 +74,19 @@ function renderClasses(classes) {
 function renderClassCard(cls) {
   const enabledGames = cls.enabledGames || cls.enabled_games || [];
   const members = cls.members || cls.class_members || [];
+  const subjectId = cls.subject_id || cls.subjectId || 'cyr';
+  const course = COURSES[subjectId] || COURSES.cyr;
+  const levelText = cls.level ? (subjectId === 'tic2' && String(cls.level) === '2' ? '2º Bach' : `${cls.level}º ESO`) : course.level;
   
   return `
-    <div class="class-card">
+    <div class="class-card" style="border-top: 3px solid ${course.color};">
       <div class="class-card-header">
-        <h3 class="class-card-name">${escapeHtml(cls.name)}</h3>
+        <div>
+          <span class="badge" style="background: ${course.color}20; color: ${course.colorDark || course.color}; font-size: 0.75rem; font-weight: 600; margin-bottom: 6px; display: inline-block;">
+            ${course.icon} ${course.shortName} · ${levelText}
+          </span>
+          <h3 class="class-card-name" style="margin: 0;">${escapeHtml(cls.name)}</h3>
+        </div>
         <button class="class-card-pin" data-action="copy-pin" data-pin="${cls.pin}"
                 title="Copiar PIN">
           📋 ${cls.pin}
@@ -165,8 +173,9 @@ async function loadTeacherHistory(uid) {
     }
     
     tbody.innerHTML = results.map(r => {
-      const gameInfo = Object.values(GAMES).find(g => g.id === r.gameId) || { name: r.gameId, icon: '🎮' };
-      const dateStr = formatDate(r.timestamp);
+      const gid = r.game_id || r.gameId;
+      const gameInfo = GAMES[gid] || Object.values(GAMES).find(g => g.id === gid) || { name: gid, icon: '🎮' };
+      const dateStr = formatDate(r.created_at || r.timestamp);
       return `
         <tr>
           <td>
@@ -199,10 +208,35 @@ function setupModals() {
   const closeNewClass  = $('close-new-class');
   const cancelNewClass = $('cancel-new-class');
 
+  const syncNewClassSubjectLevels = () => {
+    const subjectSelect = $('class-subject-input');
+    const levelSelect = $('class-level-input');
+    const nameInput = $('class-name-input');
+    if (!subjectSelect || !levelSelect) return;
+
+    const subject = subjectSelect.value;
+    if (subject === 'tic2') {
+      levelSelect.innerHTML = `<option value="2" selected>2º Bachillerato</option>`;
+      if (nameInput) nameInput.placeholder = 'Ej: 2º Bachillerato TIC II Grupo A';
+    } else {
+      levelSelect.innerHTML = `
+        <option value="1" selected>1º ESO</option>
+        <option value="2">2º ESO</option>
+        <option value="3">3º ESO</option>
+      `;
+      if (nameInput) nameInput.placeholder = 'Ej: 1º ESO Computación y Robótica Grupo A';
+    }
+  };
+
+  $('class-subject-input')?.addEventListener('change', syncNewClassSubjectLevels);
+
   openNewClass?.addEventListener('click', () => {
     $('class-name-input').value = '';
     const stInput = $('class-students-input');
     if (stInput) stInput.value = '';
+    const subjectSelect = $('class-subject-input');
+    if (subjectSelect) subjectSelect.value = 'cyr';
+    syncNewClassSubjectLevels();
     modalNewClass.classList.add('modal-backdrop--visible');
     modalNewClass.setAttribute('aria-hidden', 'false');
   });
@@ -216,15 +250,16 @@ function setupModals() {
 
   formNewClass?.addEventListener('submit', async e => {
     e.preventDefault();
+    const subjectId = $('class-subject-input')?.value || 'cyr';
     const name = $('class-name-input').value.trim();
     if (!name) return;
-    const level = parseInt($('class-level-input')?.value || '1');
+    const level = $('class-level-input')?.value || (subjectId === 'tic2' ? '2' : '1');
     const studentsRaw = $('class-students-input')?.value || '';
 
     try {
       showLoading('Creando clase...');
       const teacherId = currentUser.id || currentUser.uid;
-      const cls = await createClass(teacherId, name, level);
+      const cls = await createClass(teacherId, subjectId, name, level);
       
       let addedInfo = '';
       if (studentsRaw.trim()) {
@@ -354,9 +389,11 @@ async function doImportClassroom(token) {
       const courseId = cb.value;
       const name     = cb.dataset.name;
 
-      showLoading('Importando curso y alumnos...');
-      // 1. Crear clase en Firestore
-      const cls = await createClass(currentUser.uid, name, 1, { classroomCourseId: courseId });
+      // 1. Crear clase en base de datos
+      const nameLower = name.toLowerCase();
+      const detectedSubject = (nameLower.includes('tic') || nameLower.includes('bach') || nameLower.includes('bachillerato')) ? 'tic2' : 'cyr';
+      const detectedLevel = detectedSubject === 'tic2' ? '2' : '1';
+      const cls = await createClass(currentUser.uid, detectedSubject, name, detectedLevel, { classroomCourseId: courseId });
       
       // 2. Traer alumnos de Classroom
       const { matched, pending } = await importClassroomStudents(token, courseId, cls.id);

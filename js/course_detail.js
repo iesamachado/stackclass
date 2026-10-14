@@ -68,6 +68,16 @@ function renderHero(course) {
   const stats = getCourseStats(course.id);
   $('stat-topics-count').textContent = `${stats.topicsCount} bloques temáticos`;
   $('stat-games-count').textContent = `${stats.gamesCount} juegos educativos`;
+
+  const evalBtn = $('btn-course-eval');
+  if (evalBtn && course?.id) {
+    evalBtn.href = `evaluation.html?subject=${encodeURIComponent(course.id)}`;
+  }
+
+  const roadmapBtn = $('btn-course-roadmap');
+  if (roadmapBtn && course?.id) {
+    roadmapBtn.href = `roadmap.html?subject=${encodeURIComponent(course.id)}`;
+  }
 }
 
 // ── Cargar y renderizar Temario ─────────────────────────────────
@@ -138,15 +148,18 @@ function setupLevelFilters(courseId) {
   const container = $('level-filters-container');
   if (!container) return;
 
-  if (courseId !== 'cyr') {
+  const course = COURSES[courseId];
+  const levels = course?.levels || [];
+
+  if (levels.length <= 1) {
     container.style.display = 'none';
     return;
   }
 
   container.style.display = 'flex';
-  const levels = ['all', '1º ESO', '2º ESO', '3º ESO'];
+  const filterOptions = ['all', ...levels];
 
-  container.innerHTML = levels.map(lvl => `
+  container.innerHTML = filterOptions.map(lvl => `
     <button class="level-filter-btn ${activeLevelFilter === lvl ? 'level-filter-btn--active' : ''}" data-level="${lvl}">
       ${lvl === 'all' ? 'Todos los niveles' : lvl}
     </button>

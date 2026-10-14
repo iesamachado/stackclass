@@ -55,7 +55,8 @@
     
     <!-- Info Footer -->
     <div class="info-footer">
-      Días en el cargo: <span id="days-count">0</span> | Objetivo: 20 días
+      Días en el cargo: <span id="days-count">0</span> / 20 &nbsp;·&nbsp;
+      <button type="button" id="btn-help" class="btn-help-inline">❓ ¿Cómo jugar?</button>
     </div>
     
     <!-- Game Over / End Screen -->
@@ -64,6 +65,52 @@
       <p id="end-desc">Has sido destituido.</p>
       <p class="end-score">Días de supervivencia: <span id="final-score">0</span></p>
       <button class="btn btn-primary" id="btn-finish" style="margin-top: 20px;">Volver a ClassHub</button>
+    </div>
+
+    <!-- Pantalla Inicial / Instrucciones -->
+    <div class="intro-screen" id="intro-screen">
+      <div class="intro-content">
+        <div class="intro-header">
+          <div class="intro-icon">🤖</div>
+          <h1 class="intro-title">ASIMOV.IO</h1>
+          <p class="intro-subtitle">Simulador Ético de Inteligencia Artificial (1º ESO)</p>
+        </div>
+
+        <div class="intro-card">
+          <h4>🏛️ Tu Papel</h4>
+          <p>Has sido nombrado/a la <strong>Inteligencia Artificial Gobernadora</strong> de una ciudad futurista. Cada día recibirás propuestas y dilemas difíciles sobre tecnología, personas y robots.</p>
+        </div>
+
+        <div class="intro-card">
+          <h4>🎯 Objetivo del Juego</h4>
+          <p>Debes sobrevivir <strong>20 días en el cargo</strong> manteniendo el equilibrio de la ciudad. Cada decisión afectará a tres pilares fundamentales:</p>
+          <div class="intro-pillars">
+            <div class="intro-pillar">
+              <span style="font-size:1.3rem;">😃</span>
+              <div><strong>Felicidad:</strong> Bienestar y satisfacción de los ciudadanos humanos.</div>
+            </div>
+            <div class="intro-pillar">
+              <span style="font-size:1.3rem;">⚙️</span>
+              <div><strong>Eficiencia:</strong> Economía, energía y rendimiento tecnológico.</div>
+            </div>
+            <div class="intro-pillar">
+              <span style="font-size:1.3rem;">⚖️</span>
+              <div><strong>Ética:</strong> Leyes de la robótica, privacidad y derechos humanos.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="intro-warning">
+          <strong>⚠️ La Regla de Oro del Equilibrio:</strong><br>
+          ¡No dejes que ninguna barra baje a <strong>0%</strong> (colapso por escasez) ni suba a <strong>100%</strong> (colapso por extremismo)! Si alguna barra llega a un extremo, serás destituido/a de inmediato.
+        </div>
+
+        <div class="intro-card intro-controls">
+          🕹️ <strong style="color:#38bdf8;">Controles:</strong> Pulsa los botones <strong>← Rechazar</strong> o <strong>Aprobar →</strong>, o usa las flechas <strong>←</strong> / <strong>→</strong> del teclado.
+        </div>
+      </div>
+
+      <button type="button" class="btn-start-game" id="btn-start-game">🚀 ¡Iniciar Mandato!</button>
     </div>
   </div>
 

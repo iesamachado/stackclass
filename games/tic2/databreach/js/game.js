@@ -68,11 +68,11 @@ function setupEventListeners() {
   });
   
   ui.btnFinish.addEventListener('click', () => {
-    window.history.length > 1 ? window.history.back() : window.close();
+    window.location.href = '../../../index.html';
   });
   
   ui.btnQuit.addEventListener('click', () => {
-    window.history.length > 1 ? window.history.back() : window.close();
+    window.location.href = '../../../index.html';
   });
 }
 

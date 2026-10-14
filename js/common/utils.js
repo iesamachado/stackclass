@@ -275,26 +275,27 @@ export const DEFAULT_GAMES = {
 };
 
 // ──────────────────────────────────────────────────────────────────────
-//  Mapeo de criterios de evaluación (para mostrar en class_detail)
+//  Mapeo de criterios de evaluación (para mostrar en class_detail y course_detail)
 // ──────────────────────────────────────────────────────────────────────
 export const GAMES_CRITERIA_MAPPING = {
-  // TIC2
+  // TIC2 (2º Bachillerato)
   hex_invaders:  { '2º Bachillerato': 'TIC2.3.1 (Contenidos en la web)' },
   cert_arcade:   { '2º Bachillerato': 'TIC2.2.1 / TIC2.2.2 (Seguridad y Privacidad)' },
   kanban_hero:   { '2º Bachillerato': 'TIC2.5.2 (Metodologías de desarrollo)' },
   cc_trivial:    { '2º Bachillerato': 'TIC2.4.1 (Trabajo colaborativo y derechos)' },
   databreach:    { '2º Bachillerato': 'TIC2.2.3 (Ciberamenazas y vulnerabilidades)' },
-  // CyR
-  mecanoclass:   { '1º ESO': 'CYR.1.F.1 / CYR.1.I.1', '2º ESO': 'CYR.2.F.1 / CYR.2.I.1', '3º ESO': 'CYR.3.F.1 / CYR.3.I.2' },
-  rompecodigos:  { '1º ESO': 'CYR.1.I.1 / CYR.1.I.3', '2º ESO': 'CYR.2.I.1 / CYR.2.I.2' },
-  helados:       { '1º ESO': 'CYR.1.A.3 / CYR.1.A.4' },
-  arenabots:     { '2º ESO': 'CYR.2.P.1 / CYR.2.P.2', '3º ESO': 'CYR.3.P.1 / CYR.3.R.1' },
-  moon:          { '2º ESO': 'CYR.2.R.1 / CYR.2.R.2', '3º ESO': 'CYR.3.R.1 / CYR.3.R.2' },
-  cybersmith:    { '1º ESO': 'CYR.1.F.1', '2º ESO': 'CYR.2.F.1 / CYR.2.F.2' },
-  asimov:        { '3º ESO': 'CYR.3.IA.1 / CYR.3.IA.2' },
-  appflow:       { '2º ESO': 'CYR.2.A.1 / CYR.2.M.1', '3º ESO': 'CYR.3.M.1' },
-  netdefender:   { '1º ESO': 'CYR.1.I.2 / CYR.1.I.3', '2º ESO': 'CYR.2.I.1 / CYR.2.I.2' },
-  trivial:       { '1º ESO': 'CYR.1 (Evaluación general)', '2º ESO': 'CYR.2 (Evaluación general)' }
+
+  // CyR (Todos pensados para 1º ESO)
+  trivial:       { '1º ESO': 'CYR.1.1 / CYR.6.1 (Hardware, conceptos y bienestar)' },
+  appflow:       { '1º ESO': 'CYR.2.2 (Lógica interna y desarrollo de apps)' },
+  arenabots:     { '1º ESO': 'CYR.1.4 / CYR.2.1 (Robótica y programación por bloques)' },
+  asimov:        { '1º ESO': 'CYR.1.2 (Ética de la IA y robótica en la sociedad)' },
+  cybersmith:    { '1º ESO': 'CYR.1.1 / CYR.3.1 (Computación física y montaje de PC)' },
+  helados:       { '1º ESO': 'CYR.1.3 / CYR.2.1 (Algoritmos y programación por bloques)' },
+  mecanoclass:   { '1º ESO': 'CYR.1.1 / CYR.6.1 (Computación física y hábitos digitales)' },
+  moon:          { '1º ESO': 'CYR.1.3 (Estructuras de control y programación)' },
+  netdefender:   { '1º ESO': 'CYR.6.4 (Seguridad activa y defensa de redes)' },
+  rompecodigos:  { '1º ESO': 'CYR.6.1 / CYR.6.4 (Criptografía y conductas seguras)' }
 };
 
 export const TIC2_EVALUATION_DATA = {
@@ -312,21 +313,21 @@ export const TIC2_EVALUATION_DATA = {
 
 export const CYR_EVALUATION_DATA = {
   1: [
-    { crit: '1.1', text: 'Comprender el funcionamiento global de los sistemas de computación física y sus componentes.', block: 'F. Computación física (Hardware)', current: 'MecanoClass, CyberSmith', prop: '1. Carpetas, 3. Mecanografía, N1. Usuarios' },
-    { crit: '1.2', text: 'Reconocer el papel de la robótica en nuestra sociedad.', block: 'C. Robótica', current: '-', prop: '15. Dispositivos/Red, 17. Test Asimov' },
+    { crit: '1.1', text: 'Comprender el funcionamiento global de los sistemas de computación física y sus componentes.', block: 'F. Computación física (Hardware)', current: 'MecanoClass, CyberSmith, CyR Trivial', prop: '1. Carpetas, 3. Mecanografía, N1. Usuarios' },
+    { crit: '1.2', text: 'Reconocer el papel de la robótica en nuestra sociedad.', block: 'C. Robótica', current: 'Asimov.IO', prop: '15. Dispositivos/Red, 17. Test Asimov' },
     { crit: '1.3', text: 'Entender la estructura básica de un programa informático.', block: 'A. Programación', current: 'H3L4D0S, MOON', prop: '7. Oso Polar, 8. Escarabajo, 9. Elefante, 11. Gato Bross, 12. Code.org' },
     { crit: '1.4', text: 'Comprender los principios básicos de ingeniería en los que se basan los robots.', block: 'C. Robótica', current: 'ArenaBots', prop: '20. Cutebot Siguelíneas, N4. Esquiva-obstáculos' },
     { crit: '2.1', text: 'Conocer y resolver problemas desarrollando un programa informático con bloques.', block: 'A. Programación', current: 'H3L4D0S, ArenaBots', prop: '4. Píxeles, 5. Diagramas, 6. Test Algoritmos, N3. Depuración' },
-    { crit: '2.2', text: 'Entender el funcionamiento interno de las aplicaciones y cómo se construyen.', block: 'D. Desarrollo', current: '-', prop: '10. Mapa Interactivo, 18. Juego Micro:bit' },
+    { crit: '2.2', text: 'Entender el funcionamiento interno de las aplicaciones y cómo se construyen.', block: 'D. Desarrollo', current: 'AppFlow', prop: '10. Mapa Interactivo, 18. Juego Micro:bit' },
     { crit: '3.1', text: 'Construir un sistema de computación o robótico.', block: 'C/F. Proyecto Físico', current: 'CyberSmith', prop: '19. Código Morse, 21. Coche Teledirigido' },
     { crit: '4.1', text: 'Conocer distintos tipos de datos, analizarlos y visualizarlos.', block: 'G. Datos masivos', current: '-', prop: '22. Canción IA, 23. Dibujando IA, 26. La sed de ChatGPT' },
     { crit: '4.2', text: 'Comprender los principios básicos de agentes inteligentes y aprendizaje automático.', block: 'H. Inteligencia Artificial', current: '-', prop: '24. Entrena IA, 25. Test IA, N5. Cómic IA' },
     { crit: '5.1', text: 'Conocer la construcción de aplicaciones web y de forma segura.', block: 'E. Desarrollo Web', current: '-', prop: '0. Quién eres, N2. Gestión Archivos' },
     { crit: '5.2', text: 'Resolver la variedad de problemas de una aplicación web.', block: 'E. Desarrollo Web', current: '-', prop: '13. Felicitación GIMP, 14. Crea tu web' },
-    { crit: '6.1', text: 'Adoptar conductas y hábitos que permitan la protección en la red.', block: 'I. Ciberseguridad', current: 'RompeCódigos', prop: '16. Bienestar Digital, N7. Phishing' },
+    { crit: '6.1', text: 'Adoptar conductas y hábitos que permitan la protección en la red.', block: 'I. Ciberseguridad', current: 'RompeCódigos, CyR Trivial', prop: '16. Bienestar Digital, N7. Phishing' },
     { crit: '6.2', text: 'Acceder a servicios de publicación aplicando criterios de seguridad.', block: 'I. Ciberseguridad', current: '-', prop: '2. Envío eMails, N6. Retos INCIBE' },
     { crit: '6.3', text: 'Reconocer los derechos de los materiales alojados en la web.', block: 'I. Ciberseguridad', current: '-', prop: '27. Creative Commons, 28. Infografía Ciberseg.' },
-    { crit: '6.4', text: 'Adoptar conductas de seguridad activa y pasiva en protección de datos.', block: 'I. Ciberseguridad', current: 'RompeCódigos', prop: '29. Contraseñas seguras, N8. Seguridad Act/Pas.' }
+    { crit: '6.4', text: 'Adoptar conductas de seguridad activa y pasiva en protección de datos.', block: 'I. Ciberseguridad', current: 'RompeCódigos, NetDefender', prop: '29. Contraseñas seguras, N8. Seguridad Act/Pas.' }
   ],
   2: [
     { crit: '1.1', text: 'Comprender el funcionamiento de los sistemas de computación física.', block: 'F. Computación física', current: 'MecanoClass, CyberSmith', prop: '-' },
@@ -398,12 +399,12 @@ export const COURSES = {
     id: 'cyr',
     name: 'Computación y Robótica',
     shortName: 'CyR',
-    level: '1º a 3º ESO',
+    level: '1º ESO',
     icon: '🤖',
     color: '#6c63ff',
     colorDark: '#4f46e5',
-    description: 'Alfabetización digital, programación por bloques, robótica, IA y ciberseguridad para Educación Secundaria.',
-    levels: ['1º ESO', '2º ESO', '3º ESO']
+    description: 'Alfabetización digital, programación por bloques, robótica, IA y ciberseguridad para 1º de ESO.',
+    levels: ['1º ESO']
   },
   tic2: {
     id: 'tic2',

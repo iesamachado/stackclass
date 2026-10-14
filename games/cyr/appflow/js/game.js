@@ -389,18 +389,17 @@ async function endGame(won) {
 }
 
 async function saveAndRedirect() {
-  if (classId) {
+  if (currentUserInfo && currentUserInfo.user) {
     try {
-      await saveGameResult('appflow', currentUserInfo.user.uid, classId, score, { completed: true });
-      alert(`¡Puntuación guardada: ${score} pts!`);
+      const studentId = currentUserInfo.user.id || currentUserInfo.user.uid;
+      await saveGameResult('appflow', studentId, classId || null, score, { completed: true });
     } catch (e) {
-      console.error(e);
-      alert('Error guardando puntuación.');
+      console.error('Error guardando puntuación de AppFlow:', e);
     }
   }
   setTimeout(() => {
-    window.location.href = '../../../dashboard_student.html';
-  }, 2500);
+    window.location.href = '../../../index.html';
+  }, 1500);
 }
 
 requireAuth({

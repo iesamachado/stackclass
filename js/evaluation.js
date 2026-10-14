@@ -1,8 +1,9 @@
-import { CYR_EVALUATION_DATA, $, escapeHtml } from './common/utils.js';
+import { CYR_EVALUATION_DATA, TIC2_EVALUATION_DATA, EVALUATION_DATA, COURSES, $, escapeHtml, getUrlParams } from './common/utils.js';
 import { CLASSROOM_TASKS } from './common/tasks.js';
 import { renderHeader } from './common/ui.js';
 import { requireAuth } from './common/auth.js';
 
+let currentSubject = 'cyr';
 let currentMode = 'criterion';
 let currentLevel = '1';
 
@@ -16,29 +17,21 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-
-function calculateTaskWeights() {
-  const ces = {
-    '1': ['1.1', '1.2', '1.3', '1.4'],
-    '2': ['2.1', '2.2', '2.3'],
-    '3': ['3.1'],
-    '4': ['4.1', '4.2'],
-    '5': ['5.1', '5.2'],
-    '6': ['6.1', '6.2', '6.3', '6.4']
-  };
-
+function calculateTaskWeightsForSubject(tasks, ces) {
   const crit_tasks = {};
-  CLASSROOM_TASKS.forEach(t => {
+  tasks.forEach(t => {
     t.total_weight = 0.0;
     if (t.crit) {
-      t.crit.split(',').map(s=>s.trim()).forEach(c => {
-        if(!crit_tasks[c]) crit_tasks[c] = [];
+      t.crit.split(',').map(s => s.trim()).forEach(c => {
+        if (!crit_tasks[c]) crit_tasks[c] = [];
         crit_tasks[c].push(t);
       });
     }
   });
 
-  const ce_weight = 100.0 / 6.0;
+  const numCes = Object.keys(ces).length;
+  if (numCes === 0) return;
+  const ce_weight = 100.0 / numCes;
 
   Object.values(ces).forEach(crits => {
     const crit_weight = ce_weight / crits.length;
@@ -55,28 +48,132 @@ function calculateTaskWeights() {
   });
 }
 
+function calculateAllTaskWeights() {
+  const cyrCes = {
+    '1': ['1.1', '1.2', '1.3', '1.4'],
+    '2': ['2.1', '2.2', '2.3'],
+    '3': ['3.1'],
+    '4': ['4.1', '4.2'],
+    '5': ['5.1', '5.2'],
+    '6': ['6.1', '6.2', '6.3', '6.4']
+  };
+
+  const tic2Ces = {
+    '1': ['1.1'],
+    '2': ['2.1', '2.2'],
+    '3': ['3.1'],
+    '4': ['4.1'],
+    '5': ['5.1', '5.2', '5.3']
+  };
+
+  const cyrTasks = CLASSROOM_TASKS.filter(t => t.subjectId === 'cyr');
+  const tic2Tasks = CLASSROOM_TASKS.filter(t => t.subjectId === 'tic2');
+
+  calculateTaskWeightsForSubject(cyrTasks, cyrCes);
+  calculateTaskWeightsForSubject(tic2Tasks, tic2Ces);
+}
+
+function getSubjectTasks(subjectId = currentSubject) {
+  return CLASSROOM_TASKS.filter(t => t.subjectId === subjectId);
+}
+
+function updatePageHeader() {
+  const desc = $('page-desc');
+  if (desc) {
+    if (currentSubject === 'tic2') {
+      desc.textContent = 'Planificación basada en la normativa de Tecnologías de la Información y Comunicación II (2º Bachillerato).';
+    } else {
+      desc.textContent = 'Planificación basada en la normativa de Computación y Robótica de Andalucía.';
+    }
+  }
+}
+
+function populateLevelSelect() {
+  const levelSelect = $('level-select');
+  if (!levelSelect) return;
+
+  if (currentSubject === 'tic2') {
+    levelSelect.innerHTML = `<option value="2">2º Bachillerato</option>`;
+    currentLevel = '2';
+  } else {
+    levelSelect.innerHTML = `
+      <option value="1">1º ESO</option>
+      <option value="2">2º ESO</option>
+      <option value="3">3º ESO</option>
+    `;
+    if (!['1', '2', '3'].includes(currentLevel)) {
+      currentLevel = '1';
+    }
+  }
+  levelSelect.value = currentLevel;
+}
+
+function resetDetailPanel() {
+  const panel = $('task-detail-panel');
+  if (panel) {
+    panel.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center;">
+        <span style="font-size: 3rem; margin-bottom: 10px;">👈</span>
+        <p>Selecciona una tarea de la tabla<br>para ver su descripción y copiarla.</p>
+      </div>
+    `;
+  }
+}
 
 function initEvaluationPage() {
-  calculateTaskWeights();
+  calculateAllTaskWeights();
+
+  const params = getUrlParams();
+  const requestedSubject = params.subject || params.subjectId || params.course || params.courseId;
+  if (requestedSubject && (requestedSubject === 'tic2' || requestedSubject === 'cyr')) {
+    currentSubject = requestedSubject;
+  }
+
+  const subjectSelect = $('subject-select');
   const levelSelect = $('level-select');
   const viewMode = $('view-mode');
   const courseContainer = $('course-selector-container');
-  
-  levelSelect.addEventListener('change', () => {
-    currentLevel = levelSelect.value;
-    renderView();
-  });
-  
-  viewMode.addEventListener('change', () => {
-    currentMode = viewMode.value;
-    if(currentMode === 'criterion') {
-      courseContainer.style.display = 'block';
-    } else {
-      courseContainer.style.display = 'none'; // Blocks and Tasks view is global
-    }
-    renderView();
-  });
-  
+
+  if (subjectSelect) {
+    subjectSelect.value = currentSubject;
+    subjectSelect.addEventListener('change', () => {
+      currentSubject = subjectSelect.value;
+      populateLevelSelect();
+      updatePageHeader();
+      resetDetailPanel();
+      renderView();
+    });
+  }
+
+  populateLevelSelect();
+  updatePageHeader();
+
+  if (params.level && (currentSubject === 'cyr' ? ['1', '2', '3'].includes(params.level) : params.level === '2')) {
+    currentLevel = params.level;
+    if (levelSelect) levelSelect.value = currentLevel;
+  }
+
+  if (levelSelect) {
+    levelSelect.addEventListener('change', () => {
+      currentLevel = levelSelect.value;
+      resetDetailPanel();
+      renderView();
+    });
+  }
+
+  if (viewMode) {
+    viewMode.addEventListener('change', () => {
+      currentMode = viewMode.value;
+      if (currentMode === 'criterion') {
+        courseContainer.style.display = 'block';
+      } else {
+        courseContainer.style.display = 'none';
+      }
+      resetDetailPanel();
+      renderView();
+    });
+  }
+
   renderView();
 }
 
@@ -92,18 +189,21 @@ function renderView() {
 }
 
 function getTaskButton(t) {
-  const isGame = isNaN(t.id);
+  const isGame = isNaN(t.id) || (t.title && t.title.toLowerCase().startsWith('juego:'));
   const extraClass = isGame ? 'btn-game-task' : 'btn-outline';
   const weightBadge = t.total_weight ? `<div style="font-size:0.75rem; margin-top:4px; opacity:0.8; font-weight: 500;">⚖️ Peso: ${t.total_weight.toFixed(2)}%</div>` : '';
-  
+  const label = isNaN(t.id) ? `🎮 ${escapeHtml(t.title)}` : `📝 Tarea ${t.id}: <strong>${escapeHtml(t.title)}</strong>`;
+
   return `<button class="btn btn-sm ${extraClass} btn-task-detail" data-task-id="${t.id}" style="display:block; width:100%; text-align:left; white-space:normal; line-height: 1.4; height:100%;">
-            📝 Tarea ${t.id}: <strong>${escapeHtml(t.title)}</strong>
+            ${label}
             ${weightBadge}
           </button>`;
 }
 
 function renderByCriterion(level) {
-  const criteriaList = CYR_EVALUATION_DATA[level] || CYR_EVALUATION_DATA[1];
+  const evalData = currentSubject === 'tic2' ? TIC2_EVALUATION_DATA : CYR_EVALUATION_DATA;
+  const criteriaList = evalData[level] || evalData[Object.keys(evalData)[0]] || [];
+
   $('eval-thead').innerHTML = `
     <tr>
       <th style="width:10%;">Crit.</th>
@@ -111,11 +211,16 @@ function renderByCriterion(level) {
       <th style="width:40%;">Tareas Classroom</th>
     </tr>
   `;
-  
+
+  const tasks = getSubjectTasks(currentSubject);
+  const isEvaluatedLevel = (currentSubject === 'cyr' && level == 1) || (currentSubject === 'tic2' && level == 2);
+
   let html = '';
   criteriaList.forEach(c => {
-    const matchingTasks = (level == 1) ? CLASSROOM_TASKS.filter(t => t.crit && t.crit.split(',').map(s => s.trim()).includes(c.crit)) : [];
-    
+    const matchingTasks = isEvaluatedLevel
+      ? tasks.filter(t => t.crit && t.crit.split(',').map(s => s.trim()).includes(c.crit))
+      : [];
+
     let tasksHtml = '<span style="color:var(--text-muted)">-</span>';
     if (matchingTasks.length > 0) {
       tasksHtml = `<div style="display:flex; flex-direction:column; gap:8px;">
@@ -134,7 +239,7 @@ function renderByCriterion(level) {
       </tr>
     `;
   });
-  
+
   $('eval-tbody').innerHTML = html;
 }
 
@@ -145,30 +250,31 @@ function renderByBlock() {
       <th style="width:85%;">Tareas Asociadas</th>
     </tr>
   `;
-  
+
+  const tasks = getSubjectTasks(currentSubject);
   const blocks = {};
-  CLASSROOM_TASKS.forEach(t => {
+  tasks.forEach(t => {
     const b = t.block || 'Desconocido';
-    if(!blocks[b]) blocks[b] = [];
+    if (!blocks[b]) blocks[b] = [];
     blocks[b].push(t);
   });
-  
-  const sortedBlocks = Object.keys(blocks).sort((a,b) => parseInt(a) - parseInt(b));
-  
+
+  const sortedBlocks = Object.keys(blocks).sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
+
   let html = '';
   sortedBlocks.forEach(b => {
     const tasksHtml = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;">
       ${blocks[b].map(t => getTaskButton(t)).join('')}
     </div>`;
-    
+
     html += `
       <tr>
-        <td style="font-weight:bold; color:var(--primary); font-size: 1.2rem;">Bloque ${b}</td>
+        <td style="font-weight:bold; color:var(--primary); font-size: 1.2rem;">Bloque ${escapeHtml(b)}</td>
         <td>${tasksHtml}</td>
       </tr>
     `;
   });
-  
+
   $('eval-tbody').innerHTML = html;
 }
 
@@ -183,30 +289,31 @@ function renderByTask() {
       <th style="width:15%;">Acción</th>
     </tr>
   `;
-  
+
+  const tasks = getSubjectTasks(currentSubject);
   let html = '';
-  const sortedTasks = [...CLASSROOM_TASKS].sort((a,b) => {
+  const sortedTasks = [...tasks].sort((a,b) => {
     const isNumA = !isNaN(a.id);
     const isNumB = !isNaN(b.id);
-    if(isNumA && isNumB) return parseInt(a.id) - parseInt(b.id);
-    if(isNumA) return -1;
-    if(isNumB) return 1;
+    if (isNumA && isNumB) return parseInt(a.id, 10) - parseInt(b.id, 10);
+    if (isNumA) return -1;
+    if (isNumB) return 1;
     return a.id.localeCompare(b.id);
   });
-  
+
   sortedTasks.forEach(t => {
     html += `
       <tr>
         <td style="font-weight:bold; color:var(--text-muted); font-size: 1.1rem;">#${t.id}</td>
         <td style="font-weight:bold;">${escapeHtml(t.title)}</td>
-        <td><span class="badge">Bloque ${t.block}</span></td>
-        <td>${t.crit ? `<span class="badge badge--primary">Crit. ${t.crit}</span>` : '<span style="color:var(--text-muted)">-</span>'}</td>
+        <td><span class="badge">Bloque ${escapeHtml(t.block)}</span></td>
+        <td>${t.crit ? `<span class="badge badge--primary">Crit. ${escapeHtml(t.crit)}</span>` : '<span style="color:var(--text-muted)">-</span>'}</td>
         <td style="font-weight:bold; color:#000;">${t.total_weight ? t.total_weight.toFixed(2) + '%' : '-'}</td>
         <td><button class="btn btn-sm btn-outline btn-task-detail" data-task-id="${t.id}">Ver Tarea</button></td>
       </tr>
     `;
   });
-  
+
   $('eval-tbody').innerHTML = html;
 }
 
@@ -215,7 +322,7 @@ function bindTaskClicks() {
     btn.addEventListener('click', (e) => {
       const taskId = e.currentTarget.getAttribute('data-task-id');
       showTaskDetail(taskId);
-      
+
       // Resaltar el botón activo
       document.querySelectorAll('.btn-task-detail').forEach(b => {
         b.classList.remove('btn-primary');
@@ -223,7 +330,7 @@ function bindTaskClicks() {
           b.classList.add('btn-outline');
         }
       });
-      
+
       e.currentTarget.classList.remove('btn-outline');
       e.currentTarget.classList.add('btn-primary');
     });
@@ -231,24 +338,25 @@ function bindTaskClicks() {
 }
 
 function showTaskDetail(taskId) {
-  const task = CLASSROOM_TASKS.find(t => t.id === taskId);
+  const tasks = getSubjectTasks(currentSubject);
+  const task = tasks.find(t => String(t.id) === String(taskId));
   if (!task) return;
-  
+
   const panel = $('task-detail-panel');
   panel.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
       <h3 style="margin:0; color:var(--text-primary); font-size:1.5rem;">${escapeHtml(task.title)}</h3>
     </div>
-    <div style="display:flex; gap: 10px; margin-bottom:20px;">
-      <span class="badge">Bloque ${task.block}</span>
-      ${task.crit ? `<span class="badge badge--primary">Criterio ${task.crit}</span>` : `<span class="badge badge--accent">No evaluable</span>`}
+    <div style="display:flex; gap: 10px; margin-bottom:20px; flex-wrap: wrap;">
+      <span class="badge">Bloque ${escapeHtml(task.block)}</span>
+      ${task.crit ? `<span class="badge badge--primary">Criterio ${escapeHtml(task.crit)}</span>` : `<span class="badge badge--accent">No evaluable</span>`}
       ${task.total_weight ? `<span class="badge" style="background:#ffeb3b; color:#000;">Ponderación Final: ${task.total_weight.toFixed(2)}%</span>` : ''}
     </div>
     <p style="color:var(--text-secondary); margin-bottom:10px; font-weight:600;">Descripción de la tarea:</p>
     <div class="task-desc">${escapeHtml(task.description)}</div>
     <button id="btn-copy-task" class="btn btn-primary btn-lg" style="width:100%; font-size:1.1rem;">📋 Copiar Texto para Classroom</button>
   `;
-  
+
   $('btn-copy-task').addEventListener('click', () => {
     navigator.clipboard.writeText(task.description).then(() => {
       const btn = $('btn-copy-task');
@@ -256,7 +364,7 @@ function showTaskDetail(taskId) {
       btn.innerHTML = '✅ ¡Copiado con éxito!';
       btn.style.backgroundColor = 'var(--success)';
       btn.style.borderColor = 'var(--success)';
-      
+
       setTimeout(() => {
         btn.innerHTML = originalText;
         btn.style.backgroundColor = '';

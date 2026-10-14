@@ -12,11 +12,69 @@
   <link rel="stylesheet" href="css/common/components.css">
   
   <style>
+    .subject-toggle-bar {
+      display: flex;
+      gap: var(--space-2);
+      margin-top: var(--space-4);
+      margin-bottom: var(--space-4);
+      padding-bottom: var(--space-3);
+      border-bottom: 2px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .subject-tab-btn {
+      font-family: var(--font-head);
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all var(--transition-fast, 0.2s);
+    }
+    .subject-tab-btn:hover {
+      border-color: var(--primary);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+    .subject-tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .roadmap-stats-bar {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .stat-pill {
+      background: var(--bg-surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      padding: 5px 14px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-pill strong {
+      color: var(--text-primary);
+    }
+
     .roadmap-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: var(--space-4);
-      margin-top: var(--space-4);
+      margin-top: var(--space-3);
     }
     .game-idea-card {
       background: var(--bg-surface);
@@ -28,16 +86,19 @@
       gap: var(--space-3);
       position: relative;
       overflow: hidden;
+      transition: transform var(--transition-fast, 0.2s), box-shadow var(--transition-fast, 0.2s);
+    }
+    .game-idea-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
     .game-idea-card::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0; height: 4px;
-      background: var(--accent);
-      opacity: 0.8;
+      background: var(--primary);
+      opacity: 0.85;
     }
-    .game-idea-card.status-done::before { background: var(--success); }
-    .game-idea-card.status-todo::before { background: var(--text-muted); }
     
     .game-idea-header {
       display: flex;
@@ -55,15 +116,15 @@
     }
     .game-idea-title {
       font-family: var(--font-head);
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 700;
       color: var(--text-bright);
       margin: 0 0 4px 0;
     }
     .game-idea-desc {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      line-height: 1.4;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
       flex-grow: 1;
     }
     .criteria-box {
@@ -76,6 +137,50 @@
     .tag-list {
       display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
     }
+
+    .implemented-section {
+      margin-top: var(--space-8);
+      padding-top: var(--space-6);
+      border-top: 1px dashed var(--border);
+    }
+    .implemented-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-3);
+      margin-top: var(--space-3);
+    }
+    .implemented-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+    .implemented-card-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+    .implemented-card-title {
+      font-weight: 600;
+      font-size: 0.92rem;
+      color: var(--text-bright);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .implemented-card-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
   </style>
 </head>
 <body class="page">
@@ -84,162 +189,306 @@
   <main class="page-content">
     <div class="container">
       <header class="dashboard-header animate-fade-up">
-        <a href="dashboard_teacher.html" class="back-link">← Volver al Panel</a>
-        <h1 class="dashboard-title">🚀 Roadmap de Juegos (1º ESO)</h1>
-        <p class="text-muted">Planificación de futuros mini-juegos vinculados a la normativa andaluza LOMLOE.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3);">
+          <a href="dashboard_teacher.html" class="back-link">← Volver al Panel Docente</a>
+          <a id="btn-back-course" href="course_detail.html?courseId=cyr" class="btn btn-ghost btn--sm" style="display: inline-flex; align-items: center; gap: 6px;">
+            📚 <span id="btn-back-course-text">Ver Curso en StackClass</span> ↗
+          </a>
+        </div>
+
+        <h1 class="dashboard-title" id="roadmap-title">🚀 Roadmap de Juegos</h1>
+        <p class="text-muted" id="roadmap-desc">Planificación de futuros mini-juegos vinculados a la normativa andaluza LOMLOE.</p>
+
+        <!-- Selector de Asignatura -->
+        <div class="subject-toggle-bar" role="tablist">
+          <button type="button" class="subject-tab-btn active" id="tab-cyr" data-subject="cyr" role="tab" aria-selected="true">
+            🤖 Computación y Robótica (1º ESO)
+          </button>
+          <button type="button" class="subject-tab-btn" id="tab-tic2" data-subject="tic2" role="tab" aria-selected="false">
+            💻 TIC II (2º Bachillerato)
+          </button>
+        </div>
       </header>
 
-      <div class="roadmap-grid animate-fade-up delay-1">
-        
-
-
-        <!-- ASIMOV.IO -->
-        <div class="game-idea-card status-todo">
-          <div class="game-idea-header">
-            <div style="display:flex; gap:12px;">
-              <div class="game-idea-icon">⚖️</div>
-              <div>
-                <span class="badge badge--muted">⏳ ToDo</span>
-              </div>
-            </div>
-          </div>
-          <div class="game-idea-desc">
-            Simulador ético estilo "Reigns". Eres una IA municipal tomando decisiones (deslizando cartas) para equilibrar felicidad humana, eficiencia y leyes robóticas.
-          </div>
-          <div class="criteria-box">
-            <strong>C. Robótica y Sociedad</strong>
-            <div class="tag-list">
-              <span class="badge badge--ghost">CYR.1.1.2 - Papel de la robótica</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- DATASCOPE -->
-        <div class="game-idea-card status-todo">
-          <div class="game-idea-header">
-            <div style="display:flex; gap:12px;">
-              <div class="game-idea-icon">🔍</div>
-              <div>
-                <h3 class="game-idea-title">DataScope</h3>
-                <span class="badge badge--muted">⏳ ToDo</span>
-              </div>
-            </div>
-          </div>
-          <div class="game-idea-desc">
-            Juego de detectives usando Big Data. Aplica filtros lógicos a una gran base de datos de logs para acotar sospechosos y resolver misterios.
-          </div>
-          <div class="criteria-box">
-            <strong>G. Datos Masivos</strong>
-            <div class="tag-list">
-              <span class="badge badge--ghost">CYR.1.4.1 - Analizar datos</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- NEUROBOT -->
-        <div class="game-idea-card status-todo">
-          <div class="game-idea-header">
-            <div style="display:flex; gap:12px;">
-              <div class="game-idea-icon">🧠</div>
-              <div>
-                <h3 class="game-idea-title">NeuroBot</h3>
-                <span class="badge badge--muted">⏳ ToDo</span>
-              </div>
-            </div>
-          </div>
-          <div class="game-idea-desc">
-            Entrenamiento de IA supervisado. Clasifica basura para enseñar a un robot; si lo entrenas con sesgos o errores, su red neuronal fallará en la fase de prueba.
-          </div>
-          <div class="criteria-box">
-            <strong>H. Inteligencia Artificial</strong>
-            <div class="tag-list">
-              <span class="badge badge--ghost">CYR.1.4.2 - Machine Learning</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- NETDEFENDER -->
-        <div class="game-idea-card status-todo">
-          <div class="game-idea-header">
-            <div style="display:flex; gap:12px;">
-              <div class="game-idea-icon">🛡️</div>
-              <div>
-                <h3 class="game-idea-title">NetDefender</h3>
-                <span class="badge badge--muted">⏳ ToDo</span>
-              </div>
-            </div>
-          </div>
-          <div class="game-idea-desc">
-            Tower Defense de Ciberseguridad. Coloca defensas (Contraseñas fuertes, 2FA, Cortafuegos) para detener oleadas de Malware, Spam y Ataques de Diccionario.
-          </div>
-          <div class="criteria-box">
-            <strong>I. Ciberseguridad</strong>
-            <div class="tag-list">
-              <span class="badge badge--ghost">CYR.1.6.1 - Protección en red</span>
-              <span class="badge badge--ghost">CYR.1.6.4 - Seg. activa/pasiva</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- EL MODERADOR -->
-        <div class="game-idea-card status-todo">
-          <div class="game-idea-header">
-            <div style="display:flex; gap:12px;">
-              <div class="game-idea-icon">🕵️</div>
-              <div>
-                <h3 class="game-idea-title">El Moderador</h3>
-                <span class="badge badge--muted">⏳ ToDo</span>
-              </div>
-            </div>
-          </div>
-          <div class="game-idea-desc">
-            Simulador de moderación en redes. Tienes 3 segundos por publicación para aprobarla o banearla si contiene Fake News, revela datos privados o viola Copyright.
-          </div>
-          <div class="criteria-box">
-            <strong>I. Ciberseguridad (Legal)</strong>
-            <div class="tag-list">
-              <span class="badge badge--ghost">CYR.1.6.2 - Publicación segura</span>
-              <span class="badge badge--ghost">CYR.1.6.3 - Derechos en web</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- WEBBUILDER -->
-        <div class="game-idea-card status-todo">
-          <div class="game-idea-header">
-            <div style="display:flex; gap:12px;">
-              <div class="game-idea-icon">🌐</div>
-              <div>
-                <h3 class="game-idea-title">WebBuilder</h3>
-                <span class="badge badge--muted">⏳ ToDo</span>
-              </div>
-            </div>
-          </div>
-          <div class="game-idea-desc">
-            Clínica de código HTML. Te llega una página web desordenada y debes inyectar o reparar etiquetas (&lt;h1&gt;, &lt;img&gt;) para arreglar el diseño visual.
-          </div>
-          <div class="criteria-box">
-            <strong>E. Desarrollo Web</strong>
-            <div class="tag-list">
-              <span class="badge badge--ghost">CYR.1.5.1 - Const. de apps web</span>
-              <span class="badge badge--ghost">CYR.1.5.2 - Resolver problemas</span>
-            </div>
-          </div>
-        </div>
-
+      <!-- Barra de Estadísticas de la Asignatura -->
+      <div class="roadmap-stats-bar animate-fade-up delay-1" id="stats-bar">
+        <!-- Generado dinámicamente -->
       </div>
+
+      <!-- Tarjetas del Roadmap (Próximos Juegos) -->
+      <div class="animate-fade-up delay-1">
+        <h2 style="font-size: 1.25rem; font-family: var(--font-head); margin-bottom: var(--space-2); display: flex; align-items: center; gap: 8px;">
+          <span>⏳</span> <span>Próximos Juegos en Desarrollo</span>
+        </h2>
+        <div class="roadmap-grid" id="roadmap-grid">
+          <!-- Inyectado por JS -->
+        </div>
+      </div>
+
+      <!-- Sección de Juegos Ya Implementados -->
+      <section class="implemented-section animate-fade-up delay-2" id="implemented-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-2);">
+          <div>
+            <h2 style="font-size: 1.25rem; font-family: var(--font-head); margin: 0; display: flex; align-items: center; gap: 8px;">
+              <span>✅</span> <span>Juegos ya Disponibles en esta Asignatura</span>
+            </h2>
+            <p class="text-muted" style="margin: 4px 0 0 0; font-size: 0.85rem;" id="implemented-count-desc">
+              Mini-juegos interactivos listos para jugar y asignar en clase.
+            </p>
+          </div>
+        </div>
+        <div class="implemented-grid" id="implemented-grid">
+          <!-- Inyectado por JS -->
+        </div>
+      </section>
+
     </div>
   </main>
 
   <script type="module">
     import { requireAuth } from './js/common/auth.js';
     import { renderHeader } from './js/common/ui.js';
+    import { COURSES, GAMES, DEFAULT_GAMES, getUrlParams, $, $$, escapeHtml } from './js/common/utils.js';
+
+    // ── DATOS DEL ROADMAP POR ASIGNATURA ──────────────────────────
+    const ROADMAP_DATA = {
+      cyr: {
+        title: '🚀 Roadmap de Juegos — Computación y Robótica (1º ESO)',
+        desc: 'Planificación de futuros mini-juegos vinculados a la normativa andaluza LOMLOE para 1º de ESO.',
+        courseId: 'cyr',
+        levelBadge: '1º ESO',
+        normative: 'LOMLOE Andalucía (Computación y Robótica 1º ESO)',
+        games: [
+          {
+            id: 'datascope',
+            icon: '🔍',
+            title: 'DataScope',
+            status: 'todo',
+            statusBadge: '⏳ ToDo',
+            desc: 'Juego de detectives usando Big Data. Aplica filtros lógicos a una gran base de datos de logs para acotar sospechosos y resolver misterios.',
+            block: 'G. Datos Masivos',
+            criteria: ['CYR.1.4.1 - Analizar datos y metadatos']
+          },
+          {
+            id: 'neurobot',
+            icon: '🧠',
+            title: 'NeuroBot',
+            status: 'todo',
+            statusBadge: '⏳ ToDo',
+            desc: 'Entrenamiento de IA supervisado. Clasifica basura para enseñar a un robot; si lo entrenas con sesgos o errores, su red neuronal fallará en la fase de prueba.',
+            block: 'H. Inteligencia Artificial',
+            criteria: ['CYR.1.4.2 - Principios de Machine Learning']
+          },
+          {
+            id: 'moderador',
+            icon: '🕵️',
+            title: 'El Moderador',
+            status: 'todo',
+            statusBadge: '⏳ ToDo',
+            desc: 'Simulador de moderación en redes. Tienes 3 segundos por publicación para aprobarla o banearla si contiene Fake News, revela datos privados o viola Copyright.',
+            block: 'I. Ciberseguridad (Legal)',
+            criteria: ['CYR.1.6.2 - Publicación segura', 'CYR.1.6.3 - Derechos y propiedad en la web']
+          },
+          {
+            id: 'webbuilder',
+            icon: '🌐',
+            title: 'WebBuilder',
+            status: 'todo',
+            statusBadge: '⏳ ToDo',
+            desc: 'Clínica de código HTML. Te llega una página web desordenada y debes inyectar o reparar etiquetas (<h1>, <p>, <img>) para arreglar el diseño visual.',
+            block: 'E. Desarrollo Web',
+            criteria: ['CYR.1.5.1 - Construcción de apps web', 'CYR.1.5.2 - Resolución de problemas web']
+          }
+        ]
+      },
+      tic2: {
+        title: '🚀 Roadmap de Juegos — TIC II (2º Bachillerato)',
+        desc: 'Planificación de futuros mini-juegos vinculados a la normativa andaluza LOMLOE para 2º de Bachillerato.',
+        courseId: 'tic2',
+        levelBadge: '2º Bachillerato',
+        normative: 'LOMLOE Andalucía (Tecnologías de la Información y Comunicación II)',
+        games: [
+          {
+            id: 'querymaster',
+            icon: '🗄️',
+            title: 'QueryMaster (SQL Mystery)',
+            status: 'todo',
+            statusBadge: '⏳ ToDo',
+            desc: 'Juego de investigación forense mediante consultas SQL relacionales. Ejecuta SELECT, WHERE, JOIN y GROUP BY para interrogar bases de datos y resolver crímenes informáticos.',
+            block: 'Tratamiento de la Información y Bases de Datos',
+            criteria: ['TIC2.5.3 - Tratamiento de la información y BD relacionales']
+          },
+          {
+            id: 'a11yhero',
+            icon: '♿',
+            title: 'A11y Hero (Auditoría WCAG)',
+            status: 'todo',
+            statusBadge: '⏳ ToDo',
+            desc: 'Simulador de accesibilidad web. Inspecciona sitios web, corrige contraste de color, estructura de encabezados, textos alternativos y navegación por teclado para superar la certificación WCAG 2.1.',
+            block: 'B. Publicación de Contenidos Web',
+            criteria: ['TIC2.3.1 - Publicación y accesibilidad web']
+          },
+          {
+            id: 'gitbranching',
+            icon: '🌿',
+            title: 'Git Branching (Merge Conflict)',
+            status: 'todo',
+            statusBadge: '⏳ ToDo',
+            desc: 'Puzzle interactivo de control de versiones. Resuelve conflictos de fusión (merge conflicts), gestiona ramas colaborativas (feature, hotfix, pull requests) y domina el trabajo en equipo con Git.',
+            block: 'A. Desarrollo de Software y Metodologías',
+            criteria: ['TIC2.5.2 - Ciclo de vida y metodologías', 'TIC2.4.1 - Trabajo colaborativo']
+          },
+          {
+            id: 'privacyguard',
+            icon: '🍪',
+            title: 'PrivacyGuard (Auditor RGPD)',
+            status: 'todo',
+            statusBadge: '⏳ ToDo',
+            desc: 'Auditoría de ciberseguridad y gobernanza de datos. Detecta rastreadores de cookies no consentidos, fuga de metadatos y evalúa políticas de privacidad web frente al RGPD.',
+            block: 'C. Seguridad Informática y Privacidad',
+            criteria: ['TIC2.2.2 - Protección de la privacidad en Internet']
+          }
+        ]
+      }
+    };
+
+    let activeSubject = 'cyr';
+
     requireAuth({
-      allowedRoles: ['teacher'],
+      allowedRoles: ['teacher', 'admin'],
       onAuthorized: (user, profile) => {
         renderHeader(user, profile);
+        initRoadmapPage();
       }
     });
+
+    function initRoadmapPage() {
+      const params = getUrlParams();
+      const subjectParam = params.subject || params.courseId || params.subjectId;
+      if (subjectParam && (subjectParam === 'tic2' || subjectParam === 'cyr')) {
+        activeSubject = subjectParam;
+      }
+
+      setupSubjectTabs();
+      renderSubjectRoadmap(activeSubject);
+    }
+
+    function setupSubjectTabs() {
+      $$('.subject-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const subject = btn.dataset.subject;
+          if (subject === activeSubject) return;
+          activeSubject = subject;
+          
+          // Actualizar estado visual de pestañas
+          $$('.subject-tab-btn').forEach(b => {
+            const isActive = b.dataset.subject === activeSubject;
+            b.classList.toggle('active', isActive);
+            b.setAttribute('aria-selected', isActive);
+          });
+
+          // Actualizar URL sin recargar
+          const url = new URL(window.location);
+          url.searchParams.set('subject', activeSubject);
+          window.history.replaceState({}, '', url);
+
+          renderSubjectRoadmap(activeSubject);
+        });
+      });
+    }
+
+    function renderSubjectRoadmap(subjectKey) {
+      const data = ROADMAP_DATA[subjectKey] || ROADMAP_DATA.cyr;
+      const course = COURSES[subjectKey] || COURSES.cyr;
+
+      // Encabezado
+      $('roadmap-title').textContent = data.title;
+      $('roadmap-desc').textContent = data.desc;
+
+      // Botón volver al curso
+      const backCourseBtn = $('btn-back-course');
+      const backCourseText = $('btn-back-course-text');
+      if (backCourseBtn && backCourseText) {
+        backCourseBtn.href = `course_detail.html?courseId=${data.courseId}`;
+        backCourseText.textContent = `Ver ${course.shortName || course.name} ↗`;
+      }
+
+      // Pestañas activas
+      $$('.subject-tab-btn').forEach(b => {
+        const isActive = b.dataset.subject === subjectKey;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive);
+      });
+
+      // Juegos implementados para esta asignatura
+      const implementedGameIds = DEFAULT_GAMES[subjectKey] || [];
+      const implementedGames = implementedGameIds.map(id => GAMES[id]).filter(Boolean);
+
+      // Barra de estadísticas
+      const statsBar = $('stats-bar');
+      if (statsBar) {
+        statsBar.innerHTML = `
+          <div class="stat-pill">
+            <span>🎓</span> <span>Nivel: <strong>${escapeHtml(data.levelBadge)}</strong></span>
+          </div>
+          <div class="stat-pill">
+            <span>⏳</span> <span>Roadmap: <strong>${data.games.length}</strong> mini-juegos planificados</span>
+          </div>
+          <div class="stat-pill">
+            <span>✅</span> <span>Disponibles: <strong>${implementedGames.length}</strong> juegos listos</span>
+          </div>
+          <div class="stat-pill">
+            <span>📜</span> <span>${escapeHtml(data.normative)}</span>
+          </div>
+        `;
+      }
+
+      // Grid de Próximos Juegos
+      const roadmapGrid = $('roadmap-grid');
+      if (roadmapGrid) {
+        roadmapGrid.innerHTML = data.games.map(g => `
+          <div class="game-idea-card status-todo">
+            <div class="game-idea-header">
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="game-idea-icon">${escapeHtml(g.icon)}</div>
+                <div>
+                  <h3 class="game-idea-title">${escapeHtml(g.title)}</h3>
+                  <span class="badge badge--muted">${escapeHtml(g.statusBadge)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="game-idea-desc">
+              ${escapeHtml(g.desc)}
+            </div>
+            <div class="criteria-box">
+              <strong>${escapeHtml(g.block)}</strong>
+              <div class="tag-list">
+                ${g.criteria.map(c => `<span class="badge badge--ghost">${escapeHtml(c)}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Grid de Juegos Ya Implementados
+      const implementedGrid = $('implemented-grid');
+      if (implementedGrid) {
+        implementedGrid.innerHTML = implementedGames.map(g => `
+          <div class="implemented-card">
+            <div class="implemented-card-info">
+              <div style="font-size: 1.8rem; flex-shrink: 0;">${escapeHtml(g.icon)}</div>
+              <div>
+                <div class="implemented-card-title">${escapeHtml(g.name)}</div>
+                <div class="implemented-card-desc">${escapeHtml(g.description || '')}</div>
+              </div>
+            </div>
+            <a href="${escapeHtml(g.gamePath)}" class="btn btn-primary btn--sm" style="flex-shrink: 0; padding: 6px 12px; font-size: 0.8rem; text-decoration: none;">
+              ▶ Jugar
+            </a>
+          </div>
+        `).join('');
+      }
+    }
   </script>
 </body>
 </html>

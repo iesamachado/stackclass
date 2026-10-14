@@ -192,11 +192,10 @@ async function saveAndExit() {
             if (hasClass) {
                 showToast("Guardado con éxito. Redirigiendo...", 'success');
                 setTimeout(() => {
-                    const isStaff = currentUser && (currentUser.role === 'teacher' || currentUser.is_superadmin);
-                    window.location.href = isStaff ? '../../../dashboard_teacher.html' : '../../../dashboard_student.html';
+                    window.location.href = '../../../index.html';
                 }, 1500);
             } else {
-                window.history.back();
+                window.location.href = '../../../index.html';
             }
         } catch (error) {
             console.error("Error saving result:", error);

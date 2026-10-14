@@ -88,19 +88,9 @@
       
       <!-- Sección: Cursos y Asignaturas -->
       <section class="animate-fade-up delay-2" aria-labelledby="section-courses-title">
-        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--space-3);">
-          <div>
-            <h2 class="section-title" id="section-courses-title">📚 Cursos y Asignaturas</h2>
-            <p class="section-desc" style="margin-bottom:0;">Explora los bloques temáticos teóricos y el catálogo de juegos educativos agrupados por curso.</p>
-          </div>
-          <div style="display:flex; gap:var(--space-2); align-items:center;">
-            <a href="evaluation.html" class="btn btn-ghost btn--sm" style="display:flex; align-items:center; gap:6px;">
-              📊 <span>Criterios y Tareas</span>
-            </a>
-            <a href="roadmap.html" class="btn btn-ghost btn--sm" style="display:flex; align-items:center; gap:6px;">
-              🚀 <span>Roadmap de Juegos</span>
-            </a>
-          </div>
+        <div class="section-header">
+          <h2 class="section-title" id="section-courses-title">📚 Cursos y Asignaturas</h2>
+          <p class="section-desc" style="margin-bottom:0;">Explora los bloques temáticos teóricos y el catálogo de juegos educativos agrupados por curso.</p>
         </div>
         <div class="classes-grid" id="teacher-courses-grid" style="margin-top: var(--space-4);">
           <!-- Renderizado por JS -->
@@ -141,15 +131,21 @@
         <button class="modal-close" id="close-new-class" aria-label="Cerrar">✕</button>
       </div>
       <div class="modal-body">
-        <form id="form-new-class" novalidate>
           <div class="form-group">
-            <label class="form-label" for="class-name-input">Nombre de la clase *</label>
-            <input type="text" id="class-name-input" placeholder="Ej: 1º ESO Tecnología Grupo A"
-                   maxlength="60" required>
+            <label class="form-label" for="class-subject-input">Asignatura *</label>
+            <select id="class-subject-input" class="input" required>
+              <option value="cyr" selected>🤖 Computación y Robótica (1º ESO)</option>
+              <option value="tic2">💻 TIC II (2º Bachillerato)</option>
+            </select>
           </div>
           <div class="form-group" style="margin-top: var(--space-4);">
-            <label class="form-label" for="class-level-input">Nivel (ESO)</label>
-            <select id="class-level-input" required>
+            <label class="form-label" for="class-name-input">Nombre de la clase *</label>
+            <input type="text" id="class-name-input" placeholder="Ej: 1º ESO Computación y Robótica Grupo A"
+                   maxlength="60" required>
+          </div>
+          <div class="form-group" style="margin-top: var(--space-4);" id="class-level-container">
+            <label class="form-label" for="class-level-input">Curso / Nivel *</label>
+            <select id="class-level-input" class="input" required>
               <option value="1" selected>1º ESO</option>
               <option value="2">2º ESO</option>
               <option value="3">3º ESO</option>

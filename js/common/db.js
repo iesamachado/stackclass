@@ -37,17 +37,41 @@ export async function updateUserProfile(uid, data) {
   const mapped = { ...data };
   if (mapped.displayName !== undefined && mapped.display_name === undefined) {
     mapped.display_name = mapped.displayName;
-    delete mapped.displayName;
   }
+  delete mapped.displayName;
+
   if (mapped.photoURL !== undefined && mapped.avatar === undefined) {
     mapped.avatar = mapped.photoURL;
-    delete mapped.photoURL;
   }
+  delete mapped.photoURL;
+  delete mapped.photo_url;
+  delete mapped.avatarUrl;
+  delete mapped.avatar_url;
+
   if (mapped.displayNameAnonymized !== undefined && mapped.display_name_anon === undefined) {
     mapped.display_name_anon = mapped.displayNameAnonymized;
-    delete mapped.displayNameAnonymized;
   }
+  delete mapped.displayNameAnonymized;
+
+  if (mapped.puntosTotal !== undefined && mapped.xp === undefined) {
+    mapped.xp = mapped.puntosTotal;
+  }
+  delete mapped.puntosTotal;
+  delete mapped.points;
+
+  if (mapped.subjectId !== undefined && mapped.subject_id === undefined) {
+    mapped.subject_id = mapped.subjectId;
+  }
+  delete mapped.subjectId;
+
+  if (mapped.guildId !== undefined && mapped.guild_id === undefined) {
+    mapped.guild_id = mapped.guildId;
+  }
+  delete mapped.guildId;
+  delete mapped.gremio;
+
   delete mapped.uid;
+  delete mapped.id;
 
   const { error } = await supabase
     .from('users').update(mapped).eq('id', uid);
@@ -261,19 +285,46 @@ export async function removeAllowedTeacher(email) {
 //  CLASES
 // ══════════════════════════════════════════════════════════════════
 
-export async function createClass(teacherId, subjectIdOrName, nameOrLevel, levelOpt) {
+export async function createClass(teacherId, arg1, arg2, arg3, arg4) {
   let subjectId = 'cyr';
   let name = '';
-  let level = '';
+  let level = '1';
+  let classroomCourseId = null;
 
-  if (levelOpt !== undefined) {
-    subjectId = subjectIdOrName;
-    name = nameOrLevel;
-    level = levelOpt;
+  if (typeof arg1 === 'object') {
+    // createClass(teacherId, { name, subjectId, level, classroomCourseId })
+    name = arg1.name;
+    subjectId = arg1.subjectId || 'cyr';
+    level = arg1.level || '1';
+    classroomCourseId = arg1.classroomCourseId || null;
+  } else if (arg3 !== undefined && typeof arg3 !== 'object') {
+    // createClass(teacherId, subjectId, name, level, options)
+    subjectId = arg1;
+    name = arg2;
+    level = arg3;
+    if (arg4 && typeof arg4 === 'object') {
+      classroomCourseId = arg4.classroomCourseId || null;
+    }
   } else {
-    name = subjectIdOrName;
-    level = nameOrLevel;
-    subjectId = (String(level).includes('Bach') || String(name).toLowerCase().includes('tic')) ? 'tic2' : 'cyr';
+    // Legacy: createClass(teacherId, name, level, options)
+    name = arg1;
+    level = arg2 || '1';
+    if (arg3 && typeof arg3 === 'object') {
+      classroomCourseId = arg3.classroomCourseId || null;
+    }
+    const nameLower = String(name || '').toLowerCase();
+    const levelStr = String(level || '').toLowerCase();
+    const isTic2 = levelStr.includes('bach') ||
+      nameLower.includes('bachillerato') ||
+      nameLower.includes('bach') ||
+      /\b(tic|tic2|ticii|tic-2)\b/i.test(nameLower) ||
+      nameLower.includes('tecnologías de la información');
+    subjectId = isTic2 ? 'tic2' : 'cyr';
+  }
+
+  // Asegurar que la asignatura sea válida
+  if (!['cyr', 'tic2'].includes(subjectId)) {
+    subjectId = 'cyr';
   }
 
   const defaultGames = subjectId === 'tic2'
@@ -290,10 +341,11 @@ export async function createClass(teacherId, subjectIdOrName, nameOrLevel, level
       teacher_id: teacherId,
       subject_id: subjectId,
       name,
-      level,
+      level: String(level),
       pin,
       enabled_games: defaultGames,
-      enabled_topics: defaultTopics
+      enabled_topics: defaultTopics,
+      classroom_id: classroomCourseId
     })
     .select().single();
   if (error) throw error;
@@ -896,8 +948,12 @@ export async function saveGameResult(arg1, arg2, arg3, arg4, arg5, arg6 = {}) {
   if (studentId) {
     try {
       const { checkDigitalWellbeing, currentProfile } = await import('./auth.js');
-      const isStudent = !currentProfile || currentProfile.role === 'student';
-      if (isStudent) {
+      let role = currentProfile?.role;
+      if (!role) {
+        const { data: u } = await supabase.from('users').select('role').eq('id', studentId).maybeSingle();
+        if (u) role = u.role;
+      }
+      if (role === 'student') {
         const count = await checkDigitalWellbeing(studentId, 'game', gameId);
         if (count >= 5) {
           console.warn(`[Bienestar Digital] Límite de 5 partidas alcanzado hoy para ${gameId}`);
@@ -928,8 +984,12 @@ export async function saveGameResult(arg1, arg2, arg3, arg4, arg5, arg6 = {}) {
   if (studentId) {
     try {
       const { checkDigitalWellbeing, incrementDigitalWellbeing, currentProfile } = await import('./auth.js');
-      const isStudent = !currentProfile || currentProfile.role === 'student';
-      if (isStudent) {
+      let role = currentProfile?.role;
+      if (!role) {
+        const { data: u } = await supabase.from('users').select('role').eq('id', studentId).maybeSingle();
+        if (u) role = u.role;
+      }
+      if (role === 'student') {
         const todayCount = await checkDigitalWellbeing(studentId, 'game', gameId);
         if (todayCount >= 5) {
           await incrementDigitalWellbeing(studentId, 'game', gameId);
