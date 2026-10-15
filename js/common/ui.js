@@ -4,6 +4,9 @@
 
 import { logout, isAdmin } from './auth.js';
 import { GAMES, escapeHtml, formatDate, timeAgo, $, getAppUrl } from './utils.js';
+import { renderFooter, getFooterHtml } from './footer.js';
+
+export { renderFooter, getFooterHtml };
 
 // ══════════════════════════════════════════════════════════════════
 //  HEADER / NAVBAR
@@ -14,7 +17,12 @@ import { GAMES, escapeHtml, formatDate, timeAgo, $, getAppUrl } from './utils.js
  * Busca el elemento con id="app-header" y lo rellena.
  */
 export function renderHeader(user, profile) {
+  if ($('app-footer')) {
+    renderFooter('app-footer');
+  }
+
   const header = $('app-header');
+
   if (!header) return;
 
   if (!user || !profile) {

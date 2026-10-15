@@ -2,12 +2,12 @@
   background-color: #1a1a2e;
   color: #fff;
   font-family: var(--font-sans);
-  height: 100vh;
+  min-height: 100vh;
   margin: 0;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
 }
 
 .game-wrapper {

@@ -225,3 +225,13 @@
   transition: color var(--transition-fast);
 }
 .btn-back:hover { color: var(--text-primary); }
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#login-hero {
+  flex: 1;
+}

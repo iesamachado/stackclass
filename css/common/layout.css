@@ -336,3 +336,101 @@ a.user-badge--admin:hover {
   .navbar-username { display: none; }
   .games-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── Pie de página global (Footer con Licencia CC) ────────── */
+
+.app-footer {
+  width: 100%;
+  background: var(--bg-surface, #ffffff);
+  border-top: var(--border-width, 2px) solid var(--border, #000000);
+  padding: 8px var(--space-4);
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--text-muted, #555555);
+  box-sizing: border-box;
+  margin-top: auto;
+  position: relative;
+  z-index: 10;
+}
+
+.app-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.app-footer a {
+  color: var(--text-secondary, #333333);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color var(--transition-fast, 0.15s ease), opacity var(--transition-fast, 0.15s ease);
+}
+
+.app-footer a:hover {
+  color: var(--text-primary, #000000);
+  text-decoration: underline;
+}
+
+.app-footer .footer-license-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-footer .cc-logo-svg {
+  height: 18px;
+  width: auto;
+  vertical-align: middle;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: opacity var(--transition-fast, 0.15s ease);
+}
+
+.app-footer a:hover .cc-logo-svg {
+  opacity: 1;
+}
+
+.app-footer .footer-sep {
+  color: var(--text-muted, #888888);
+  user-select: none;
+  font-weight: bold;
+}
+
+/* Adaptación para temas oscuros y juegos arcade */
+body.theme-moon .app-footer,
+body.theme-helados .app-footer,
+body.db-body .app-footer,
+body.theme-dark .app-footer,
+.theme-dark .app-footer,
+body[style*="background: #0f172a"] .app-footer,
+body[style*="background:#0f172a"] .app-footer,
+body[style*="background: #111"] .app-footer {
+  background: rgba(15, 23, 42, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+
+body.theme-moon .app-footer a,
+body.theme-helados .app-footer a,
+body.db-body .app-footer a,
+body.theme-dark .app-footer a,
+.theme-dark .app-footer a {
+  color: #cbd5e1;
+}
+
+body.theme-moon .app-footer a:hover,
+body.theme-helados .app-footer a:hover,
+body.db-body .app-footer a:hover,
+body.theme-dark .app-footer a:hover,
+.theme-dark .app-footer a:hover {
+  color: #ffffff;
+}
+

@@ -10,11 +10,23 @@
   <link rel="stylesheet" href="../../../css/common/components.css">
   <link rel="stylesheet" href="css/helados.css">
 </head>
-<body class="theme-helados">
-  <div id="loading-screen" class="screen active" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;">
+<body class="theme-helados" style="display: flex; flex-direction: column; min-height: 100vh; margin: 0;">
+  <div id="loading-screen" class="screen active" style="display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1;">
     <h1 style="color: var(--game-helados);">H3L4D0S</h1>
     <p>Comprobando acceso...</p>
   </div>
+
+  <!-- Pie de página unificado -->
+  <footer class="app-footer" role="contentinfo">
+    <div class="app-footer-inner">
+      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" rel="license noopener noreferrer" class="footer-license-link" title="Licencia Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional">
+        <img src="../../../img/cc-by-nc-sa.svg" alt="CC BY-NC-SA 4.0" class="cc-logo-svg" width="80" height="20">
+        <span>CC BY-NC-SA 4.0</span>
+      </a>
+      <span class="footer-sep" aria-hidden="true">·</span>
+      <a href="../../../privacidad.html" class="footer-link">Privacidad y Condiciones de uso</a>
+    </div>
+  </footer>
   <script type="module">
     import { requireGameAccess } from '../../../../js/common/auth.js';
     requireGameAccess('helados', {

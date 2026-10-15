@@ -3,11 +3,11 @@ body {
   color: white;
   font-family: var(--font-mono, monospace);
   margin: 0;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
 }
 
 .game-container {
