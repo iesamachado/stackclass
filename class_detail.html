@@ -48,6 +48,7 @@
         <button class="tab-btn" data-tab="results">📊 Resultados</button>
         <button class="tab-btn" data-tab="guilds">🛡️ Gremios</button>
         <button class="tab-btn" data-tab="exams">📝 Exámenes</button>
+        <button class="tab-btn" data-tab="curriculum_matrix">🎯 Matriz de Criterios</button>
       </div>
 
       <!-- TAB: CONTENIDOS (habilitación) -->
@@ -251,6 +252,74 @@
               </tbody>
             </table>
           </details>
+        </div>
+      </section>
+
+      <!-- TAB: MATRIZ DE CRITERIOS (PROGRAMACIÓN DIDÁCTICA) -->
+      <section id="tab-curriculum_matrix" class="tab-content" style="display:none;">
+        <div class="section-header" style="flex-wrap:wrap; gap:15px; align-items:flex-start;">
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+              <h2 class="section-title" style="margin:0;">🎯 Matriz de Criterios y Actividades</h2>
+              <span id="matrix-status-badge" class="badge" style="font-size:0.8rem; padding:4px 10px; border-radius:999px; background:#e0e7ff; color:#3730a3; font-weight:600;">
+                🟢 Programación Genérica (LOMLOE)
+              </span>
+            </div>
+            <p class="section-desc" style="margin:0;">
+              Relación curricular entre los criterios normativos y las actividades (minijuegos, tests de repaso y tareas offline).
+              Cada actividad tiene 1 criterio asignado por defecto (con excepciones múltiples). Marca o desmarca casillas para personalizar tu aula.
+            </p>
+          </div>
+          <div class="section-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button class="btn btn-ghost" id="btn-reset-matrix" title="Volver a los criterios oficiales por defecto">
+              🔄 Restablecer a Genérica
+            </button>
+            <button class="btn btn-outline" id="btn-export-matrix-csv" title="Descargar como archivo CSV">
+              📥 Exportar CSV
+            </button>
+            <button class="btn btn-primary" id="btn-save-matrix" title="Guardar la personalización de esta clase">
+              💾 Guardar Cambios
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtros y Leyenda -->
+        <div class="card" style="padding:15px; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:15px; align-items:center; justify-content:space-between; background:var(--bg-surface);">
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <label for="matrix-filter-type" style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">Actividades:</label>
+              <select id="matrix-filter-type" class="input" style="padding:4px 8px; font-size:0.85rem; width:auto;">
+                <option value="all">Todas las actividades</option>
+                <option value="game">🎮 Solo Minijuegos</option>
+                <option value="test">📖 Solo Tests de Repaso</option>
+                <option value="task">📝 Solo Tareas Offline</option>
+              </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <label for="matrix-filter-block" style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">Bloque:</label>
+              <select id="matrix-filter-block" class="input" style="padding:4px 8px; font-size:0.85rem; width:auto;">
+                <option value="all">Todos los bloques</option>
+              </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input type="text" id="matrix-search" placeholder="🔍 Buscar criterio o actividad..." class="input" style="padding:4px 10px; font-size:0.85rem; width:220px;">
+            </div>
+          </div>
+          <div style="display:flex; gap:15px; align-items:center; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap;">
+            <span style="display:flex; align-items:center; gap:5px;"><span class="badge-count badge-count-1">1</span> 1 Criterio (Óptimo)</span>
+            <span style="display:flex; align-items:center; gap:5px;"><span class="badge-count badge-count-multi">2+</span> >1 Criterios (Excepción)</span>
+            <span style="display:flex; align-items:center; gap:5px;"><span class="badge-count badge-count-0">0</span> Sin criterio asignado</span>
+          </div>
+        </div>
+
+        <!-- Contenedor Matriz con Scroll Bidireccional -->
+        <div class="card" style="padding:0; overflow:hidden; border: 1px solid var(--border);">
+          <div class="matrix-table-wrapper" id="curriculum-matrix-table-container">
+            <div style="text-align:center; padding:50px;">
+              <div class="spinner"></div>
+              <p style="margin-top:10px; color:var(--text-muted);">Cargando matriz de programación didáctica...</p>
+            </div>
+          </div>
         </div>
       </section>
 

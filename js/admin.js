@@ -228,6 +228,12 @@ function setupEvents(user) {
     showToast('Plantilla copiada', 'Mensaje de invitación copiado al portapapeles.', 'success');
   });
 
+  // Copiar comando de migración de Firebase
+  $('btn-copy-migrate-cmd')?.addEventListener('click', () => {
+    copyToClipboard('npm run migrate:firebase');
+    showToast('Comando copiado', 'npm run migrate:firebase copiado al portapapeles.', 'success');
+  });
+
   // Gamification Migration
   $('btn-migrate-xp')?.addEventListener('click', async () => {
     try {

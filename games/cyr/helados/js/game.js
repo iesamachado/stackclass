@@ -49,7 +49,12 @@ requireGameAccess('helados', {
     }
 });
 
+let isGameInitialized = false;
+
 function initGame() {
+    if (isGameInitialized) return;
+    isGameInitialized = true;
+
     startBtn?.addEventListener('click', startGame);
     restartBtn?.addEventListener('click', startGame);
     clearBtn?.addEventListener('click', () => {
@@ -65,13 +70,63 @@ function initGame() {
         loadLevel(generateRandomLevel());
     });
     flavorBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
             if (!isPlaying) return;
-            addScoop(parseInt(btn.getAttribute('data-flavor')));
+            e.preventDefault();
+            addScoop(parseInt(btn.getAttribute('data-flavor'), 10));
         });
     });
+    window.addEventListener('keydown', handleKeyDown);
     const menuBtn = document.getElementById('menu-btn');
     menuBtn?.addEventListener('click', () => { window.location.href = '../../../index.html'; });
+}
+
+function handleKeyDown(e) {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+    let flavor = null;
+    if (e.key >= '1' && e.key <= '6') {
+        flavor = parseInt(e.key, 10);
+    } else if (e.code && /^Numpad[1-6]$/.test(e.code)) {
+        flavor = parseInt(e.code.replace('Numpad', ''), 10);
+    }
+
+    if (flavor !== null) {
+        if (!isPlaying) return;
+        e.preventDefault();
+        addScoop(flavor);
+
+        const btn = document.querySelector(`.flavor-btn[data-flavor="${flavor}"]`);
+        if (btn) {
+            btn.classList.add('active');
+            setTimeout(() => btn.classList.remove('active'), 120);
+        }
+        return;
+    }
+
+    if (isPlaying) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleVerify();
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+            e.preventDefault();
+            playerStack = [];
+            domStack.innerHTML = '';
+        }
+    } else {
+        if (e.key === 'Enter' || e.key === ' ') {
+            if (startScreen && !startScreen.classList.contains('hidden')) {
+                e.preventDefault();
+                startGame();
+            } else if (solutionScreen && !solutionScreen.classList.contains('hidden')) {
+                e.preventDefault();
+                nextLevelBtn?.click();
+            } else if (gameOverScreen && !gameOverScreen.classList.contains('hidden')) {
+                e.preventDefault();
+                startGame();
+            }
+        }
+    }
 }
 
 function startGame() {
@@ -262,9 +317,19 @@ function parseOperation(op, A) {
 
 
 
+let lastScoopTime = 0;
+let lastScoopFlavor = null;
+
 function addScoop(flavor) {
-    const currentIndex = playerStack.length;
-    
+    if (!isPlaying) return;
+    const now = performance.now();
+    // Prevenir duplicados accidentales (< 100ms para el mismo sabor, < 30ms para cualquiera)
+    if ((now - lastScoopTime < 100 && lastScoopFlavor === flavor) || (now - lastScoopTime < 30)) {
+        return;
+    }
+    lastScoopTime = now;
+    lastScoopFlavor = flavor;
+
     const scoopEl = document.createElement('div');
     scoopEl.className = `scoop flavor-${flavor}`;
     

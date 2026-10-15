@@ -11,6 +11,13 @@ import { renderHeader, showToast, showLoading, hideLoading, renderPodium, render
 import { GAMES, TOPICS, COURSES, $, $$, escapeHtml, formatDate, getUrlParams, copyToClipboard } from './common/utils.js';
 import { getGuildsForSubject, getMedalsForSubject, MEDAL_XP, getLeague } from './common/gamification.js';
 import { collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp, db } from './common/firebase-config.js';
+import {
+  getCurriculumCriteria,
+  getCurriculumActivities,
+  getEffectiveCriteriaMapping,
+  hasCustomMapping,
+  exportCurriculumMatrixCSV
+} from './common/curriculum-matrix.js';
 
 let classData = null;
 let members   = [];
@@ -102,6 +109,7 @@ function initPage(user, profile) {
       if (tab === 'guilds')      await loadGuildsTab();
       if (tab === 'exams')       await loadExamsTab();
       if (tab === 'offline_tasks') await loadOfflineTasksTab();
+      if (tab === 'curriculum_matrix') await loadCurriculumMatrixTab();
       if (tab === 'results') {
           await loadResultsTab();
           rankingInterval = setInterval(() => {
@@ -2138,3 +2146,358 @@ if ($('btn-close-edit-task')) {
     }
   });
 }
+
+// ══════════════════════════════════════════════════════════════
+//  TAB: MATRIZ DE CRITERIOS (PROGRAMACIÓN DIDÁCTICA)
+// ══════════════════════════════════════════════════════════════
+
+let matrixWorkingMapping = null;
+let matrixAutoSaveTimeout = null;
+
+async function loadCurriculumMatrixTab() {
+  const container = $('curriculum-matrix-table-container');
+  if (!container || !classData) return;
+
+  const classSubject = classData.subject_id || classData.subjectId || 'cyr';
+  const classLevel = classSubject === 'tic2'
+    ? '2'
+    : ((classData.level && classData.level.includes('2')) ? '2' : (classData.level && classData.level.includes('3')) ? '3' : '1');
+
+  // Inicializar mapping de trabajo a partir de la clase (o vacío para usar genérico)
+  if (!matrixWorkingMapping) {
+    const rawMapping = classData.criteriaMapping || classData.criteria_mapping || {};
+    matrixWorkingMapping = JSON.parse(JSON.stringify(rawMapping));
+  }
+
+  const allCriteria = getCurriculumCriteria(classSubject, classLevel);
+  const allActivities = getCurriculumActivities(classSubject, classLevel);
+
+  // Poblar selector de bloques si está vacío
+  const blockSelect = $('matrix-filter-block');
+  if (blockSelect && blockSelect.options.length <= 1) {
+    const blocks = Array.from(new Set(allCriteria.map(c => c.block).filter(Boolean))).sort();
+    blocks.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b;
+      opt.textContent = b;
+      blockSelect.appendChild(opt);
+    });
+  }
+
+  updateMatrixStatusBadge();
+
+  function updateMatrixStatusBadge() {
+    const badge = $('matrix-status-badge');
+    if (!badge) return;
+    const isCustom = hasCustomMapping({ criteriaMapping: matrixWorkingMapping });
+    if (isCustom) {
+      badge.textContent = '🟡 Programación Personalizada (Aula)';
+      badge.style.background = '#fef3c7';
+      badge.style.color = '#92400e';
+    } else {
+      badge.textContent = '🟢 Programación Genérica (LOMLOE)';
+      badge.style.background = '#d1fae5';
+      badge.style.color = '#065f46';
+    }
+  }
+
+  function renderMatrix() {
+    const typeFilter = $('matrix-filter-type')?.value || 'all';
+    const blockFilter = $('matrix-filter-block')?.value || 'all';
+    const searchQuery = ($('matrix-search')?.value || '').trim().toLowerCase();
+
+    const effective = getEffectiveCriteriaMapping(classSubject, classLevel, matrixWorkingMapping);
+
+    // Filtrar actividades
+    let activities = allActivities.filter(a => {
+      if (typeFilter !== 'all' && a.type !== typeFilter) return false;
+      if (searchQuery) {
+        const matchesAct = a.name.toLowerCase().includes(searchQuery) || a.typeLabel.toLowerCase().includes(searchQuery);
+        const matchesCrit = allCriteria.some(c =>
+          (c.crit.toLowerCase().includes(searchQuery) || c.text.toLowerCase().includes(searchQuery)) &&
+          (effective[a.key] || []).includes(c.crit)
+        );
+        if (!matchesAct && !matchesCrit) return false;
+      }
+      return true;
+    });
+
+    // Filtrar criterios
+    let criteria = allCriteria.filter(c => {
+      if (blockFilter !== 'all' && c.block !== blockFilter) return false;
+      if (searchQuery) {
+        const matchesCrit = (c.crit || '').toLowerCase().includes(searchQuery) ||
+                            (c.text || '').toLowerCase().includes(searchQuery) ||
+                            (c.block || '').toLowerCase().includes(searchQuery);
+        const matchesLinkedAct = activities.some(a =>
+          a.name.toLowerCase().includes(searchQuery) && (effective[a.key] || []).includes(c.crit)
+        );
+        if (!matchesCrit && !matchesLinkedAct) return false;
+      }
+      return true;
+    });
+
+    if (criteria.length === 0 || activities.length === 0) {
+      container.innerHTML = `
+        <div style="padding:40px; text-align:center; color:var(--text-muted);">
+          <span style="font-size:2rem; display:block; margin-bottom:10px;">🔍</span>
+          No se encontraron criterios o actividades que coincidan con los filtros seleccionados.
+        </div>
+      `;
+      return;
+    }
+
+    // Recuentos
+    const actCounts = {};
+    activities.forEach(a => {
+      actCounts[a.key] = (effective[a.key] || []).length;
+    });
+
+    const critCounts = {};
+    criteria.forEach(c => {
+      critCounts[c.crit] = 0;
+      activities.forEach(a => {
+        if ((effective[a.key] || []).includes(c.crit)) {
+          critCounts[c.crit]++;
+        }
+      });
+    });
+
+    let html = `
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th class="matrix-corner-th" style="text-align:left;">
+              <div style="font-weight:700; color:var(--text-primary); font-size:0.9rem;">Criterio LOMLOE</div>
+              <div style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">${criteria.length} criterios · ${activities.length} actividades</div>
+            </th>
+            ${activities.map(a => {
+              const pillClass = a.type === 'game' ? 'pill-game' : a.type === 'test' ? 'pill-test' : 'pill-task';
+              return `
+                <th class="matrix-th-activity" title="${escapeHtml(a.name)}">
+                  <div class="activity-card-header">
+                    <span class="activity-type-pill ${pillClass}">${a.typeLabel}</span>
+                    <span style="font-size:1.3rem;">${a.icon}</span>
+                    <span style="font-weight:600; font-size:0.8rem; line-height:1.2; word-break:break-word; max-width:130px;">
+                      ${escapeHtml(a.name.length > 25 ? a.name.substring(0, 23) + '…' : a.name)}
+                    </span>
+                  </div>
+                </th>
+              `;
+            }).join('')}
+            <th class="matrix-corner-right-th">Total Act.</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    criteria.forEach(c => {
+      const critTotal = critCounts[c.crit] || 0;
+      html += `
+        <tr data-crit-row="${c.crit}">
+          <th class="matrix-col-crit" title="${escapeHtml(c.text)}">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+              <strong style="color:var(--primary); font-size:0.95rem;">CE ${c.crit}</strong>
+              <span class="badge" style="font-size:0.7rem; padding:2px 6px; background:#f1f5f9; color:#475569;">${escapeHtml(c.block)}</span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+              ${escapeHtml(c.text)}
+            </div>
+          </th>
+          ${activities.map(a => {
+            const assigned = (effective[a.key] || []).includes(c.crit);
+            return `
+              <td class="matrix-cell ${assigned ? 'cell-active' : ''}" data-act-key="${a.key}" data-crit="${c.crit}" title="Asignar CE ${c.crit} a ${escapeHtml(a.name)}">
+                <input type="checkbox" class="matrix-checkbox" data-act-key="${a.key}" data-crit="${c.crit}" ${assigned ? 'checked' : ''}>
+              </td>
+            `;
+          }).join('')}
+          <td class="matrix-col-total">
+            <span class="badge-count ${critTotal > 0 ? 'badge-count-1' : 'badge-count-0'}" id="row-count-${c.crit.replace(/\./g, '_')}">${critTotal}</span>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </tbody>
+        <tfoot>
+          <tr class="matrix-footer-tr">
+            <th class="matrix-footer-corner-left" style="text-align:left; padding:10px 12px;">
+              <div style="font-weight:700;">Criterios asignados</div>
+              <div style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">1 óptimo · >1 excepción</div>
+            </th>
+            ${activities.map(a => {
+              const count = actCounts[a.key] || 0;
+              const badgeClass = count === 1 ? 'badge-count-1' : count > 1 ? 'badge-count-multi' : 'badge-count-0';
+              const cleanId = a.key.replace(/[:.]/g, '_');
+              return `
+                <td style="padding:10px 8px;">
+                  <span class="badge-count ${badgeClass}" id="col-count-${cleanId}">${count}</span>
+                </td>
+              `;
+            }).join('')}
+            <td class="matrix-footer-corner-right" id="matrix-grand-total">
+              ${Object.values(critCounts).reduce((acc, cur) => acc + cur, 0)}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
+
+    container.innerHTML = html;
+    bindMatrixCellEvents(activities, criteria);
+  }
+
+  function bindMatrixCellEvents(activities, criteria) {
+    const cells = container.querySelectorAll('.matrix-cell');
+    cells.forEach(td => {
+      td.addEventListener('click', (e) => {
+        const checkbox = td.querySelector('input.matrix-checkbox');
+        if (e.target !== checkbox) {
+          checkbox.checked = !checkbox.checked;
+        }
+        handleToggle(checkbox.dataset.actKey, checkbox.dataset.crit, checkbox.checked, td, activities, criteria);
+      });
+    });
+  }
+
+  function handleToggle(actKey, critCode, isChecked, td, activities, criteria) {
+    if (td) {
+      if (isChecked) td.classList.add('cell-active');
+      else td.classList.remove('cell-active');
+    }
+
+    // Inicializar si aún no tiene sobreescritura
+    if (!matrixWorkingMapping[actKey]) {
+      const generic = getEffectiveCriteriaMapping(classSubject, classLevel, null);
+      matrixWorkingMapping[actKey] = [...(generic[actKey] || [])];
+    }
+
+    let list = matrixWorkingMapping[actKey] || [];
+    if (isChecked) {
+      if (!list.includes(critCode)) list.push(critCode);
+    } else {
+      list = list.filter(c => c !== critCode);
+    }
+    matrixWorkingMapping[actKey] = list;
+
+    // Actualizar recuento de columna
+    const colCountEl = $(`col-count-${actKey.replace(/[:.]/g, '_')}`);
+    if (colCountEl) {
+      const newCount = list.length;
+      colCountEl.textContent = newCount;
+      colCountEl.className = `badge-count ${newCount === 1 ? 'badge-count-1' : newCount > 1 ? 'badge-count-multi' : 'badge-count-0'}`;
+    }
+
+    // Actualizar recuento de fila
+    const effective = getEffectiveCriteriaMapping(classSubject, classLevel, matrixWorkingMapping);
+    const rowCountEl = $(`row-count-${critCode.replace(/\./g, '_')}`);
+    if (rowCountEl) {
+      let rCount = 0;
+      activities.forEach(a => {
+        if ((effective[a.key] || []).includes(critCode)) rCount++;
+      });
+      rowCountEl.textContent = rCount;
+      rowCountEl.className = `badge-count ${rCount > 0 ? 'badge-count-1' : 'badge-count-0'}`;
+    }
+
+    // Actualizar gran total
+    const grandTotalEl = $('matrix-grand-total');
+    if (grandTotalEl) {
+      let total = 0;
+      activities.forEach(a => {
+        total += (effective[a.key] || []).length;
+      });
+      grandTotalEl.textContent = total;
+    }
+
+    updateMatrixStatusBadge();
+
+    // Debounced auto-save
+    if (matrixAutoSaveTimeout) clearTimeout(matrixAutoSaveTimeout);
+    matrixAutoSaveTimeout = setTimeout(() => {
+      saveMatrixChanges(true);
+    }, 2500);
+  }
+
+  // Filtros
+  const filterType = $('matrix-filter-type');
+  if (filterType) filterType.onchange = () => renderMatrix();
+
+  const filterBlock = $('matrix-filter-block');
+  if (filterBlock) filterBlock.onchange = () => renderMatrix();
+
+  const searchInput = $('matrix-search');
+  if (searchInput) searchInput.oninput = () => renderMatrix();
+
+  // Guardar manual
+  const saveBtn = $('btn-save-matrix');
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      await saveMatrixChanges(false);
+    };
+  }
+
+  // Reset a genérica
+  const resetBtn = $('btn-reset-matrix');
+  if (resetBtn) {
+    resetBtn.onclick = async () => {
+      if (!confirm('¿Restablecer la programación de esta clase a los valores genéricos de la normativa? Se descartarán las modificaciones personalizadas de este aula.')) {
+        return;
+      }
+      try {
+        showLoading();
+        matrixWorkingMapping = {};
+        await updateClass(classData.id, { criteriaMapping: {} });
+        classData.criteriaMapping = {};
+        hideLoading();
+        showToast('Restablecido', 'Programación restablecida a la genérica LOMLOE', 'success');
+        updateMatrixStatusBadge();
+        renderMatrix();
+      } catch (err) {
+        hideLoading();
+        showToast('Error', err.message, 'error');
+      }
+    };
+  }
+
+  // Exportar CSV
+  const exportBtn = $('btn-export-matrix-csv');
+  if (exportBtn) {
+    exportBtn.onclick = () => {
+      const effective = getEffectiveCriteriaMapping(classSubject, classLevel, matrixWorkingMapping);
+      const csv = exportCurriculumMatrixCSV(classSubject, classLevel, effective);
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `matriz_criterios_${classSubject}_${classData.name.replace(/\s+/g, '_')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+  }
+
+  async function saveMatrixChanges(isAutoSave = false) {
+    try {
+      if (matrixAutoSaveTimeout) clearTimeout(matrixAutoSaveTimeout);
+      if (!isAutoSave) showLoading();
+      await updateClass(classData.id, { criteriaMapping: matrixWorkingMapping });
+      classData.criteriaMapping = { ...matrixWorkingMapping };
+      if (!isAutoSave) {
+        hideLoading();
+        showToast('Guardado', 'Matriz de criterios guardada correctamente', 'success');
+      } else {
+        showToast('Auto-guardado', 'Cambios guardados en la nube', 'info');
+      }
+      updateMatrixStatusBadge();
+    } catch (err) {
+      if (!isAutoSave) hideLoading();
+      showToast('Error', err.message, 'error');
+    }
+  }
+
+  renderMatrix();
+}
+

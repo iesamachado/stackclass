@@ -1,7 +1,13 @@
-import { CYR_EVALUATION_DATA, TIC2_EVALUATION_DATA, EVALUATION_DATA, COURSES, $, escapeHtml, getUrlParams } from './common/utils.js';
+import { CYR_EVALUATION_DATA, TIC2_EVALUATION_DATA, EVALUATION_DATA, COURSES, GAMES, TOPICS, $, escapeHtml, getUrlParams } from './common/utils.js';
 import { CLASSROOM_TASKS } from './common/tasks.js';
 import { renderHeader } from './common/ui.js';
 import { requireAuth } from './common/auth.js';
+import {
+  getCurriculumCriteria,
+  getCurriculumActivities,
+  getEffectiveCriteriaMapping,
+  exportCurriculumMatrixCSV
+} from './common/curriculum-matrix.js';
 
 let currentSubject = 'cyr';
 let currentMode = 'criterion';
@@ -161,10 +167,20 @@ function initEvaluationPage() {
     });
   }
 
+  if (params.mode && ['criterion', 'block', 'task', 'matrix'].includes(params.mode)) {
+    currentMode = params.mode;
+    if (viewMode) viewMode.value = currentMode;
+    if (currentMode === 'matrix' || currentMode === 'criterion') {
+      courseContainer.style.display = 'block';
+    } else {
+      courseContainer.style.display = 'none';
+    }
+  }
+
   if (viewMode) {
     viewMode.addEventListener('change', () => {
       currentMode = viewMode.value;
-      if (currentMode === 'criterion') {
+      if (currentMode === 'criterion' || currentMode === 'matrix') {
         courseContainer.style.display = 'block';
       } else {
         courseContainer.style.display = 'none';
@@ -184,6 +200,8 @@ function renderView() {
     renderByBlock();
   } else if (currentMode === 'task') {
     renderByTask();
+  } else if (currentMode === 'matrix') {
+    renderByMatrix(currentLevel);
   }
   bindTaskClicks();
 }
@@ -373,3 +391,124 @@ function showTaskDetail(taskId) {
     });
   });
 }
+
+function renderByMatrix(level) {
+  const criteria = getCurriculumCriteria(currentSubject, level);
+  const activities = getCurriculumActivities(currentSubject, level);
+  const effective = getEffectiveCriteriaMapping(currentSubject, level, null);
+
+  $('eval-thead').innerHTML = `
+    <tr>
+      <th style="min-width:240px; position:sticky; left:0; background:var(--bg-body); z-index:5;">
+        Criterio LOMLOE (${criteria.length})
+      </th>
+      ${activities.map(a => `
+        <th style="min-width:105px; text-align:center; padding:10px 6px;" title="${escapeHtml(a.name)}">
+          <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">${a.typeLabel}</div>
+          <div style="font-size:1.2rem;">${a.icon}</div>
+          <div style="font-size:0.75rem; font-weight:600; line-height:1.2;">
+            ${escapeHtml(a.name.length > 20 ? a.name.substring(0, 18) + '…' : a.name)}
+          </div>
+        </th>
+      `).join('')}
+      <th style="min-width:60px; text-align:center;">Total</th>
+    </tr>
+  `;
+
+  let html = '';
+  criteria.forEach(c => {
+    let rowCount = 0;
+    const cells = activities.map(a => {
+      const assigned = (effective[a.key] || []).includes(c.crit);
+      if (assigned) rowCount++;
+      return `
+        <td style="text-align:center; padding:8px; cursor:pointer;" class="btn-matrix-cell" data-act-key="${a.key}" data-act-type="${a.type}" data-act-id="${a.id}" data-crit="${c.crit}" title="${escapeHtml(a.name)}: CE ${c.crit}">
+          ${assigned ? '<span class="badge" style="font-size:0.8rem; font-weight:bold; background:#dcfce7; color:#15803d; border-radius:999px; padding:2px 8px;">✓</span>' : '<span style="color:var(--text-muted); opacity:0.3;">-</span>'}
+        </td>
+      `;
+    }).join('');
+
+    html += `
+      <tr>
+        <td style="position:sticky; left:0; background:var(--bg-surface); z-index:4; border-right:2px solid var(--border);" title="${escapeHtml(c.text)}">
+          <div style="font-weight:bold; color:var(--primary);">CE ${c.crit} <span class="badge" style="font-size:0.7rem; margin-left:5px;">${escapeHtml(c.block)}</span></div>
+          <div style="font-size:0.8rem; color:var(--text-secondary); line-height:1.3; margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtml(c.text)}</div>
+        </td>
+        ${cells}
+        <td style="text-align:center; font-weight:bold;">
+          <span class="badge" style="background:${rowCount > 0 ? '#e0e7ff' : '#fee2e2'}; color:${rowCount > 0 ? '#3730a3' : '#991b1b'};">${rowCount}</span>
+        </td>
+      </tr>
+    `;
+  });
+
+  // Footer con recuentos por actividad
+  html += `
+    <tr style="background:var(--bg-body); font-weight:bold; border-top:2px solid var(--border);">
+      <td style="position:sticky; left:0; background:var(--bg-body); z-index:5; padding:10px 12px;">Criterios por actividad:</td>
+      ${activities.map(a => {
+        const count = (effective[a.key] || []).length;
+        const color = count === 1 ? '#15803d' : count > 1 ? '#b45309' : '#b91c1c';
+        const bg = count === 1 ? '#dcfce7' : count > 1 ? '#fef3c7' : '#fee2e2';
+        return `
+          <td style="text-align:center; padding:8px;">
+            <span class="badge" style="background:${bg}; color:${color}; font-size:0.8rem; font-weight:700; border-radius:999px; padding:2px 8px;">${count}</span>
+          </td>
+        `;
+      }).join('')}
+      <td style="text-align:center;">-</td>
+    </tr>
+  `;
+
+  $('eval-tbody').innerHTML = html;
+
+  // Clicks en celdas de la matriz para ver detalle en el panel lateral
+  document.querySelectorAll('.btn-matrix-cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const actType = cell.dataset.actType;
+      const actId = cell.dataset.actId;
+      const crit = cell.dataset.crit;
+      if (actType === 'task') {
+        showTaskDetail(actId);
+      } else {
+        showActivityDetail(actType, actId, crit, effective);
+      }
+    });
+  });
+}
+
+function showActivityDetail(type, id, critCode, effective) {
+  const panel = $('task-detail-panel');
+  if (!panel) return;
+
+  if (type === 'game') {
+    const game = GAMES[id];
+    const assigned = effective[`game:${id}`] || [];
+    panel.innerHTML = `
+      <div style="margin-bottom:15px;">
+        <span class="badge" style="text-transform:uppercase; background:#ede9fe; color:#6d28d9; font-weight:700;">Minijuego</span>
+        <h3 style="margin:5px 0 0; color:var(--text-primary); font-size:1.5rem;">${game ? game.icon : '🎮'} ${game ? escapeHtml(game.name) : id}</h3>
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
+        <span class="badge badge--primary">Criterios asignados: ${assigned.join(', ') || 'Ninguno'}</span>
+      </div>
+      <p style="color:var(--text-secondary); margin-bottom:10px; font-weight:600;">Descripción del juego:</p>
+      <div class="task-desc">${game ? escapeHtml(game.description || '') : 'Sin descripción'}</div>
+    `;
+  } else if (type === 'test') {
+    const topic = TOPICS[id];
+    const assigned = effective[`test:${id}`] || [];
+    panel.innerHTML = `
+      <div style="margin-bottom:15px;">
+        <span class="badge" style="text-transform:uppercase; background:#dbeafe; color:#1e40af; font-weight:700;">Test de Repaso</span>
+        <h3 style="margin:5px 0 0; color:var(--text-primary); font-size:1.5rem;">${topic ? topic.icon : '📖'} ${topic ? escapeHtml(topic.name) : id}</h3>
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
+        <span class="badge badge--accent">Criterios asignados: ${assigned.join(', ') || 'Ninguno'}</span>
+      </div>
+      <p style="color:var(--text-secondary); margin-bottom:10px; font-weight:600;">Temario:</p>
+      <div class="task-desc">Test teórico de preguntas tipo test vinculadas al temario de la materia. Evalúa comprensión conceptual de los contenidos del bloque.</div>
+    `;
+  }
+}
+

@@ -244,8 +244,15 @@ async function ensureProfile(user) {
 //  Uso: requireAuth({ allowedRoles: ['student'], onAuthorized: async (user, profile) => {} })
 // ──────────────────────────────────────────────────────────────────────
 export function requireAuth({ allowedRoles = null, onAuthorized, onUnauthorized } = {}) {
+  let isAuthorized = false;
+  let isAuthorizing = false;
+  let authorizedUserId = null;
+
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (!session) {
+      isAuthorized = false;
+      isAuthorizing = false;
+      authorizedUserId = null;
       window.location.href = 'index.html';
       return;
     }
@@ -256,6 +263,17 @@ export function requireAuth({ allowedRoles = null, onAuthorized, onUnauthorized 
     }
 
     const user = session.user;
+
+    // Evitar ejecuciones duplicadas de onAuthorized provocadas por eventos sucesivos de Supabase
+    // (p. ej. INITIAL_SESSION seguido inmediatamente de SIGNED_IN o TOKEN_REFRESHED)
+    if ((isAuthorized && authorizedUserId === user.id) || (isAuthorizing && authorizedUserId === user.id)) {
+      currentUser = user;
+      return;
+    }
+
+    isAuthorizing = true;
+    authorizedUserId = user.id;
+
     try {
       const profile = await ensureProfile(user);
       currentUser    = user;
@@ -269,9 +287,14 @@ export function requireAuth({ allowedRoles = null, onAuthorized, onUnauthorized 
         return;
       }
 
+      isAuthorized = true;
+      isAuthorizing = false;
+
       if (onAuthorized) await onAuthorized(user, profile);
 
     } catch (err) {
+      isAuthorizing = false;
+      authorizedUserId = null;
       if (err.message === 'NOT_AUTHORIZED') {
         window.location.href = 'index.html?error=not_authorized';
       } else {
@@ -287,10 +310,16 @@ export function requireAuth({ allowedRoles = null, onAuthorized, onUnauthorized 
 //  Comprueba que el alumno tiene la clase con ese juego habilitado.
 // ──────────────────────────────────────────────────────────────────────
 export function requireGameAccess(gameId, { onGranted, onDenied } = {}) {
+  let isGranted = false;
+  let isChecking = false;
   requireAuth({
     allowedRoles: ['student', 'teacher'],
     onAuthorized: async (user, profile) => {
+      if (isGranted || isChecking) return;
+      isChecking = true;
+
       if (profile.role !== 'student') {
+        isGranted = true;
         if (onGranted) await onGranted(user, profile, null);
         return;
       }
@@ -316,6 +345,7 @@ export function requireGameAccess(gameId, { onGranted, onDenied } = {}) {
       );
 
       if (accessClass) {
+        isGranted = true;
         if (onGranted) await onGranted(user, profile, accessClass);
       } else {
         if (onDenied) {

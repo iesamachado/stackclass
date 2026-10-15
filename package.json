@@ -1,0 +1,10 @@
+{
+  "name": "stackclass",
+  "version": "1.0.0",
+  "description": "StackClass — Plataforma educativa unificada de computación y programación",
+  "private": true,
+  "scripts": {
+    "migrate:firebase": "node scripts/migrate_firebase.js",
+    "migrate:dry-run": "node scripts/migrate_firebase.js --dry-run"
+  }
+}

@@ -62,29 +62,29 @@
 
                 <!-- Botones de Sabores -->
                 <div class="controls-grid" id="flavor-controls">
-                    <button class="flavor-btn" data-flavor="1" style="--btn-color: var(--c-choc); color: white;">
+                    <button type="button" class="flavor-btn" data-flavor="1" style="--btn-color: var(--c-choc); color: white;">
                         <span class="btn-num">1</span> Chocolate
                     </button>
-                    <button class="flavor-btn" data-flavor="2" style="--btn-color: var(--c-fresa); color: var(--text-primary);">
+                    <button type="button" class="flavor-btn" data-flavor="2" style="--btn-color: var(--c-fresa); color: var(--text-primary);">
                         <span class="btn-num">2</span> Fresa
                     </button>
-                    <button class="flavor-btn" data-flavor="3" style="--btn-color: var(--c-naranja); color: var(--text-primary);">
+                    <button type="button" class="flavor-btn" data-flavor="3" style="--btn-color: var(--c-naranja); color: var(--text-primary);">
                         <span class="btn-num">3</span> Naranja
                     </button>
-                    <button class="flavor-btn" data-flavor="4" style="--btn-color: var(--c-vaini); color: var(--text-primary);">
+                    <button type="button" class="flavor-btn" data-flavor="4" style="--btn-color: var(--c-vaini); color: var(--text-primary);">
                         <span class="btn-num">4</span> Vainilla
                     </button>
-                    <button class="flavor-btn" data-flavor="5" style="--btn-color: var(--c-menta); color: var(--text-primary);">
+                    <button type="button" class="flavor-btn" data-flavor="5" style="--btn-color: var(--c-menta); color: var(--text-primary);">
                         <span class="btn-num">5</span> Menta
                     </button>
-                    <button class="flavor-btn" data-flavor="6" style="--btn-color: var(--c-strac); color: var(--text-primary);">
+                    <button type="button" class="flavor-btn" data-flavor="6" style="--btn-color: var(--c-strac); color: var(--text-primary);">
                         <span class="btn-num">6</span> Straccia
                     </button>
                 </div>
                 
                 <div class="action-controls">
-                    <button id="clear-btn" class="secondary-btn">LIMPIAR</button>
-                    <button id="verify-btn" class="primary-btn">VERIFICAR</button>
+                    <button type="button" id="clear-btn" class="secondary-btn">LIMPIAR</button>
+                    <button type="button" id="verify-btn" class="primary-btn">VERIFICAR</button>
                 </div>
                 <div id="mistakes-counter" class="mistakes-label">Fallos: 0/3</div>
             </section>
@@ -100,17 +100,18 @@
                     <li>✅ <b>+10 puntos</b> por cada bola, y <b>+3 segundos</b> extra al completar.</li>
                     <li>❌ <b>-5 puntos</b> y <b>-3 segundos</b> por cada fallo al verificar.</li>
                     <li>💡 Al 3º fallo se muestra la solución y avanzas.</li>
+                    <li>⌨️ <b>Teclado:</b> Pulsa <b>1 - 6</b> para añadir sabor, <b>Enter</b> para verificar y <b>Borrar</b> para limpiar.</li>
                 </ul>
             </div>
-            <button id="start-btn" class="action-btn">EMPEZAR</button>
+            <button type="button" id="start-btn" class="action-btn">EMPEZAR</button>
         </div>
         
         <div id="game-over-screen" class="overlay hidden">
             <h1>¡TIEMPO!</h1>
             <p>Puntuación Final: <span id="final-score">0</span></p>
             <div style="display: flex; gap: 15px; margin-top: 20px;">
-                <button id="restart-btn" class="action-btn">JUGAR OTRA VEZ</button>
-                <button id="menu-btn" class="secondary-btn" style="padding: 10px 20px; font-size: 1.2rem;">MENÚ</button>
+                <button type="button" id="restart-btn" class="action-btn">JUGAR OTRA VEZ</button>
+                <button type="button" id="menu-btn" class="secondary-btn" style="padding: 10px 20px; font-size: 1.2rem;">MENÚ</button>
             </div>
         </div>
         
@@ -120,7 +121,7 @@
             <div id="solution-stack" class="solution-preview">
                 <!-- Solución generada aquí -->
             </div>
-            <button id="next-level-btn" class="action-btn">CONTINUAR</button>
+            <button type="button" id="next-level-btn" class="action-btn">CONTINUAR</button>
         </div>
     </div>
 

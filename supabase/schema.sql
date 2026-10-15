@@ -80,9 +80,11 @@ CREATE TABLE IF NOT EXISTS classes (
   subject_id TEXT NOT NULL REFERENCES subjects(id),
   name TEXT NOT NULL, level TEXT, pin TEXT UNIQUE,
   enabled_games TEXT[] DEFAULT '{}', enabled_topics TEXT[] DEFAULT '{}',
+  criteria_mapping JSONB DEFAULT '{}',
   classroom_id TEXT, active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS criteria_mapping JSONB DEFAULT '{}';
 CREATE TRIGGER classes_updated_at BEFORE UPDATE ON classes FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- 7. MEMBRESÍAS

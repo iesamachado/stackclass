@@ -366,6 +366,12 @@ export async function getClass(classId) {
     teacherId: data.teacher_id,
     enabledGames: data.enabled_games || [],
     enabledTopics: data.enabled_topics || [],
+    criteriaMapping: data.criteria_mapping || (() => {
+      try {
+        const cached = localStorage.getItem(`class_criteria_mapping_${classId}`);
+        return cached ? JSON.parse(cached) : {};
+      } catch (_) { return {}; }
+    })(),
     classroomCourseId: data.classroom_id,
     members: (data.class_members || []).map(m => m.student_id)
   };
@@ -388,6 +394,7 @@ export async function getTeacherClasses(teacherId) {
     teacherId: cls.teacher_id,
     enabledGames: cls.enabled_games || [],
     enabledTopics: cls.enabled_topics || [],
+    criteriaMapping: cls.criteria_mapping || {},
     classroomCourseId: cls.classroom_id,
     members: (cls.class_members || []).map(m => m.student_id)
   }));
@@ -407,6 +414,10 @@ export async function updateClass(classId, updates) {
     formatted.enabled_topics = formatted.enabledTopics;
     delete formatted.enabledTopics;
   }
+  if ('criteriaMapping' in formatted) {
+    formatted.criteria_mapping = formatted.criteriaMapping;
+    delete formatted.criteriaMapping;
+  }
   if ('classroomCourseId' in formatted) {
     formatted.classroom_id = formatted.classroomCourseId;
     delete formatted.classroomCourseId;
@@ -414,9 +425,33 @@ export async function updateClass(classId, updates) {
   delete formatted.members;
   delete formatted.class_members;
 
-  const { error } = await supabase
-    .from('classes').update(formatted).eq('id', classId);
-  if (error) throw error;
+  // Persist locally as fallback/cache if criteria_mapping is present
+  if (formatted.criteria_mapping !== undefined) {
+    try {
+      if (formatted.criteria_mapping && Object.keys(formatted.criteria_mapping).length > 0) {
+        localStorage.setItem(`class_criteria_mapping_${classId}`, JSON.stringify(formatted.criteria_mapping));
+      } else {
+        localStorage.removeItem(`class_criteria_mapping_${classId}`);
+      }
+    } catch (_) {}
+  }
+
+  try {
+    const { error } = await supabase
+      .from('classes').update(formatted).eq('id', classId);
+    if (error) {
+      if (formatted.criteria_mapping && error.message && error.message.includes('criteria_mapping')) {
+        console.warn('criteria_mapping column not found in Supabase classes table yet. Stored in localStorage fallback.');
+        delete formatted.criteria_mapping;
+        const { error: errRetry } = await supabase.from('classes').update(formatted).eq('id', classId);
+        if (errRetry) throw errRetry;
+        return;
+      }
+      throw error;
+    }
+  } catch (err) {
+    throw err;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════

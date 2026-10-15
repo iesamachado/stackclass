@@ -251,3 +251,205 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* ── Matriz de Criterios (Programación Didáctica) ───────────── */
+
+.matrix-table-wrapper {
+  max-height: 72vh;
+  overflow: auto;
+  position: relative;
+  background: var(--bg-surface);
+}
+
+.matrix-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+/* Filas y columnas sticky */
+.matrix-col-crit {
+  position: sticky;
+  left: 0;
+  z-index: 8;
+  background: var(--bg-surface);
+  text-align: left !important;
+  width: 280px;
+  min-width: 260px;
+  max-width: 340px;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.04);
+}
+
+.matrix-corner-th {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  background: var(--bg-body);
+  border-bottom: 2px solid var(--border);
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.06);
+}
+
+.matrix-th-activity {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-body);
+  border-bottom: 2px solid var(--border);
+  vertical-align: bottom;
+  padding: 10px 8px;
+  min-width: 110px;
+  max-width: 150px;
+}
+
+.matrix-col-total {
+  position: sticky;
+  right: 0;
+  z-index: 8;
+  background: var(--bg-body);
+  border-left: 2px solid var(--border);
+  font-weight: 600;
+  min-width: 70px;
+}
+
+.matrix-corner-right-th {
+  position: sticky;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--bg-body);
+  border-bottom: 2px solid var(--border);
+  border-left: 2px solid var(--border);
+}
+
+.matrix-footer-tr td,
+.matrix-footer-tr th {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: var(--bg-body);
+  border-top: 2px solid var(--border);
+  font-weight: 600;
+}
+
+.matrix-footer-corner-left {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  background: var(--bg-body);
+  border-top: 2px solid var(--border);
+}
+
+.matrix-footer-corner-right {
+  position: sticky;
+  bottom: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--bg-body);
+  border-top: 2px solid var(--border);
+  border-left: 2px solid var(--border);
+}
+
+/* Celdas interactivas */
+.matrix-cell {
+  transition: background 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+}
+.matrix-cell:hover {
+  background: rgba(99, 102, 241, 0.08);
+}
+.matrix-cell.cell-active {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.matrix-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-hover, #94a3b8);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  vertical-align: middle;
+  position: relative;
+  background: var(--bg-surface);
+  transition: all 0.15s ease;
+}
+.matrix-checkbox:checked {
+  background: #10b981;
+  border-color: #059669;
+}
+.matrix-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+  left: 2px;
+  top: -2px;
+}
+.matrix-checkbox:hover {
+  transform: scale(1.15);
+  border-color: var(--primary);
+}
+
+/* Badges de recuento */
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.badge-count-1 {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.badge-count-multi {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.badge-count-0 {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Indicador de actividad */
+.activity-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.activity-type-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.pill-game { background: #ede9fe; color: #6d28d9; }
+.pill-test { background: #dbeafe; color: #1e40af; }
+.pill-task { background: #e0f2fe; color: #0369a1; }
+
+
