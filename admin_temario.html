@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="StackClass — Editor Visual de Bloques Temáticos y Contenidos de Asignaturas.">
+  <title>StackClass — Editor de Temario</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+
+  <link rel="stylesheet" href="css/common/design-system.css">
+  <link rel="stylesheet" href="css/common/reset.css">
+  <link rel="stylesheet" href="css/common/layout.css">
+  <link rel="stylesheet" href="css/common/components.css">
+  <link rel="stylesheet" href="css/temario.css">
+  <link rel="stylesheet" href="css/admin_temario.css">
+</head>
+<body class="page">
+
+  <!-- Header dinámico -->
+  <div id="app-header"></div>
+
+  <!-- Barra superior de control y selección de temas -->
+  <div class="editor-topbar">
+    <div class="editor-topbar-left">
+      <a href="admin.html" class="btn btn-outline" style="text-decoration:none; padding: 6px 12px; font-size: var(--text-xs);">
+        ← Volver a Admin
+      </a>
+
+      <div class="topic-select-group">
+        <label for="select-subject" style="font-size: var(--text-xs); font-weight: 800; text-transform: uppercase;">Materia:</label>
+        <select id="select-subject">
+          <option value="cyr" selected>🤖 Computación y Robótica (CyR)</option>
+          <option value="tic2">💻 TIC 2 (Bachillerato)</option>
+        </select>
+      </div>
+
+      <div class="topic-select-group">
+        <label for="select-topic" style="font-size: var(--text-xs); font-weight: 800; text-transform: uppercase;">Bloque / Tema:</label>
+        <select id="select-topic">
+          <!-- Opciones cargadas por JS -->
+        </select>
+      </div>
+
+      <span id="save-status-pill" class="status-pill status-pill--clean">🟢 Guardado</span>
+    </div>
+
+    <div class="editor-topbar-right">
+      <a id="btn-preview-topic" href="temario/index.html?topicId=block1&subjectId=cyr" target="_blank" class="btn btn-outline" style="text-decoration:none; display:flex; align-items:center; gap:6px;">
+        <span>👁️</span> Previsualizar en Temario
+      </a>
+      <button type="button" class="btn btn-primary" id="btn-save-topic" style="display:flex; align-items:center; gap:6px;">
+        <span>💾</span> Guardar Cambios
+      </button>
+    </div>
+  </div>
+
+  <main class="page-content" style="padding-top: var(--space-6);">
+    <div class="container" style="max-width: 1060px;">
+
+      <!-- Metadatos del Tema (Icono, Nombre y Resumen) -->
+      <section class="topic-meta-card animate-fade-up">
+        <div>
+          <label for="input-topic-icon">Icono</label>
+          <input type="text" id="input-topic-icon" value="🧩" style="text-align:center; font-size: 1.4rem;" maxlength="4">
+        </div>
+        <div>
+          <label for="input-topic-name">Título del Bloque / Tema</label>
+          <input type="text" id="input-topic-name" placeholder="Ej: Bloque 2: Programación">
+        </div>
+        <div>
+          <label for="input-topic-desc">Descripción corta / Subtítulo</label>
+          <input type="text" id="input-topic-desc" placeholder="Ej: Programación por bloques con Scratch">
+        </div>
+      </section>
+
+      <!-- Barra de herramientas flotante del editor (Toolbar WYSIWYG) -->
+      <div class="editor-toolbar animate-fade-up" id="editor-toolbar">
+        
+        <!-- Grupo 1: Formato de Bloque -->
+        <div class="toolbar-group">
+          <select id="tb-format" class="tb-select" title="Formato de párrafo o título">
+            <option value="p">Párrafo Normal</option>
+            <option value="h1">Título Principal (H1)</option>
+            <option value="h2">Sección (H2)</option>
+            <option value="h3">Subsección (H3)</option>
+          </select>
+        </div>
+
+        <!-- Grupo 2: Estilos Tipográficos -->
+        <div class="toolbar-group">
+          <button type="button" class="tb-btn" data-cmd="bold" title="Negrita (Ctrl+B)"><b>B</b></button>
+          <button type="button" class="tb-btn" data-cmd="italic" title="Cursiva (Ctrl+I)"><i>I</i></button>
+          <button type="button" class="tb-btn" data-cmd="underline" title="Subrayado (Ctrl+U)"><u>U</u></button>
+          <button type="button" class="tb-btn" data-cmd="strikeThrough" title="Tachado"><s>S</s></button>
+          <button type="button" class="tb-btn" id="tb-btn-code" title="Código en línea (<code>)">&lt;/&gt;</button>
+        </div>
+
+        <!-- Grupo 3: Estructura y Listas -->
+        <div class="toolbar-group">
+          <button type="button" class="tb-btn" data-cmd="insertUnorderedList" title="Lista con viñetas">• Lista</button>
+          <button type="button" class="tb-btn" data-cmd="insertOrderedList" title="Lista numerada">1. Lista</button>
+          <button type="button" class="tb-btn" id="tb-btn-quote" title="Cita en bloque">&ldquo; Cita</button>
+          <button type="button" class="tb-btn" data-cmd="insertHorizontalRule" title="Línea divisoria">―</button>
+        </div>
+
+        <!-- Grupo 4: Cajas y Componentes Didácticos de StackClass -->
+        <div class="toolbar-group">
+          <div class="tb-dropdown" id="dropdown-components">
+            <button type="button" class="tb-btn" id="btn-toggle-components" style="display:flex; align-items:center; gap:4px;">
+              <span>📦</span> Componentes Didácticos ▾
+            </button>
+            <div class="tb-dropdown-menu">
+              <button type="button" class="tb-dropdown-item" data-insert="info-box">
+                <span>ℹ️</span> Caja Informativa (.info-box)
+              </button>
+              <button type="button" class="tb-dropdown-item" data-insert="prompt-box">
+                <span>💡</span> Prompt IA Antigravity (.prompt-box)
+              </button>
+              <button type="button" class="tb-dropdown-item" data-insert="alert-warning">
+                <span>⚠️</span> Alerta de Advertencia (.alert-warning)
+              </button>
+              <button type="button" class="tb-dropdown-item" data-insert="defense-card">
+                <span>🛡️</span> Tarjeta de Defensa / Seguridad (.defense-card)
+              </button>
+              <button type="button" class="tb-dropdown-item" data-insert="threat-card">
+                <span>🛑</span> Tarjeta de Amenaza / Malware (.threat-card)
+              </button>
+              <button type="button" class="tb-dropdown-item" data-insert="sms-mockup">
+                <span>💬</span> Simulador SMS / Phishing (.sms-mockup)
+              </button>
+              <button type="button" class="tb-dropdown-item" data-insert="task-link">
+                <span>🎯</span> Enlace a Tarea Classroom (.task-link)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grupo 5: Inserciones de Medios -->
+        <div class="toolbar-group">
+          <button type="button" class="tb-btn" id="tb-btn-link" title="Insertar enlace">🔗 Enlace</button>
+          <button type="button" class="tb-btn" id="tb-btn-img" title="Insertar imagen de la plataforma o URL">🖼️ Imagen</button>
+          <button type="button" class="tb-btn" id="tb-btn-table" title="Insertar tabla">📊 Tabla</button>
+        </div>
+
+        <!-- Grupo 6: Herramientas y Modo Código -->
+        <div class="toolbar-group">
+          <button type="button" class="tb-btn" data-cmd="undo" title="Deshacer (Ctrl+Z)">↩️</button>
+          <button type="button" class="tb-btn" data-cmd="redo" title="Rehacer (Ctrl+Y)">↪️</button>
+          <button type="button" class="tb-btn" data-cmd="removeFormat" title="Limpiar formato">🧹</button>
+          <button type="button" class="tb-btn" id="tb-btn-toggle-html" title="Alternar entre modo visual y código HTML">
+            <span>💻</span> <span id="toggle-mode-text">Ver HTML</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Lienzo del Editor -->
+      <div class="editor-workspace animate-fade-up">
+        <!-- Modo Visual (WYSIWYG) con estilos reales del temario -->
+        <div id="editor-visual" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true">
+          <p>Cargando contenido del tema...</p>
+        </div>
+
+        <!-- Modo Código Fuente HTML (Oculto por defecto) -->
+        <textarea id="editor-html" spellcheck="false" placeholder="Código fuente HTML..."></textarea>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal: Selector de Imágenes de la Plataforma -->
+  <div class="img-modal-overlay" id="modal-image-picker" role="dialog" aria-modal="true" aria-labelledby="img-modal-title">
+    <div class="img-modal-container">
+      <div class="img-modal-header">
+        <h3 id="img-modal-title" style="margin:0;">🖼️ Insertar Imagen</h3>
+        <button type="button" class="btn btn-outline" id="btn-close-img-modal" style="padding: 4px 10px;">✕</button>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-bottom:15px;">
+        <button type="button" class="btn btn-outline is-active" id="tab-gallery-cyr">Imágenes CyR</button>
+        <button type="button" class="btn btn-outline" id="tab-gallery-tic2">Imágenes TIC2</button>
+        <button type="button" class="btn btn-outline" id="tab-gallery-custom">URL Externa</button>
+      </div>
+
+      <!-- Galería de imágenes existentes -->
+      <div id="gallery-container">
+        <p class="form-hint" style="margin-bottom:8px;">Haz clic en una imagen para seleccionarla:</p>
+        <div class="img-gallery-grid" id="img-gallery-grid">
+          <!-- Generado por JS -->
+        </div>
+      </div>
+
+      <!-- Campos de inserción -->
+      <div style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-weight:700; font-size:var(--text-xs); display:block; margin-bottom:4px;">Ruta / URL de la imagen:</label>
+          <input type="text" id="input-modal-img-src" placeholder="../img/cyr/img/ada_lovelace.jpg" style="width:100%; padding:8px 12px; font-family:var(--font-mono); font-size:var(--text-xs);">
+        </div>
+        <div>
+          <label style="font-weight:700; font-size:var(--text-xs); display:block; margin-bottom:4px;">Texto alternativo (Alt):</label>
+          <input type="text" id="input-modal-img-alt" placeholder="Descripción de la imagen para accesibilidad" style="width:100%; padding:8px 12px;">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+          <button type="button" class="btn btn-outline" id="btn-cancel-img">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-confirm-insert-img">Insertar Imagen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pie de página unificado -->
+  <footer class="app-footer" role="contentinfo">
+    <div class="app-footer-inner">
+      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" rel="license noopener noreferrer" class="footer-license-link" title="Licencia Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional">
+        <img src="img/cc-by-nc-sa.svg" alt="CC BY-NC-SA 4.0" class="cc-logo-svg" width="80" height="20">
+        <span>CC BY-NC-SA 4.0</span>
+      </a>
+      <span class="footer-sep" aria-hidden="true">·</span>
+      <a href="privacidad.html" class="footer-link">Privacidad y Condiciones de uso</a>
+    </div>
+  </footer>
+
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script type="module" src="js/admin_temario.js"></script>
+</body>
+</html>

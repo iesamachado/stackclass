@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30" aria-label="Attribution (BY)">
+  <circle cx="15" cy="15" r="13.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
+  <circle cx="15" cy="9.5" r="2.5" fill="currentColor"/>
+  <path d="M11.5 14h7c.7 0 1.2.5 1.2 1.2v5h-1.8V25h-2.3v-4.5h-1.2V25h-2.3v-4.8H10.3v-5c0-.7.5-1.2 1.2-1.2z" fill="currentColor"/>
+</svg>

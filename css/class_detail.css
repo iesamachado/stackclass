@@ -452,4 +452,202 @@
 .pill-test { background: #dbeafe; color: #1e40af; }
 .pill-task { background: #e0f2fe; color: #0369a1; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CUADERNO DOCENTE DE EVALUACIÓN LOMLOE
+════════════════════════════════════════════════════════════════════ */
+
+.gradebook-view-switcher {
+  display: inline-flex;
+  gap: 3px;
+  background: var(--bg-surface-2, #f1f5f9);
+  padding: 3px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border);
+}
+
+.gradebook-view-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.gradebook-view-btn:hover {
+  color: var(--text-primary);
+}
+
+.gradebook-view-btn--active {
+  background: #ffffff;
+  color: var(--primary, #4f46e5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.gradebook-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 68vh;
+  position: relative;
+  background: var(--bg-surface);
+}
+
+.gradebook-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.86rem;
+}
+
+.gradebook-table th,
+.gradebook-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.gradebook-table th {
+  background: #f8fafc;
+  color: var(--text-primary);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  text-align: center;
+}
+
+.gradebook-table th.gb-col-student {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  text-align: left;
+  min-width: 200px;
+  background: #f1f5f9;
+}
+
+.gradebook-table td.gb-col-student {
+  position: sticky;
+  left: 0;
+  z-index: 15;
+  background: var(--bg-surface);
+  text-align: left;
+  font-weight: 600;
+  border-right: 2px solid var(--border);
+}
+
+.gradebook-table th.gb-col-global,
+.gradebook-table td.gb-col-global {
+  background: #faf5ff;
+  border-left: 2px solid #e9d5ff;
+  font-weight: 800;
+  text-align: center;
+  min-width: 110px;
+}
+
+.gradebook-table tr:hover td {
+  background-color: #f8fafc;
+}
+
+.gradebook-table tr:hover td.gb-col-student {
+  background-color: #f1f5f9;
+}
+
+.gradebook-table tr:hover td.gb-col-global {
+  background-color: #f3e8ff;
+}
+
+/* Badges de Calificación LOMLOE */
+.gb-badge-grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 44px;
+}
+
+.gb-badge--sb { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.gb-badge--nt { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.gb-badge--bi { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.gb-badge--su { background: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
+.gb-badge--in { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.gb-badge--empty { color: var(--text-muted); font-size: 0.8rem; opacity: 0.5; }
+
+/* Ficha de Evolución */
+.comp-bar-item {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  transition: transform 0.15s ease;
+}
+.comp-bar-item:hover {
+  transform: translateY(-1px);
+  border-color: #cbd5e1;
+}
+
+.crit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: help;
+  transition: all 0.15s ease;
+}
+.crit-chip--passed {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.crit-chip--failed {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.crit-chip--pending {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* Print Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #tab-gradebook,
+  #tab-gradebook * {
+    visibility: visible;
+  }
+  #tab-gradebook {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block !important;
+  }
+  .section-actions,
+  .gradebook-view-switcher,
+  #btn-gradebook-export-csv,
+  #btn-gradebook-print,
+  .app-footer,
+  .dashboard-header,
+  .class-tabs {
+    display: none !important;
+  }
+  .gradebook-table-wrapper {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+
 

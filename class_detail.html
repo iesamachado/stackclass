@@ -43,8 +43,9 @@
       <div class="class-tabs animate-fade-up delay-1">
         <button class="tab-btn tab-btn--active" data-tab="games">📚 Temario y Juegos</button>
         <button class="tab-btn" data-tab="students">👨‍🎓 Alumnos</button>
-        <button class="tab-btn" data-tab="assignments">☁️ Classroom</button>
+        <button class="tab-btn" data-tab="assignments">🎮 Tareas Online (Juegos)</button>
         <button class="tab-btn" data-tab="offline_tasks">📝 Tareas Offline</button>
+        <button class="tab-btn" data-tab="gradebook">📒 Cuaderno Docente</button>
         <button class="tab-btn" data-tab="results">📊 Resultados</button>
         <button class="tab-btn" data-tab="guilds">🛡️ Gremios</button>
         <button class="tab-btn" data-tab="exams">📝 Exámenes</button>
@@ -120,13 +121,13 @@
       <section id="tab-assignments" class="tab-content" style="display:none">
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Tareas de Classroom</h2>
+            <h2 class="card-title">🎮 Tareas Online (Juegos)</h2>
             <button class="btn btn-primary btn--sm" id="btn-new-assignment">
-              + Nueva tarea
+              + Nueva tarea online
             </button>
           </div>
           <p class="form-hint" style="margin-bottom:var(--space-5)">
-            Crea tareas en Google Classroom vinculadas a cada juego. Las notas se sincronizan automáticamente.
+            Asigna retos y tareas vinculadas a los juegos educativos con evaluación automática de notas (y sincronización opcional con Google Classroom).
           </p>
           <div id="assignments-list">
             <p class="empty-state" id="no-assignments">Aún no hay tareas creadas para esta clase.</p>
@@ -323,6 +324,123 @@
         </div>
       </section>
 
+      <!-- TAB: CUADERNO DOCENTE (LOMLOE) -->
+      <section id="tab-gradebook" class="tab-content" style="display:none;">
+        <div class="section-header" style="flex-wrap:wrap; gap:15px; align-items:flex-start;">
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+              <h2 class="section-title" style="margin:0;">📒 Cuaderno Docente de Evaluación LOMLOE</h2>
+              <span id="gradebook-status-badge" class="badge" style="font-size:0.8rem; padding:4px 10px; border-radius:999px; background:#dcfce7; color:#15803d; font-weight:600;">
+                🟢 Evaluación Continua Activa
+              </span>
+            </div>
+            <p class="section-desc" style="margin:0;">
+              Seguimiento competencial de los alumnos: <strong>Criterios de evaluación</strong>, <strong>Competencias Específicas</strong> y <strong>Tareas</strong> con cálculo automático de <strong>Nota Global</strong>. Los juegos se evalúan únicamente si tienen una tarea asignada en la programación didáctica.
+            </p>
+          </div>
+          <div class="section-actions" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <!-- Selector de Modo de Vista -->
+            <div class="gradebook-view-switcher" style="display:inline-flex; background:var(--bg-surface); padding:3px; border-radius:8px; border:1px solid var(--border);">
+              <button type="button" class="btn btn-sm gradebook-view-btn gradebook-view-btn--active" data-view="competencies" id="gb-view-competencies" style="border-radius:6px; padding:6px 12px; font-size:0.85rem;">
+                📋 Competencias
+              </button>
+              <button type="button" class="btn btn-sm gradebook-view-btn" data-view="criteria" id="gb-view-criteria" style="border-radius:6px; padding:6px 12px; font-size:0.85rem;">
+                🎯 Criterios
+              </button>
+              <button type="button" class="btn btn-sm gradebook-view-btn" data-view="tasks" id="gb-view-tasks" style="border-radius:6px; padding:6px 12px; font-size:0.85rem;">
+                📝 Tareas
+              </button>
+            </div>
+            <button type="button" class="btn btn-outline" id="btn-gradebook-export-csv" title="Descargar cuaderno en formato CSV compatible con Séneca y hojas de cálculo">
+              📥 Exportar CSV
+            </button>
+            <button type="button" class="btn btn-ghost" id="btn-gradebook-print" title="Imprimir informe del cuaderno docente">
+              🖨️ Imprimir
+            </button>
+          </div>
+        </div>
+
+        <!-- Tarjetas KPI del Aula -->
+        <div class="gradebook-kpis-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:20px;">
+          <div class="card" style="padding:15px; display:flex; align-items:center; gap:12px; background:var(--bg-surface);">
+            <div style="font-size:2rem; width:45px; height:45px; display:flex; align-items:center; justify-content:center; background:#e0e7ff; border-radius:10px;">📊</div>
+            <div>
+              <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Nota Media de Clase</div>
+              <div style="display:flex; align-items:baseline; gap:6px;">
+                <span id="gb-stat-class-avg" style="font-size:1.4rem; font-weight:800; color:var(--text-primary);">—</span>
+                <span id="gb-stat-qualitative-badge" class="badge" style="font-size:0.7rem;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:15px; display:flex; align-items:center; gap:12px; background:var(--bg-surface);">
+            <div style="font-size:2rem; width:45px; height:45px; display:flex; align-items:center; justify-content:center; background:#dcfce7; border-radius:10px;">✅</div>
+            <div>
+              <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Tasa de Aprobados</div>
+              <div style="display:flex; align-items:baseline; gap:6px;">
+                <span id="gb-stat-pass-rate" style="font-size:1.4rem; font-weight:800; color:var(--success);">—%</span>
+                <small id="gb-stat-pass-count" style="color:var(--text-muted);">(0/0)</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:15px; display:flex; align-items:center; gap:12px; background:var(--bg-surface);">
+            <div style="font-size:2rem; width:45px; height:45px; display:flex; align-items:center; justify-content:center; background:#fef3c7; border-radius:10px;">⚠️</div>
+            <div>
+              <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Criterio a Reforzar</div>
+              <div id="gb-stat-reinforce" style="font-size:0.95rem; font-weight:700; color:#b45309; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">
+                Cargando...
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:15px; display:flex; align-items:center; gap:12px; background:var(--bg-surface);">
+            <div style="font-size:2rem; width:45px; height:45px; display:flex; align-items:center; justify-content:center; background:#f1f5f9; border-radius:10px;">📝</div>
+            <div>
+              <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Tareas en Programación</div>
+              <div style="display:flex; align-items:baseline; gap:6px;">
+                <span id="gb-stat-tasks-count" style="font-size:1.4rem; font-weight:800; color:var(--text-primary);">0</span>
+                <small style="color:var(--text-muted);">evaluables</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtros y Búsqueda -->
+        <div class="card" style="padding:12px 16px; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:15px; align-items:center; justify-content:space-between; background:var(--bg-surface);">
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input type="text" id="gradebook-search" placeholder="🔍 Filtrar alumno..." class="input" style="padding:6px 12px; font-size:0.85rem; width:220px;">
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <label for="gradebook-filter-status" style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">Estado:</label>
+              <select id="gradebook-filter-status" class="input" style="padding:6px 10px; font-size:0.85rem; width:auto;">
+                <option value="all">Todos los alumnos</option>
+                <option value="passed">✅ Aprobados (≥ 5.0)</option>
+                <option value="failed">⚠️ En riesgo (&lt; 5.0)</option>
+                <option value="pending">⏳ Sin calificar</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap;">
+            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981;"></span> Sobresaliente / Notable</span>
+            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#0284c7;"></span> Bien</span>
+            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#eab308;"></span> Suficiente</span>
+            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ef4444;"></span> Insuficiente</span>
+          </div>
+        </div>
+
+        <!-- Contenedor Tabla Cuaderno Docente -->
+        <div class="card" style="padding:0; overflow:hidden; border: 1px solid var(--border);">
+          <div class="gradebook-table-wrapper" id="gradebook-table-container">
+            <div style="text-align:center; padding:50px;">
+              <div class="spinner"></div>
+              <p style="margin-top:10px; color:var(--text-muted);">Calculando calificaciones y matriz competencial...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -343,7 +461,7 @@
        aria-modal="true" aria-labelledby="new-assignment-title">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 id="new-assignment-title">Nueva tarea en Classroom</h3>
+        <h3 id="new-assignment-title">Nueva tarea online (Juego)</h3>
         <button class="modal-close" id="close-new-assignment" aria-label="Cerrar">✕</button>
       </div>
       <div class="modal-body">
@@ -370,8 +488,8 @@
           </div>
           <div class="assignment-classroom-note" id="assignment-classroom-note" style="display:none">
             <div class="alert alert--warning">
-              <span>⚠️</span>
-              <div>Esta clase no tiene un curso de Classroom vinculado. La tarea solo se guardará en ClassHub.</div>
+              <span>ℹ️</span>
+              <div>Esta clase no tiene un curso de Google Classroom vinculado. La tarea online se guardará en StackClass y estará disponible para los alumnos.</div>
             </div>
           </div>
           <p id="assignment-error" class="form-error" aria-live="polite"></p>
@@ -549,6 +667,98 @@
             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ficha de Evolución Individual del Alumno -->
+  <div id="modal-student-evolution" class="modal-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width: 880px; width: 95%; max-height: 90vh; display:flex; flex-direction:column; padding:0;">
+      <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img id="m-evo-avatar" src="" alt="" style="width:46px; height:46px; border-radius:50%; border:2px solid var(--border); background:#eee;">
+          <div>
+            <h3 id="m-evo-name" style="margin:0; font-size:1.25rem;">Ficha del Alumno</h3>
+            <small id="m-evo-email" style="color:var(--text-muted);"></small>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+          <div style="text-align:right;">
+            <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:bold;">Nota Global LOMLOE</div>
+            <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+              <span id="m-evo-global-grade" style="font-size:1.4rem; font-weight:800;">—</span>
+              <span id="m-evo-qualitative-badge" class="badge">—</span>
+            </div>
+          </div>
+          <button class="modal-close" id="btn-close-evolution-modal" aria-label="Cerrar">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; flex:1;">
+        <!-- Progreso de entregas -->
+        <div style="margin-bottom:24px; background:var(--bg-surface); padding:16px; border-radius:8px; border:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-weight:600; font-size:0.9rem;">📦 Tareas Entregadas y Evaluadas</span>
+            <span id="m-evo-progress-text" style="font-weight:700; font-size:0.9rem; color:var(--primary);">0 / 0 (0%)</span>
+          </div>
+          <div style="width:100%; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
+            <div id="m-evo-progress-bar" style="height:100%; width:0%; background:var(--primary); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Competencias Específicas -->
+        <div style="margin-bottom:24px;">
+          <h4 style="margin:0 0 12px 0; font-size:1rem; display:flex; align-items:center; gap:8px;">
+            <span>📋</span> Dominio de Competencias Específicas (LOMLOE)
+          </h4>
+          <div id="m-evo-competencies-list" style="display:flex; flex-direction:column; gap:10px;">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+
+        <!-- Criterios de Evaluación -->
+        <div style="margin-bottom:24px;">
+          <h4 style="margin:0 0 12px 0; font-size:1rem; display:flex; align-items:center; gap:8px;">
+            <span>🎯</span> Estado de los Criterios de Evaluación
+          </h4>
+          <div style="display:flex; gap:10px; margin-bottom:12px; font-size:0.85rem;">
+            <span id="m-evo-crit-passed-badge" class="badge badge--success" style="padding:4px 10px;">✅ 0 Adquiridos</span>
+            <span id="m-evo-crit-failed-badge" class="badge badge--error" style="padding:4px 10px;">⚠️ 0 En desarrollo</span>
+            <span id="m-evo-crit-pending-badge" class="badge badge--muted" style="padding:4px 10px;">⏳ 0 Sin evaluar</span>
+          </div>
+          <div id="m-evo-criteria-chips" style="display:flex; flex-wrap:wrap; gap:8px;">
+            <!-- Renderizado dinámico de chips con tooltips -->
+          </div>
+        </div>
+
+        <!-- Detalle de Tareas -->
+        <div>
+          <h4 style="margin:0 0 12px 0; font-size:1rem; display:flex; align-items:center; gap:8px;">
+            <span>📝</span> Desglose de Tareas y Calificaciones
+          </h4>
+          <div style="overflow-x:auto; border:1px solid var(--border); border-radius:8px;">
+            <table class="ranking-table" style="font-size:0.85rem; margin:0;">
+              <thead>
+                <tr>
+                  <th>Tarea / Actividad</th>
+                  <th style="width:120px; text-align:center;">Criterios</th>
+                  <th style="width:100px; text-align:center;">Calificación</th>
+                  <th>Observaciones / Retroalimentación</th>
+                </tr>
+              </thead>
+              <tbody id="m-evo-tasks-tbody">
+                <!-- Renderizado dinámico -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+        <span style="font-size:0.8rem; color:var(--text-muted);">
+          ℹ️ Los juegos solo se evalúan si tienen una tarea asignada en la matriz curricular.
+        </span>
+        <button type="button" class="btn btn-primary btn--sm" id="btn-close-evolution-modal-footer">Cerrar Ficha</button>
       </div>
     </div>
   </div>

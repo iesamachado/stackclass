@@ -106,10 +106,13 @@ function toCamelCase(obj) {
   }
   if (out.createdAt || out.created_at) {
     const ts = out.createdAt || out.created_at;
+    if (!out.timestamp) out.timestamp = ts;
     if (!out.creadoEn) out.creadoEn = ts;
     if (!out.creadaEn) out.creadaEn = ts;
     if (!out.fecha) out.fecha = ts;
   }
+  if (out.fecha && !out.timestamp) out.timestamp = out.fecha;
+  if (out.timestamp && !out.fecha) out.fecha = out.timestamp;
   if (out.topicId || out.topic_id) {
     const tid = out.topicId || out.topic_id;
     if (!out.block) out.block = tid;
@@ -209,6 +212,14 @@ export async function getDoc(docRef) {
   if (docRef.table === "offline_tasks" && item.rubric && typeof item.rubric === "object") {
     Object.assign(item, item.rubric);
   }
+  if (docRef.table === "users") {
+    if (item.display_name && !item.displayName) item.displayName = item.display_name;
+    if (item.display_name_anon && !item.displayNameAnonymized) item.displayNameAnonymized = item.display_name_anon;
+    if (item.avatar && !item.photoURL) item.photoURL = item.avatar;
+    if (item.xp !== undefined && item.puntosTotal === undefined) item.puntosTotal = item.xp;
+    if (item.guild_id && !item.gremio) item.gremio = item.guild_id;
+    if (item.id && !item.uid) item.uid = item.id;
+  }
   const camel = toCamelCase(item);
   return {
     exists: () => true,
@@ -268,6 +279,11 @@ export async function getDocs(queryOrCol) {
         if (field === "clase_id") field = "class_id";
         if (field === "examen_id") field = "exam_id";
       }
+      if (table === "game_results") {
+        if (field === "uid" || field === "student_id") field = "student_id";
+        if (field === "clase_id") field = "class_id";
+        if (field === "game_id") field = "game_id";
+      }
       if (table === "offline_grades") {
         if (field === "uid" || field === "student_id") field = "student_id";
         if (field === "clase_id") field = "class_id";
@@ -281,7 +297,12 @@ export async function getDocs(queryOrCol) {
       else if (c.op === "<") req = req.lt(field, fieldVal);
       else if (c.op === "array-contains") req = req.contains(field, [fieldVal]);
     } else if (c.type === "orderBy") {
-      const field = c.field.replace(/[A-Z]/g, l => `_${l.toLowerCase()}`);
+      let field = c.field.replace(/[A-Z]/g, l => `_${l.toLowerCase()}`);
+      if (field === "fecha" || field === "timestamp") field = "created_at";
+      if (table === "exam_results") {
+        if (field === "empezado_en") field = "started_at";
+        if (field === "entregado_en") field = "submitted_at";
+      }
       if (table === "offline_tasks" && field !== "created_at" && field !== "id") continue;
       req = req.order(field, { ascending: c.direction !== "desc" });
     } else if (c.type === "limit") {
@@ -300,6 +321,23 @@ export async function getDocs(queryOrCol) {
     const item = { ...raw };
     if (table === "offline_tasks" && item.rubric && typeof item.rubric === "object") {
       Object.assign(item, item.rubric);
+    }
+    if (table === "users") {
+      if (item.display_name && !item.displayName) item.displayName = item.display_name;
+      if (item.display_name_anon && !item.displayNameAnonymized) item.displayNameAnonymized = item.display_name_anon;
+      if (item.avatar && !item.photoURL) item.photoURL = item.avatar;
+      if (item.xp !== undefined && item.puntosTotal === undefined) item.puntosTotal = item.xp;
+      if (item.guild_id && !item.gremio) item.gremio = item.guild_id;
+      if (item.id && !item.uid) item.uid = item.id;
+    }
+    if (table === "game_results") {
+      if (item.student_id && !item.studentId) item.studentId = item.student_id;
+      if (item.student_id && !item.uid) item.uid = item.student_id;
+      if (item.class_id && !item.classId) item.classId = item.class_id;
+      if (item.game_id && !item.gameId) item.gameId = item.game_id;
+      if (item.created_at && !item.timestamp) item.timestamp = makeTimestamp(item.created_at);
+      if (item.score !== undefined && item.total_game_score === undefined) item.total_game_score = item.score;
+      if (item.total_game_score !== undefined && item.score === undefined) item.score = item.total_game_score;
     }
     if (table === "offline_grades") {
       if (item.score !== undefined && item.finalGrade === undefined) item.finalGrade = item.score;
@@ -325,6 +363,8 @@ export async function getDocs(queryOrCol) {
       if (item.topic_id && !item.topicId) item.topicId = item.topic_id;
       if (item.student_id && !item.uid) item.uid = item.student_id;
       if (item.class_id && !item.claseId) item.claseId = item.class_id;
+      if (item.created_at && !item.fecha) item.fecha = makeTimestamp(item.created_at);
+      if (item.created_at && !item.timestamp) item.timestamp = makeTimestamp(item.created_at);
     }
     return item;
   });

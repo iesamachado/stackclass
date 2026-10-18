@@ -1,5 +1,5 @@
 import { requireAuth, currentUser, currentProfile, classroomToken, refreshClassroomToken, isAdmin } from './common/auth.js';
-import { CLASSROOM_TASKS, OFFLINE_RUBRIC } from './common/tasks.js';
+import { CLASSROOM_TASKS, TIC2_CLASSROOM_TASKS, CYR_CLASSROOM_TASKS, OFFLINE_RUBRIC } from './common/tasks.js';
 import {
   getClass, updateClass, getClassMembers, getClassAssignments,
   toggleGameInClass, toggleTopicInClass, createAssignment, updateAssignment, deleteAssignment,
@@ -9,7 +9,7 @@ import {
 import { createClassroomAssignment, syncClassroomGrades } from './common/classroom.js';
 import { renderHeader, showToast, showLoading, hideLoading, renderPodium, renderRankingTable } from './common/ui.js';
 import { GAMES, TOPICS, COURSES, $, $$, escapeHtml, formatDate, getUrlParams, copyToClipboard } from './common/utils.js';
-import { getGuildsForSubject, getMedalsForSubject, MEDAL_XP, getLeague } from './common/gamification.js';
+import { getGuildsForSubject, getMedalsForSubject, loadGuilds, initGamification, MEDAL_XP, getLeague } from './common/gamification.js';
 import { collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp, db } from './common/firebase-config.js';
 import {
   getCurriculumCriteria,
@@ -18,6 +18,16 @@ import {
   hasCustomMapping,
   exportCurriculumMatrixCSV
 } from './common/curriculum-matrix.js';
+import { supabase } from './common/supabase-config.js';
+import {
+  calculateGradebook,
+  exportGradebookCSV,
+  getQualitativeGrade,
+  getCriteriaForTask,
+  getCriteriaForTest,
+  getGameIdForTask,
+  getSubjectReviewTests
+} from './common/gradebook-calc.js';
 
 let classData = null;
 let members   = [];
@@ -47,6 +57,7 @@ requireAuth({
       }
 
       initPage(user, profile);
+      initGamification().catch(e => console.warn('Gamification init error:', e));
       await loadGamesTab();
       await loadTopicsTab();
     } catch (err) {
@@ -109,6 +120,7 @@ function initPage(user, profile) {
       if (tab === 'guilds')      await loadGuildsTab();
       if (tab === 'exams')       await loadExamsTab();
       if (tab === 'offline_tasks') await loadOfflineTasksTab();
+      if (tab === 'gradebook') await loadGradebookTab();
       if (tab === 'curriculum_matrix') await loadCurriculumMatrixTab();
       if (tab === 'results') {
           await loadResultsTab();
@@ -119,8 +131,9 @@ function initPage(user, profile) {
     });
   });
 
-  // Restore active tab
-  const storedTab = localStorage.getItem('classDetailTab') || 'games';
+  // Restore active tab (prefer URL param ?tab=... over localStorage)
+  const urlParams = getUrlParams();
+  const storedTab = urlParams.tab || localStorage.getItem('classDetailTab') || 'games';
   setTimeout(() => {
       const initialBtn = document.querySelector(`.tab-btn[data-tab="${storedTab}"]`);
       if (initialBtn) initialBtn.click();
@@ -388,8 +401,9 @@ async function loadStudentsTab() {
 }
 
 function renderStudentRow(m) {
-  const displayName = m.displayNameAnonymized || m.displayName || m.name || m.email || 'Alumno';
-  const identifier = m.uid || m.email;
+  const sid = m.uid || m.id || m.student_id;
+  const displayName = m.displayNameAnonymized || m.displayName || m.display_name_anon || m.display_name || m.name || (m.email ? m.email.split('@')[0] : 'Alumno');
+  const identifier = sid || m.email;
 
   if (m.pending) {
     return `<div class="student-row student-row--pending" style="display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-3); border-bottom:1px solid var(--border);">
@@ -409,16 +423,21 @@ function renderStudentRow(m) {
     </div>`;
   }
 
-  const pts = m.puntosTotal || 0;
-  const gremioInfo = m.gremio ? `<span class="badge" style="background:#eee; color:#333;">🛡️ ${escapeHtml(m.gremio)}</span>` : '';
+  const pts = m.puntosTotal ?? m.xp ?? 0;
+  const gremioVal = m.gremio || m.guild_id;
+  const classGuilds = getGuildsForSubject(classData?.subject_id);
+  const foundGuild = gremioVal ? classGuilds.find(g => g.id === gremioVal || g.name === gremioVal) : null;
+  const guildName = foundGuild ? `${foundGuild.icon || '🛡️'} ${foundGuild.name}` : (gremioVal ? `🛡️ ${gremioVal}` : '');
+  const gremioInfo = guildName ? `<span class="badge" style="background:${foundGuild?.color ? foundGuild.color + '1a' : '#eee'}; color:${foundGuild?.color || '#333'}; border:1px solid ${foundGuild?.color ? foundGuild.color + '40' : '#ccc'}; font-weight:600;">${escapeHtml(guildName)}</span>` : '';
   const xpBadge = `<span class="badge badge--warning">⭐ ${pts} XP</span>`;
+  const photo = m.photoURL || m.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${sid}`;
 
   return `<div class="student-row" style="display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-3); border-bottom:1px solid var(--border);">
     <div style="display:flex; align-items:center; gap:var(--space-3);">
       <img class="student-row-avatar"
-           src="${escapeHtml(m.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.uid}`)}"
+           src="${escapeHtml(photo)}"
            alt="${escapeHtml(displayName)}"
-           onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${m.uid}'">
+           onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${sid}'">
       <div class="student-row-info">
         <strong>${escapeHtml(displayName)}</strong>
         <small style="display:block; color:var(--text-muted);">${escapeHtml(m.email || '')}</small>
@@ -429,10 +448,10 @@ function renderStudentRow(m) {
       <span class="badge ${m.source === 'classroom' ? 'badge--accent' : 'badge--muted'}">
         ${m.source === 'classroom' ? 'Classroom' : 'Directo / PIN'}
       </span>
-      <button class="btn btn-ghost btn--sm" onclick="window._showMedallas('${escapeHtml(m.uid)}')" title="Ver medallas" style="padding:4px 8px;">
+      <button class="btn btn-ghost btn--sm" onclick="window._showMedallas('${escapeHtml(sid)}')" title="Ver medallas" style="padding:4px 8px;">
         🏅
       </button>
-      <button class="btn btn-ghost btn--sm" data-action="view-history" data-student-id="${escapeHtml(m.uid)}" data-student-name="${escapeHtml(displayName)}" title="Ver historial de partidas" style="padding:4px 8px;">
+      <button class="btn btn-ghost btn--sm" data-action="view-history" data-student-id="${escapeHtml(sid)}" data-student-name="${escapeHtml(displayName)}" title="Ver historial de partidas" style="padding:4px 8px;">
         📊
       </button>
       <button class="btn btn-ghost btn--sm" data-action="remove-student" data-student-id="${escapeHtml(identifier)}" data-student-name="${escapeHtml(displayName)}" title="Eliminar de la clase" style="color:var(--error); padding:4px 8px;">
@@ -443,7 +462,7 @@ function renderStudentRow(m) {
 }
 
 async function showStudentHistory(studentId, studentName) {
-  if (!studentId) {
+  if (!studentId || studentId === 'undefined') {
     showToast('Error', 'ID de alumno no disponible.', 'error');
     return;
   }
@@ -479,10 +498,21 @@ async function showStudentHistory(studentId, studentName) {
   try {
     const { computeGameXP } = await import('./common/gamification.js');
     
+    let studentIds = [studentId];
+    try {
+      const { getLegacyStudentIds } = await import('./common/db.js');
+      const leg = await getLegacyStudentIds(studentId);
+      if (leg && leg.length > 0) studentIds.push(...leg);
+    } catch (_) {}
+
     // 1. Juegos (globales para calcular XP correcta, pero luego marcamos si es de la clase)
-    const snapGames = await getDocs(query(collection(db, 'game_results'), where('studentId', '==', studentId)));
+    const snapGames = await getDocs(query(collection(db, 'game_results'), where('studentId', 'in', studentIds)));
     const games = snapGames.docs.map(d => ({ id: d.id, ...d.data() }));
-    games.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+    games.sort((a, b) => {
+      const ta = a.timestamp?.seconds || (a.createdAt ? new Date(a.createdAt).getTime() / 1000 : 0);
+      const tb = b.timestamp?.seconds || (b.createdAt ? new Date(b.createdAt).getTime() / 1000 : 0);
+      return ta - tb;
+    });
     
     const userGamesCount = {};
     const userMaxScores = {};
@@ -517,14 +547,18 @@ async function showStudentHistory(studentId, studentName) {
         scoreInfo: `Puntos: ${r.score}`,
         metadata: r.metadata,
         xp: xp,
-        timestamp: r.timestamp?.toDate ? r.timestamp.toDate() : new Date(0)
+        timestamp: r.timestamp?.toDate ? r.timestamp.toDate() : (r.createdAt ? new Date(r.createdAt) : new Date(0))
       });
     });
 
     // 2. Tests de Repaso
-    const snapTests = await getDocs(query(collection(db, 'test_teoria_respuestas'), where('uid', '==', studentId)));
+    const snapTests = await getDocs(query(collection(db, 'test_teoria_respuestas'), where('uid', 'in', studentIds)));
     const tests = snapTests.docs.map(d => d.data());
-    tests.sort((a, b) => (a.fecha?.seconds || 0) - (b.fecha?.seconds || 0));
+    tests.sort((a, b) => {
+      const ta = a.fecha?.seconds || (a.createdAt ? new Date(a.createdAt).getTime() / 1000 : 0);
+      const tb = b.fecha?.seconds || (b.createdAt ? new Date(b.createdAt).getTime() / 1000 : 0);
+      return ta - tb;
+    });
     
     const userTestsState = {};
     tests.forEach(r => {
@@ -557,12 +591,12 @@ async function showStudentHistory(studentId, studentName) {
         scoreInfo: `Nota: ${score}/10`,
         metadata: null,
         xp: xp,
-        timestamp: r.fecha?.toDate ? r.fecha.toDate() : new Date(0)
+        timestamp: r.fecha?.toDate ? r.fecha.toDate() : (r.createdAt ? new Date(r.createdAt) : new Date(0))
       });
     });
     
     // 3. Exámenes
-    const snapExams = await getDocs(query(collection(db, 'respuestas_test'), where('uid', '==', studentId)));
+    const snapExams = await getDocs(query(collection(db, 'respuestas_test'), where('uid', 'in', studentIds)));
     snapExams.forEach(d => {
       const r = d.data();
       if (!r.calculado || r.calculado.nota === undefined) return;
@@ -576,12 +610,12 @@ async function showStudentHistory(studentId, studentName) {
         scoreInfo: `Nota: ${nota.toFixed(2)}/10`,
         metadata: null,
         xp: xp,
-        timestamp: r.fecha?.toDate ? r.fecha.toDate() : new Date(0)
+        timestamp: r.fecha?.toDate ? r.fecha.toDate() : (r.createdAt ? new Date(r.createdAt) : new Date(0))
       });
     });
     
     // 4. Tareas Offline
-    const snapOffline = await getDocs(query(collection(db, 'offline_grades'), where('studentId', '==', studentId)));
+    const snapOffline = await getDocs(query(collection(db, 'offline_grades'), where('studentId', 'in', studentIds)));
     snapOffline.forEach(d => {
       const r = d.data();
       if (r.finalGrade === undefined) return;
@@ -597,22 +631,24 @@ async function showStudentHistory(studentId, studentName) {
         scoreInfo: `Nota: ${r.finalGrade}/10`,
         metadata: null,
         xp: xp,
-        timestamp: r.updatedAt?.toDate ? r.updatedAt.toDate() : new Date(0)
+        timestamp: r.updatedAt?.toDate ? r.updatedAt.toDate() : (r.updated_at ? new Date(r.updated_at) : new Date(0))
       });
     });
 
-    // Ordenar timeline inverso (más reciente primero)
-
     // 5. Medallas Obtenidas
     const userSnap = await getDoc(doc(db, 'users', studentId));
-    const userLogros = userSnap.data()?.logros || [];
+    const userData = userSnap.data() || {};
+    const userLogros = userData.logros || userData.medals || [];
+    const subjectMedals = getMedalsForSubject(classData?.subject_id) || [];
     
     userLogros.forEach(medal => {
-        const extraXP = medal.xp_value || MEDAL_XP[medal.id] || 0;
+        const medalId = typeof medal === 'string' ? medal : (medal.id || medal.medal_id);
+        const meta = (typeof medal === 'object' && medal.name) ? medal : (subjectMedals.find(m => m.id === medalId) || { name: medalId, icon: '🏅', desc: '' });
+        const extraXP = medal.xp_value || MEDAL_XP[medalId] || meta.xp || 0;
         timeline.push({
             type: 'medal',
-            title: `🏅 Medalla: ${medal.icon} ${medal.name}`,
-            scoreInfo: medal.desc,
+            title: `🏅 Medalla: ${meta.icon || '🏅'} ${meta.name || medalId}`,
+            scoreInfo: meta.desc || medal.desc || '',
             metadata: null,
             xp: extraXP,
             timestamp: medal.fecha ? new Date(medal.fecha) : new Date(0)
@@ -944,19 +980,28 @@ async function renderResults(showLoader = true) {
     const ranking = await getClassRanking(classData.id, activeGameFilter || null);
 
     // Enriquecer con perfiles (filtrando a los que no son alumnos de la clase, como el profe)
-    const filteredRanking = ranking.filter(r => members.some(m => m.uid === r.studentId));
+    const filteredRanking = ranking.filter(r => {
+      const sid = r.studentId || r.student_id;
+      return members.some(m => (m.uid || m.id) === sid);
+    });
     
-    const enriched = await Promise.all(filteredRanking.map(async r => {
-      let member = members.find(m => m.uid === r.studentId);
-      let displayName = member?.displayNameAnonymized || member?.displayName || 'Alumno';
-      let photoURL = member?.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${r.studentId}`;
+    const enriched = filteredRanking.map(r => {
+      const sid = r.studentId || r.student_id;
+      const member = members.find(m => (m.uid || m.id) === sid);
+      const displayName = member?.displayNameAnonymized || member?.displayName || member?.display_name_anon || member?.display_name || r.displayName || 'Alumno';
+      const photoURL = member?.photoURL || member?.avatar || r.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${sid}`;
+      const scoreVal = r.score ?? r.total_game_score ?? 0;
       
       return {
         ...r,
+        studentId: sid,
+        score: scoreVal,
+        total_game_score: scoreVal,
         displayNameAnonymized: displayName,
+        displayName: displayName,
         photoURL: photoURL
       };
-    }));
+    });
 
     renderPodium(enriched, 'results-podium');
     renderRankingTable(enriched, 'results-ranking');
@@ -994,23 +1039,36 @@ async function loadGuildsTab() {
     }
   }
 
-  const guilds = getGuildsForSubject(classData?.subject_id);
+  let guilds = await loadGuilds(classData?.subject_id);
+  if (!guilds || guilds.length === 0) {
+    guilds = getGuildsForSubject(classData?.subject_id);
+  }
+
   const counts = {};
   const points = {};
-  guilds.forEach(g => { counts[g.name] = 0; points[g.name] = 0; });
-  members.forEach(m => {
-    if (m.gremio && counts[m.gremio] !== undefined) {
-      counts[m.gremio]++;
-      points[m.gremio] += (m.puntosTotal || 0);
+  guilds.forEach(g => { counts[g.id] = 0; points[g.id] = 0; });
+
+  (members || []).forEach(m => {
+    const rawGuild = m.gremio || m.guild_id;
+    if (!rawGuild) return;
+    const g = guilds.find(x => x.id === rawGuild || x.name === rawGuild);
+    if (g) {
+      counts[g.id] = (counts[g.id] || 0) + 1;
+      points[g.id] = (points[g.id] || 0) + (m.puntosTotal ?? m.xp ?? 0);
     }
   });
-  
+
   const ranking = guilds.map(g => ({
-    name: g.name, icon: g.icon, image: g.image, color: g.color,
-    points: points[g.name], members: counts[g.name]
+    id: g.id,
+    name: g.name,
+    icon: g.icon,
+    image: g.image || g.image_url || '',
+    color: g.color || '#3498db',
+    points: points[g.id] || 0,
+    members: counts[g.id] || 0
   })).sort((a,b) => b.points - a.points);
-  
-  $('guilds-ranking-list').innerHTML = ranking.map((g, idx) => {
+
+  const rankingHtml = ranking.map((g, idx) => {
     const isFirst = idx === 0;
     const isSecond = idx === 1;
     const isThird = idx === 2;
@@ -1018,17 +1076,44 @@ async function loadGuildsTab() {
     let scale = '1';
     let border = g.color;
     let bg = 'var(--bg-card)';
-    
-    // Buscar al MVP de este gremio
-    const guildMembers = members.filter(m => m.gremio === g.name).sort((a,b) => (b.puntosTotal||0) - (a.puntosTotal||0));
+
+    // Buscar a todos los miembros de este gremio
+    const guildMembers = (members || []).filter(m => {
+      const raw = m.gremio || m.guild_id;
+      return raw && (raw === g.id || raw === g.name);
+    }).sort((a,b) => ((b.puntosTotal ?? b.xp ?? 0) - (a.puntosTotal ?? a.xp ?? 0)));
+
     const mvp = guildMembers.length > 0 ? guildMembers[0] : null;
+    const mvpPts = mvp ? (mvp.puntosTotal ?? mvp.xp ?? 0) : 0;
     let mvpHtml = '';
-    if (mvp && mvp.puntosTotal > 0) {
-      mvpHtml = `<div style="margin-top:12px; background:rgba(0,0,0,0.05); border-radius:8px; padding:8px 12px; display:inline-block; border-left:3px solid ${g.color};">
+    if (mvp && mvpPts > 0) {
+      mvpHtml = `<div style="margin-top:12px; background:rgba(0,0,0,0.05); border-radius:8px; padding:6px 12px; display:inline-block; border-left:3px solid ${g.color};">
         <span style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); font-weight:bold;">👑 MVP:</span> 
-        <span style="font-weight:bold; color:var(--text-primary); margin-left:5px;">${escapeHtml(mvp.displayNameAnonymized || mvp.displayName || mvp.email?.split('@')[0])}</span> 
-        <span style="color:var(--warning); font-weight:bold; font-size:0.9rem;">(⭐ ${mvp.puntosTotal})</span>
+        <span style="font-weight:bold; color:var(--text-primary); margin-left:5px;">${escapeHtml(mvp.displayNameAnonymized || mvp.displayName || mvp.name || mvp.email?.split('@')[0])}</span> 
+        <span style="color:var(--warning); font-weight:bold; font-size:0.9rem;">(⭐ ${mvpPts})</span>
       </div>`;
+    }
+
+    // Chips de los miembros del gremio
+    let membersListHtml = '';
+    if (guildMembers.length > 0) {
+      membersListHtml = `
+        <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:6px;">
+          ${guildMembers.map(m => {
+            const mPts = m.puntosTotal ?? m.xp ?? 0;
+            const mName = escapeHtml(m.displayNameAnonymized || m.displayName || m.name || m.email?.split('@')[0]);
+            return `<span class="badge" style="background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.1); color:var(--text-primary); font-size:0.8rem; padding:3px 8px; border-radius:12px;">
+              ${mName} <strong style="color:var(--warning); margin-left:3px;">⭐ ${mPts}</strong>
+            </span>`;
+          }).join('')}
+        </div>
+      `;
+    } else {
+      membersListHtml = `
+        <div style="margin-top:8px; font-size:0.85rem; color:var(--text-muted); font-style:italic;">
+          Sin miembros asignados en esta clase
+        </div>
+      `;
     }
 
     // Calcular distancia con el anterior
@@ -1041,18 +1126,18 @@ async function loadGuildsTab() {
         </div>`;
       }
     }
-    
+
     if (isFirst) { badge = '🥇 LÍDERES ABSOLUTOS'; scale = '1.02'; border = '#f1c40f'; bg = '#fffdf5'; }
     else if (isSecond) { badge = '🥈 SEGUNDO PUESTO'; scale = '1.0'; border = '#bdc3c7'; bg = '#f8f9fa'; }
     else if (isThird) { badge = '🥉 TERCER PUESTO'; scale = '0.98'; border = '#cd6133'; bg = '#fdfbf7'; }
     else { badge = `${idx+1}º Puesto`; scale = '0.95'; border = 'var(--border)'; bg = 'var(--bg-card)'; }
-    
+
     return `
-      <div class="card animate-fade-up delay-${idx+1}" style="display:flex; align-items:center; gap:var(--space-4); padding:var(--space-4); background:${bg}; border:4px solid ${border}; transform:scale(${scale}); transform-origin:center; position:relative; overflow:hidden; box-shadow:6px 6px 0px rgba(0,0,0,${isFirst ? '0.2' : '0.1'}); margin-bottom:10px;">
-        ${isFirst ? `<div style="position:absolute; top:-10px; right:-10px; font-size:7rem; opacity:0.1; transform:rotate(-15deg);">${g.icon}</div>` : ''}
+      <div class="card animate-fade-up delay-${idx+1}" style="display:flex; align-items:center; gap:var(--space-4); padding:var(--space-4); background:${bg}; border:4px solid ${border}; transform:scale(${scale}); transform-origin:center; position:relative; overflow:hidden; box-shadow:6px 6px 0px rgba(0,0,0,${isFirst ? '0.2' : '0.1'}); margin-bottom:12px;">
+        ${isFirst ? `<div style="position:absolute; top:-10px; right:-10px; font-size:7rem; opacity:0.1; transform:rotate(-15deg); pointer-events:none;">${g.icon}</div>` : ''}
         
         <div style="width:80px; height:80px; border-radius:50%; background-color:${g.color}; display:flex; align-items:center; justify-content:center; border:4px solid var(--text-primary); box-shadow:4px 4px 0px rgba(0,0,0,1); flex-shrink:0;">
-          <img src="${g.image}" alt="" style="width:100%; height:100%; object-fit:contain; mix-blend-mode:multiply;">
+          <img src="${g.image}" alt="" style="width:100%; height:100%; object-fit:contain; mix-blend-mode:multiply;" onerror="this.onerror=null; this.style.display='none'; this.parentNode.innerHTML='<span style=\\'font-size:2.5rem;\\'>${g.icon}</span>';">
         </div>
         
         <div style="flex:1;">
@@ -1062,9 +1147,10 @@ async function loadGuildsTab() {
             👥 ${g.members} valientes aportando experiencia
           </div>
           ${mvpHtml}
+          ${membersListHtml}
         </div>
         
-        <div style="text-align:right; z-index:2; background:rgba(255,255,255,0.7); padding:8px 15px; border-radius:10px; border:2px solid var(--text-primary); box-shadow:3px 3px 0px rgba(0,0,0,1); display:flex; flex-direction:column; align-items:flex-end;">
+        <div style="text-align:right; z-index:2; background:rgba(255,255,255,0.85); padding:8px 15px; border-radius:10px; border:2px solid var(--text-primary); box-shadow:3px 3px 0px rgba(0,0,0,1); display:flex; flex-direction:column; align-items:flex-end;">
           <div style="font-size:0.8rem; font-weight:bold; color:var(--text-primary); text-transform:uppercase; letter-spacing:1px; margin-bottom:2px;">Puntos Totales</div>
           <div style="font-size:2.5rem; font-weight:900; color:var(--warning); text-shadow:1px 1px 0px var(--text-primary), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; line-height:1;">
             ⭐ ${g.points.toLocaleString()}
@@ -1074,6 +1160,24 @@ async function loadGuildsTab() {
       </div>
     `;
   }).join('');
+
+  // Identificar alumnos sin gremio en la clase
+  const unassigned = (members || []).filter(m => !m.gremio && !m.guild_id);
+  let unassignedHtml = '';
+  if (unassigned.length > 0) {
+    unassignedHtml = `
+      <div class="card" style="margin-top:20px; border-left:4px solid var(--text-muted); background:var(--bg-card); padding:var(--space-3) var(--space-4);">
+        <h4 style="margin:0 0 8px 0; color:var(--text-muted); font-size:0.95rem;">
+          ⚪ Alumnos sin gremio asignado (${unassigned.length}):
+        </h4>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${unassigned.map(m => `<span class="badge badge--muted" style="font-size:0.8rem;">${escapeHtml(m.displayName || m.displayNameAnonymized || m.email?.split('@')[0])}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  $('guilds-ranking-list').innerHTML = rankingHtml + unassignedHtml;
 }
 
 let unsubscribeExams = null;
@@ -1122,7 +1226,7 @@ async function loadExamsTab() {
   // Cargar resultados de los Tests de Teoría (Control de Lectura)
   const teoriaList = $('teoria-test-list');
   if (teoriaList) {
-    const studentIds = members.map(m => m.uid);
+    const studentIds = members.map(m => m.uid || m.id || m.student_id);
     if (studentIds.length === 0) {
       teoriaList.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay alumnos en esta clase.</td></tr>';
       return;
@@ -1160,12 +1264,15 @@ async function loadExamsTab() {
       if (finalResults.length === 0) {
         teoriaList.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Aún no hay resultados de teoría.</td></tr>';
       } else {
-        teoriaList.innerHTML = finalResults.map(r => `
+        teoriaList.innerHTML = finalResults.map(r => {
+          const mMatch = members.find(m => (m.uid || m.id || m.student_id) === r.uid);
+          const studentName = r.alumnoNombre || (mMatch ? (mMatch.displayNameAnonymized || mMatch.displayName || mMatch.name) : 'Alumno');
+          return `
           <tr>
             <td>
               <div style="display:flex; align-items:center; gap:10px;">
                 <img src="https://api.dicebear.com/7.x/bottts/svg?seed=${r.uid}" style="width:30px; border-radius:50%; background:#eee;">
-                <strong>${escapeHtml(r.alumnoNombre || 'Alumno')}</strong>
+                <strong>${escapeHtml(studentName)}</strong>
               </div>
             </td>
             <td>${escapeHtml(r.topicName || r.topicId)}</td>
@@ -1176,10 +1283,10 @@ async function loadExamsTab() {
             </td>
             <td class="text-muted">${r.fecha?.toDate ? r.fecha.toDate().toLocaleString() : 'Reciente'}</td>
             <td>
-              <button class="btn btn-ghost btn--sm" onclick="window._deleteStudentTests('${r.uid}', '${r.topicId}', '${escapeHtml(r.alumnoNombre || 'Alumno')}')" title="Borrar todos los intentos de este tema" style="color:var(--error)">🗑️</button>
+              <button class="btn btn-ghost btn--sm" onclick="window._deleteStudentTests('${r.uid}', '${r.topicId}', '${escapeHtml(studentName)}')" title="Borrar todos los intentos de este tema" style="color:var(--error)">🗑️</button>
             </td>
-          </tr>
-        `).join('');
+          </tr>`;
+        }).join('');
       }
     }).catch(e => {
       console.error(e);
@@ -1203,7 +1310,7 @@ window._deleteExamenTest = async (id) => {
 function renderGamificationPodium() {
   const container = $('gamification-podium');
   if (!container) return;
-  const sorted = [...members].filter(m => !m.pending && (m.puntosTotal || 0) > 0).sort((a,b) => (b.puntosTotal||0) - (a.puntosTotal||0));
+  const sorted = [...members].filter(m => !m.pending && (m.puntosTotal ?? m.xp ?? 0) > 0).sort((a,b) => (b.puntosTotal ?? b.xp ?? 0) - (a.puntosTotal ?? a.xp ?? 0));
   if (sorted.length === 0) {
     container.innerHTML = '';
     return;
@@ -1214,13 +1321,16 @@ function renderGamificationPodium() {
   
   const renderPos = (m, pos, height, color, emoji) => {
     if (!m) return '';
-    const name = m.displayNameAnonymized || m.displayName || m.email || 'Alumno';
+    const sid = m.uid || m.id || m.student_id;
+    const name = m.displayNameAnonymized || m.displayName || m.display_name_anon || m.display_name || m.name || (m.email ? m.email.split('@')[0] : 'Alumno');
+    const photo = m.photoURL || m.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${sid}`;
+    const pts = m.puntosTotal ?? m.xp ?? 0;
     return `
       <div style="display:flex; flex-direction:column; align-items:center; width:100px;">
         <div style="font-size:1.5rem; margin-bottom:4px;">${emoji}</div>
-        <img src="${m.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${m.uid}`}" style="width:40px; height:40px; border-radius:50%; margin-bottom:8px; border:2px solid ${color};">
+        <img src="${escapeHtml(photo)}" style="width:40px; height:40px; border-radius:50%; margin-bottom:8px; border:2px solid ${color};">
         <div style="font-size:0.8rem; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${escapeHtml(name)}</div>
-        <div style="font-weight:bold; color:${color}; font-size:0.9rem;">${m.puntosTotal || 0} XP</div>
+        <div style="font-weight:bold; color:${color}; font-size:0.9rem;">${pts} XP</div>
         <div style="width:100%; background:${color}; height:${height}px; border-radius:8px 8px 0 0; margin-top:8px; opacity:0.8; display:flex; justify-content:center; align-items:center; color:white; font-weight:bold; font-size:1.2rem;">${pos}</div>
       </div>
     `;
@@ -1237,12 +1347,12 @@ function renderGamificationPodium() {
 function setupModals(user) {
   // Modal Medallas
   window._showMedallas = (uid) => {
-    const student = members.find(m => m.uid === uid);
+    const student = members.find(m => (m.uid || m.id || m.student_id) === uid);
     if (!student) return;
-    const name = student.displayNameAnonymized || student.displayName || 'Alumno';
+    const name = student.displayNameAnonymized || student.displayName || student.display_name_anon || student.display_name || student.name || (student.email ? student.email.split('@')[0] : 'Alumno');
     $('medallas-alumno-nombre').textContent = `Medallero de ${name}`;
     
-    const logrosObtenidos = student.logros || [];
+    const logrosObtenidos = student.logros || student.medals || [];
     
     const conseguidas = [];
     const noConseguidas = [];
@@ -1424,7 +1534,7 @@ function setupModals(user) {
           dueDate: due || null,
           classroomCourseId: classData.classroomCourseId || null
         });
-        showToast('Tarea creada', 'Guardada en ClassHub (sin Classroom).', 'success');
+        showToast('Tarea online creada', 'Guardada en StackClass.', 'success');
       }
 
       closeModal();
@@ -1543,14 +1653,16 @@ $('btn-view-criteria')?.addEventListener('click', async () => {
     
     // Inicializar alumnos de esta clase
     members.forEach(m => {
-      studentGrades[m.uid] = {};
+      const sid = m.uid || m.id || m.student_id;
+      studentGrades[sid] = {};
     });
     
     validTests.forEach(test => {
       // Filtrar solo alumnos de la clase
-      if (!studentGrades[test.uid]) return;
+      const testUid = test.uid || test.student_id;
+      if (!studentGrades[testUid]) return;
       
-      const stats = studentGrades[test.uid];
+      const stats = studentGrades[testUid];
       
       // Analizar cada pregunta
       if (test.respuestas && Array.isArray(test.respuestas)) {
@@ -1595,18 +1707,19 @@ $('btn-view-criteria')?.addEventListener('click', async () => {
     html += `</tr></thead><tbody>`;
     
     members.sort((a, b) => {
-      const na = a.displayNameAnonymized || a.displayName || '';
-      const nb = b.displayNameAnonymized || b.displayName || '';
+      const na = a.displayNameAnonymized || a.displayName || a.name || '';
+      const nb = b.displayNameAnonymized || b.displayName || b.name || '';
       return na.localeCompare(nb);
     }).forEach(m => {
-      const name = m.displayNameAnonymized || m.displayName || m.email;
+      const sid = m.uid || m.id || m.student_id;
+      const name = m.displayNameAnonymized || m.displayName || m.name || m.email;
       html += `
         <tr>
           <td style="position:sticky; left:0; background:var(--bg-card); font-weight:bold;">${escapeHtml(name)}</td>
       `;
       
       critList.forEach(c => {
-        const d = studentGrades[m.uid][c];
+        const d = studentGrades[sid] ? studentGrades[sid][c] : null;
         if (!d) {
           html += `<td style="color:var(--text-muted); opacity:0.5;">—</td>`;
         } else {
@@ -1765,22 +1878,24 @@ async function loadOfflineTasksTab() {
     `;
     
     members.forEach(member => {
-      const grade = offlineGrades[task.id] && offlineGrades[task.id][member.uid];
+      const mUid = member.uid || member.id || member.student_id;
+      const grade = offlineGrades[task.id] && (offlineGrades[task.id][mUid] || offlineGrades[task.id][member.uid] || offlineGrades[task.id][member.id]);
       const hasGrade = grade && typeof grade.finalGrade === 'number';
       const gradeColor = !hasGrade ? 'var(--text-muted)' : (grade.finalGrade >= 5 ? 'var(--success)' : 'var(--danger)');
+      const mName = member.displayNameAnonymized || member.displayName || member.display_name_anon || member.display_name || (member.email ? member.email.split('@')[0] : 'Alumno');
       
       html += `
             <div style="border:1px solid #e2e8f0; border-radius:6px; overflow:hidden;">
-              <div class="student-accordion-header" style="padding:10px 15px; background:${hasGrade ? '#f0fdf4' : '#fff'}; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-task="${task.id}" data-uid="${member.uid}">
+              <div class="student-accordion-header" style="padding:10px 15px; background:${hasGrade ? '#f0fdf4' : '#fff'}; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-task="${task.id}" data-uid="${mUid}">
                 <div style="display:flex; align-items:center; gap:10px;">
                   <span class="student-expand-icon" style="font-size:0.8rem; color:#94a3b8;">▶️</span>
-                  <span style="font-weight:bold;">${escapeHtml(member.displayName || member.email.split('@')[0])}</span>
+                  <span style="font-weight:bold;">${escapeHtml(mName)}</span>
                 </div>
                 <span style="font-weight:bold; color:${gradeColor};">
                   ${hasGrade ? grade.finalGrade.toFixed(2) : 'Sin evaluar'}
                 </span>
               </div>
-              <div class="student-accordion-content" id="student-rubric-${task.id}-${member.uid}" style="display:none; padding:15px; border-top:1px solid #e2e8f0; background:#f8fafc;">
+              <div class="student-accordion-content" id="student-rubric-${task.id}-${mUid}" style="display:none; padding:15px; border-top:1px solid #e2e8f0; background:#f8fafc;">
                 <div style="text-align:center;"><div class="spinner"></div></div>
               </div>
             </div>
@@ -2057,11 +2172,12 @@ function exportToSeneca(offlineGrades) {
   csv += "\n";
   
   members.forEach(m => {
-    let nameToPrint = m.displayName || m.email;
+    let nameToPrint = m.displayName || m.displayNameAnonymized || m.name || m.email;
     csv += `"${nameToPrint}";`;
     
     CLASSROOM_TASKS.forEach(t => {
-      const grade = offlineGrades[t.id] && offlineGrades[t.id][m.uid];
+      const sid = m.uid || m.id || m.student_id;
+      const grade = offlineGrades[t.id] && (offlineGrades[t.id][sid] || offlineGrades[t.id][m.uid] || offlineGrades[t.id][m.id]);
       if (grade && typeof grade.finalGrade === 'number') {
         csv += `"${grade.finalGrade.toFixed(2).replace('.', ',')}";`;
       } else {
@@ -2499,5 +2615,659 @@ async function loadCurriculumMatrixTab() {
   }
 
   renderMatrix();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TAB: CUADERNO DOCENTE (EVALUACIÓN CONTINUA LOMLOE)
+// ══════════════════════════════════════════════════════════════
+
+let gradebookData = null;
+let gradebookView = 'competencies'; // 'competencies' | 'criteria' | 'tasks'
+let gradebookSearchQuery = '';
+let gradebookStatusFilter = 'all'; // 'all' | 'passed' | 'failed' | 'pending'
+let gradebookControlsAttached = false;
+
+async function loadGradebookTab() {
+  const container = $('gradebook-table-container');
+  if (!container || !classData) return;
+
+  container.innerHTML = `
+    <div style="text-align:center; padding:50px;">
+      <div class="spinner"></div>
+      <p style="margin-top:10px; color:var(--text-muted);">Calculando calificaciones y ponderación curricular...</p>
+    </div>`;
+
+  try {
+    if (!members || members.length === 0) {
+      members = await getClassMembers(classData.id);
+    }
+
+    const classSubject = classData.subject_id || classData.subjectId || 'cyr';
+    const classLevel = classSubject === 'tic2'
+      ? '2'
+      : ((classData.level && String(classData.level).includes('2')) ? '2' : (classData.level && String(classData.level).includes('3')) ? '3' : '1');
+
+    // Tareas según la asignatura
+    const tasks = classSubject === 'tic2' ? TIC2_CLASSROOM_TASKS : CYR_CLASSROOM_TASKS;
+
+    // Recopilar IDs y alias de todos los alumnos de la clase (incluyendo legacy UIDs)
+    const studentIds = members.map(m => m.id || m.uid).filter(Boolean);
+    const studentIdAliases = {};
+    members.forEach(m => {
+      const sid = m.id || m.uid;
+      if (sid) {
+        studentIdAliases[sid] = [m.id, m.uid].filter(Boolean);
+      }
+    });
+
+    try {
+      const { getLegacyStudentIds } = await import('./common/db.js');
+      await Promise.all(members.map(async m => {
+        const sid = m.id || m.uid;
+        if (!sid) return;
+        const leg = await getLegacyStudentIds(sid);
+        if (leg && leg.length > 0) {
+          leg.forEach(lid => {
+            if (!studentIds.includes(lid)) studentIds.push(lid);
+            if (!studentIdAliases[sid].includes(lid)) studentIdAliases[sid].push(lid);
+          });
+        }
+      }));
+    } catch (_) {}
+
+    // Cargar en paralelo: calificaciones offline, tests de repaso, partidas de juegos y assignments
+    const [gradesSnap, topicTestsRes, gamesRes, assignments] = await Promise.all([
+      getDocs(query(collection(db, 'offline_grades'), where('classId', '==', classData.id))),
+      supabase.from('topic_test_results').select('*').in('student_id', studentIds).order('created_at', { ascending: false }),
+      supabase.from('game_results').select('*').in('student_id', studentIds).order('created_at', { ascending: false }),
+      getClassAssignments(classData.id).catch(() => [])
+    ]);
+
+    const offlineGrades = {};
+    const iterateSnap = (s, cb) => {
+      if (s && typeof s.forEach === 'function') s.forEach(cb);
+      else if (s && Array.isArray(s.docs)) s.docs.forEach(cb);
+    };
+    iterateSnap(gradesSnap, d => {
+      const data = typeof d.data === 'function' ? d.data() : d;
+      const tid = data.taskId || data.task_id;
+      const sid = data.studentId || data.student_id;
+      if (tid && sid) {
+        if (!offlineGrades[tid]) offlineGrades[tid] = {};
+        offlineGrades[tid][sid] = { id: d.id, ...data };
+      }
+    });
+
+    const topicTestResults = topicTestsRes.data || [];
+    const gameResults = gamesRes.data || [];
+    const reviewTests = getSubjectReviewTests(classSubject);
+
+    // Matriz de criterios efectiva y catálogo normativo
+    const rawMapping = classData.criteriaMapping || classData.criteria_mapping || null;
+    const criteriaMapping = getEffectiveCriteriaMapping(classSubject, classLevel, rawMapping);
+    const criteriaList = getCurriculumCriteria(classSubject, classLevel);
+
+    // Calcular el cuaderno docente
+    gradebookData = calculateGradebook({
+      members,
+      tasks,
+      reviewTests,
+      offlineGrades,
+      topicTestResults,
+      gameResults,
+      assignments: assignments || [],
+      criteriaMapping,
+      criteriaList,
+      subjectId: classSubject,
+      level: classLevel,
+      studentIdAliases
+    });
+
+    // Actualizar Tarjetas KPI de Aula
+    updateGradebookKPIs(gradebookData);
+
+    // Adjuntar escuchadores de interfaz (búsqueda, filtros, vistas, exportación)
+    attachGradebookControls();
+
+    // Renderizar la tabla con la vista activa
+    renderGradebookTable();
+
+  } catch (err) {
+    console.error('Error cargando cuaderno docente:', err);
+    container.innerHTML = `
+      <div class="empty-state" style="color:var(--error); padding: 30px; text-align: center;">
+        ⚠️ Error al calcular el cuaderno docente.<br>
+        <small style="color:var(--text-muted);">${escapeHtml(err.message)}</small>
+      </div>`;
+  }
+}
+
+function updateGradebookKPIs(data) {
+  if (!data || !data.stats) return;
+  const { stats, tasks } = data;
+
+  // 1. Nota media del aula
+  const avgEl = $('gb-stat-class-avg');
+  const qualBadgeEl = $('gb-stat-qualitative-badge');
+  if (avgEl && qualBadgeEl) {
+    if (stats.classAverage !== null) {
+      avgEl.textContent = stats.classAverage.toFixed(2);
+      const q = getQualitativeGrade(stats.classAverage);
+      qualBadgeEl.textContent = `${q.label} (${q.code})`;
+      qualBadgeEl.className = `badge ${q.badgeClass}`;
+      qualBadgeEl.style.display = 'inline-block';
+    } else {
+      avgEl.textContent = '—';
+      qualBadgeEl.style.display = 'none';
+    }
+  }
+
+  // 2. Tasa de aprobados
+  const passEl = $('gb-stat-pass-rate');
+  const countEl = $('gb-stat-pass-count');
+  if (passEl && countEl) {
+    if (stats.studentsWithGrade > 0) {
+      passEl.textContent = `${stats.passRate}%`;
+      const passedCount = Math.round((stats.passRate / 100) * stats.studentsWithGrade);
+      countEl.textContent = `(${passedCount}/${stats.studentsWithGrade} evaluados)`;
+      passEl.style.color = stats.passRate >= 75 ? 'var(--success)' : stats.passRate >= 50 ? '#eab308' : 'var(--error)';
+    } else {
+      passEl.textContent = '—';
+      countEl.textContent = '(0 evaluados)';
+      passEl.style.color = 'var(--text-muted)';
+    }
+  }
+
+  // 3. Criterio a reforzar
+  const reinfEl = $('gb-stat-reinforce');
+  if (reinfEl) {
+    if (stats.criteriaToReinforce && stats.criteriaToReinforce.length > 0) {
+      const topIssue = stats.criteriaToReinforce[0];
+      reinfEl.textContent = `Crit. ${topIssue.crit} (${topIssue.average.toFixed(2)})`;
+      reinfEl.style.color = '#b45309';
+      reinfEl.title = `Criterio ${topIssue.crit}: ${topIssue.text} - Media de aula: ${topIssue.average.toFixed(2)}`;
+    } else if (stats.studentsWithGrade > 0) {
+      reinfEl.textContent = 'Todos superados (≥ 5.0)';
+      reinfEl.style.color = 'var(--success)';
+      reinfEl.title = 'Todos los criterios evaluados tienen una nota media superior a 5.0';
+    } else {
+      reinfEl.textContent = 'Sin datos suficientes';
+      reinfEl.style.color = 'var(--text-muted)';
+      reinfEl.title = '';
+    }
+  }
+
+  // 4. Total actividades evaluables
+  const tasksEl = $('gb-stat-tasks-count');
+  if (tasksEl) {
+    const gameCount = tasks.filter(t => Boolean(getGameIdForTask(t))).length;
+    const normalCount = tasks.length - gameCount;
+    const testsCount = data.reviewTests ? data.reviewTests.length : 0;
+    tasksEl.textContent = `${data.stats.totalActivitiesCount}`;
+    tasksEl.title = `${normalCount} tareas de aula, ${gameCount} juegos evaluables y ${testsCount} tests de repaso de temario`;
+  }
+}
+
+function getGradeBadgeClass(grade) {
+  if (grade === null || grade === undefined || isNaN(grade)) return 'gb-badge--empty';
+  const n = Number(grade);
+  if (n >= 9.0) return 'gb-badge--sb';
+  if (n >= 7.0) return 'gb-badge--nt';
+  if (n >= 6.0) return 'gb-badge--bi';
+  if (n >= 5.0) return 'gb-badge--su';
+  return 'gb-badge--in';
+}
+
+function renderGradeCell(grade, tooltip = '') {
+  if (grade === null || grade === undefined || isNaN(grade)) {
+    return `<td style="text-align:center;" title="${escapeHtml(tooltip)}"><span class="gb-badge-grade gb-badge--empty">—</span></td>`;
+  }
+  const cls = getGradeBadgeClass(grade);
+  return `
+    <td style="text-align:center;" title="${escapeHtml(tooltip)}">
+      <span class="gb-badge-grade ${cls}">
+        ${Number(grade).toFixed(1)}
+      </span>
+    </td>`;
+}
+
+function renderGradebookTable() {
+  const container = $('gradebook-table-container');
+  if (!container || !gradebookData) return;
+
+  const { studentRows, competencies, criteriaList, tasks } = gradebookData;
+
+  // Filtrado de alumnos
+  let filtered = studentRows.filter(sr => {
+    if (gradebookSearchQuery) {
+      const q = gradebookSearchQuery.toLowerCase();
+      const matchName = sr.displayName.toLowerCase().includes(q);
+      const matchEmail = (sr.email || '').toLowerCase().includes(q);
+      if (!matchName && !matchEmail) return false;
+    }
+    if (gradebookStatusFilter === 'passed') {
+      return sr.globalGrade !== null && sr.globalGrade >= 5.0;
+    }
+    if (gradebookStatusFilter === 'failed') {
+      return sr.globalGrade !== null && sr.globalGrade < 5.0;
+    }
+    if (gradebookStatusFilter === 'pending') {
+      return sr.globalGrade === null;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:40px; color:var(--text-muted);">
+        <p style="font-size:1.1rem; margin-bottom:8px;">🔍 No se encontraron alumnos con los filtros seleccionados.</p>
+        <button type="button" class="btn btn-ghost btn--sm" id="btn-gb-clear-filters">Limpiar filtros</button>
+      </div>`;
+    $('btn-gb-clear-filters')?.addEventListener('click', () => {
+      gradebookSearchQuery = '';
+      gradebookStatusFilter = 'all';
+      if ($('gradebook-search')) $('gradebook-search').value = '';
+      if ($('gradebook-filter-status')) $('gradebook-filter-status').value = 'all';
+      renderGradebookTable();
+    });
+    return;
+  }
+
+  let html = `<table class="gradebook-table"><thead><tr>`;
+
+  // Columna 1 fija: Alumno
+  html += `<th class="gb-col-student">Alumno (${filtered.length})</th>`;
+
+  if (gradebookView === 'competencies') {
+    // Columnas de Competencias Específicas
+    competencies.forEach(comp => {
+      html += `
+        <th title="${escapeHtml(comp.code + ': ' + comp.name)}">
+          <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted);">${escapeHtml(comp.code)}</div>
+          <div style="font-weight:700; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            ${comp.icon || ''} ${escapeHtml(comp.short || comp.name)}
+          </div>
+        </th>`;
+    });
+  } else if (gradebookView === 'criteria') {
+    // Columnas de Criterios
+    criteriaList.forEach(c => {
+      html += `
+        <th title="Criterio ${escapeHtml(c.crit)}: ${escapeHtml(c.text || '')}">
+          <div style="font-size:0.72rem; color:var(--primary); font-weight:700;">Crit. ${escapeHtml(c.crit)}</div>
+          <div style="font-size:0.68rem; color:var(--text-muted); max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            ${escapeHtml(c.block || '')}
+          </div>
+        </th>`;
+    });
+  } else {
+    // Columnas de Tareas de aula y juegos
+    tasks.forEach(t => {
+      const isGame = Boolean(getGameIdForTask(t));
+      html += `
+        <th title="${escapeHtml(t.title || `Tarea ${t.id}`)}">
+          <div style="font-size:0.68rem; text-transform:uppercase; font-weight:700; color:${isGame ? '#e11d48' : '#059669'};">
+            ${isGame ? '🕹️ Juego' : '📝 Tarea'}
+          </div>
+          <div style="font-size:0.8rem; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            ${escapeHtml(t.title || `Tarea ${t.id}`)}
+          </div>
+        </th>`;
+    });
+    // Columnas de Tests de Repaso
+    (gradebookData.reviewTests || []).forEach(top => {
+      html += `
+        <th title="Test de Repaso: ${escapeHtml(top.title || top.name)} (Se evalúa SIEMPRE el último intento)">
+          <div style="font-size:0.68rem; text-transform:uppercase; font-weight:700; color:#2563eb;">
+            📖 Test Repaso
+          </div>
+          <div style="font-size:0.8rem; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            ${escapeHtml(top.title || top.name)}
+          </div>
+        </th>`;
+    });
+    html += `<th style="text-align:center;">% Completadas</th>`;
+  }
+
+  // Columnas finales fijas: Nota Global LOMLOE y Calificación
+  html += `
+    <th class="gb-col-global">Nota Global</th>
+    <th class="gb-col-global">Calificación</th>
+  </tr></thead><tbody>`;
+
+  // Filas de alumnos
+  filtered.forEach(sr => {
+    html += `<tr data-student-id="${escapeHtml(sr.studentId)}" class="gb-student-row">`;
+
+    // Celda alumno (clickeable)
+    html += `
+      <td class="gb-col-student" style="cursor:pointer;" title="Haz clic para ver la ficha completa de evolución del alumno">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="${escapeHtml(sr.photoURL)}" alt="" style="width:32px; height:32px; border-radius:50%; background:#eee;">
+          <div>
+            <div style="color:var(--text-primary); font-weight:bold; display:flex; align-items:center; gap:6px;">
+              <span>${escapeHtml(sr.displayName)}</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); opacity:0.8;">👁️</span>
+            </div>
+            <small style="color:var(--text-muted); font-size:0.75rem; display:block; max-width:180px; overflow:hidden; text-overflow:ellipsis;">
+              ${escapeHtml(sr.email)}
+            </small>
+          </div>
+        </div>
+      </td>`;
+
+    if (gradebookView === 'competencies') {
+      competencies.forEach(comp => {
+        const cg = sr.compGrades[comp.key];
+        const val = cg?.grade;
+        html += renderGradeCell(val, `${comp.code}: ${cg?.evaluatedCriteriaCount || 0}/${cg?.totalCriteriaCount || 0} criterios evaluados`);
+      });
+    } else if (gradebookView === 'criteria') {
+      criteriaList.forEach(c => {
+        const crg = sr.criteriaGrades[c.crit];
+        const val = crg?.grade;
+        html += renderGradeCell(val, `Crit. ${c.crit}: ${crg?.evaluatedActivitiesCount || 0}/${crg?.totalLinkedActivitiesCount || 0} actividades evaluadas (${crg?.evaluatedTasksCount || 0} tareas, ${crg?.evaluatedTestsCount || 0} tests)`);
+      });
+    } else {
+      tasks.forEach(t => {
+        const tg = sr.taskGrades[t.id];
+        const val = tg?.grade;
+        let tooltip = tg?.feedback || (val !== null ? 'Calificada' : 'Sin entregar');
+        if (tg?.isGame && tg?.gameScoreInfo) {
+          tooltip = `${tg.feedback || 'Partida de juego'} (${tg.gameScoreInfo})`;
+        }
+        html += renderGradeCell(val, tooltip);
+      });
+      (gradebookData.reviewTests || []).forEach(top => {
+        const tstg = sr.testGrades[top.id];
+        const val = tstg?.grade;
+        let tooltip = 'Sin realizar';
+        if (val !== null && val !== undefined) {
+          const dateStr = tstg.attemptDate ? formatDate({ toDate: () => new Date(tstg.attemptDate) }) : 'Fecha guardada';
+          tooltip = `Último intento: ${dateStr}\nNota: ${val.toFixed(2)}/10 (${tstg.attemptsCount} intento${tstg.attemptsCount > 1 ? 's' : ''})`;
+        }
+        html += renderGradeCell(val, tooltip);
+      });
+      html += `
+        <td style="text-align:center; font-weight:600;">
+          <span style="font-size:0.85rem; color:${sr.progressPct >= 75 ? 'var(--success)' : sr.progressPct >= 50 ? '#eab308' : 'var(--text-muted)'};">
+            ${sr.progressPct}%
+          </span>
+          <div style="font-size:0.7rem; color:var(--text-muted);">(${sr.gradedActivitiesCount}/${sr.totalActivitiesCount})</div>
+        </td>`;
+    }
+
+    // Nota Global y Badge
+    if (sr.globalGrade !== null) {
+      const q = sr.qualitative;
+      html += `
+        <td class="gb-col-global" style="font-size:1.05rem;">
+          <span class="gb-badge-grade ${getGradeBadgeClass(sr.globalGrade)}">
+            ${sr.globalGrade.toFixed(2)}
+          </span>
+        </td>
+        <td class="gb-col-global">
+          <span class="badge ${q.badgeClass}" style="font-size:0.78rem;">
+            ${q.code} · ${q.label}
+          </span>
+        </td>`;
+    } else {
+      html += `
+        <td class="gb-col-global"><span class="gb-badge-grade gb-badge--empty">—</span></td>
+        <td class="gb-col-global"><span class="badge badge--muted" style="font-size:0.75rem;">Sin calificar</span></td>`;
+    }
+
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+
+  // Eventos de clic en filas para abrir Ficha de Evolución
+  container.querySelectorAll('.gb-student-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const sid = row.dataset.studentId;
+      openStudentEvolutionModal(sid);
+    });
+  });
+}
+
+function openStudentEvolutionModal(studentId) {
+  if (!gradebookData || !studentId) return;
+  const sr = gradebookData.studentRows.find(s => s.studentId === studentId);
+  if (!sr) return;
+
+  const modal = $('modal-student-evolution');
+  if (!modal) return;
+
+  // Header info
+  $('m-evo-avatar').src = sr.photoURL;
+  $('m-evo-name').textContent = sr.displayName;
+  $('m-evo-email').textContent = sr.email || 'Alumno de la clase';
+
+  const q = sr.qualitative;
+  $('m-evo-global-grade').textContent = sr.globalGrade !== null ? sr.globalGrade.toFixed(2) : '—';
+  $('m-evo-qualitative-badge').textContent = `${q.label} (${q.code})`;
+  $('m-evo-qualitative-badge').className = `badge ${q.badgeClass}`;
+
+  // Progreso
+  $('m-evo-progress-text').textContent = `${sr.gradedActivitiesCount} / ${sr.totalActivitiesCount} actividades (${sr.progressPct}%)`;
+  $('m-evo-progress-bar').style.width = `${sr.progressPct}%`;
+  $('m-evo-progress-bar').style.background = sr.progressPct >= 75 ? 'var(--success)' : sr.progressPct >= 50 ? '#eab308' : 'var(--primary)';
+
+  // Competencias Específicas
+  const compListContainer = $('m-evo-competencies-list');
+  compListContainer.innerHTML = gradebookData.competencies.map(comp => {
+    const cg = sr.compGrades[comp.key];
+    const val = cg?.grade;
+    const hasGrade = val !== null && val !== undefined;
+    const pct = hasGrade ? Math.round(val * 10) : 0;
+    const color = hasGrade ? (val >= 7 ? 'var(--success)' : val >= 5 ? '#eab308' : 'var(--error)') : '#94a3b8';
+    const qCe = getQualitativeGrade(val);
+
+    return `
+      <div class="comp-bar-item">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span>${comp.icon || '📌'}</span>
+            <strong>${escapeHtml(comp.code)}: ${escapeHtml(comp.name)}</strong>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.8rem; color:var(--text-muted);">${cg?.evaluatedCriteriaCount || 0}/${cg?.totalCriteriaCount || 0} criterios</span>
+            <span style="font-size:1.05rem; font-weight:800; color:${color};">${hasGrade ? val.toFixed(2) : '—'}</span>
+            <span class="badge ${qCe.badgeClass}" style="font-size:0.7rem;">${qCe.code}</span>
+          </div>
+        </div>
+        <div style="width:100%; height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
+          <div style="height:100%; width:${pct}%; background:${color}; transition: width 0.3s ease;"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Criterios de Evaluación
+  const passedCount = sr.criteriaPassed;
+  const failedCount = sr.criteriaFailed;
+  const totalCriteria = gradebookData.criteriaList.length;
+  const pendingCount = totalCriteria - (passedCount + failedCount);
+
+  $('m-evo-crit-passed-badge').textContent = `✅ ${passedCount} Adquiridos`;
+  $('m-evo-crit-failed-badge').textContent = `⚠️ ${failedCount} En desarrollo`;
+  $('m-evo-crit-pending-badge').textContent = `⏳ ${pendingCount} Sin evaluar`;
+
+  const chipsContainer = $('m-evo-criteria-chips');
+  chipsContainer.innerHTML = gradebookData.criteriaList.map(c => {
+    const crg = sr.criteriaGrades[c.crit];
+    const val = crg?.grade;
+    let chipClass = 'crit-chip--pending';
+    let icon = '⏳';
+    let gradeText = 'Sin nota';
+
+    if (val !== null && val !== undefined) {
+      if (val >= 5.0) {
+        chipClass = 'crit-chip--passed';
+        icon = '✅';
+        gradeText = val.toFixed(1);
+      } else {
+        chipClass = 'crit-chip--failed';
+        icon = '⚠️';
+        gradeText = val.toFixed(1);
+      }
+    }
+
+    return `
+      <div class="crit-chip ${chipClass}" title="Crit. ${escapeHtml(c.crit)}: ${escapeHtml(c.text || '')} (Bloque: ${escapeHtml(c.block || '')})">
+        <span>${icon}</span>
+        <strong>Crit. ${escapeHtml(c.crit)}</strong>
+        <span>(${gradeText})</span>
+      </div>`;
+  }).join('');
+
+  // Desglose de Actividades (Tareas de aula, juegos y tests de repaso)
+  const tasksTbody = $('m-evo-tasks-tbody');
+  const classSubject = classData.subject_id || classData.subjectId || 'cyr';
+  const classLevel = classSubject === 'tic2' ? '2' : '1';
+  const rawMapping = classData.criteriaMapping || classData.criteria_mapping || null;
+  const criteriaMapping = getEffectiveCriteriaMapping(classSubject, classLevel, rawMapping);
+
+  const taskRowsHtml = gradebookData.tasks.map(t => {
+    const tg = sr.taskGrades[t.id];
+    const val = tg?.grade;
+    const hasGrade = val !== null && val !== undefined;
+    const crits = getCriteriaForTask(t, criteriaMapping);
+    const isGame = Boolean(getGameIdForTask(t));
+
+    let sourceNote = '';
+    if (tg?.source === 'teacher_rubric') {
+      sourceNote = '<span class="badge badge--ghost" style="font-size:0.65rem; color:#6366f1; margin-left:6px;">Rúbrica docente</span>';
+    } else if (tg?.source === 'game_result') {
+      sourceNote = '<span class="badge badge--ghost" style="font-size:0.65rem; color:#e11d48; margin-left:6px;">Partida juego</span>';
+    }
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span>${isGame ? '🕹️' : '📝'}</span>
+            <div>
+              <strong>${escapeHtml(t.title || `Tarea ${t.id}`)}</strong>
+              ${sourceNote}
+            </div>
+          </div>
+        </td>
+        <td style="text-align:center;">
+          ${crits.length > 0 
+            ? crits.map(cr => `<span class="badge badge--ghost" style="font-size:0.7rem; margin:1px;">${escapeHtml(cr)}</span>`).join('') 
+            : '<span style="color:var(--text-muted); font-size:0.75rem;">—</span>'}
+        </td>
+        <td style="text-align:center;">
+          ${hasGrade 
+            ? `<span class="gb-badge-grade ${getGradeBadgeClass(val)}">${val.toFixed(2)}</span>` 
+            : '<span class="gb-badge-grade gb-badge--empty">Sin calificar</span>'}
+        </td>
+        <td style="color:var(--text-secondary); font-size:0.8rem;">
+          ${tg?.feedback ? escapeHtml(tg.feedback) : '<span style="color:var(--text-muted); font-style:italic;">Sin comentarios</span>'}
+        </td>
+      </tr>`;
+  }).join('');
+
+  const testRowsHtml = (gradebookData.reviewTests || []).map(top => {
+    const tstg = sr.testGrades[top.id];
+    const val = tstg?.grade;
+    const hasGrade = val !== null && val !== undefined;
+    const crits = getCriteriaForTest(top.id, criteriaMapping);
+    const dateStr = tstg?.attemptDate ? formatDate({ toDate: () => new Date(tstg.attemptDate) }) : '';
+
+    return `
+      <tr style="background:rgba(59, 130, 246, 0.03);">
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span>📖</span>
+            <div>
+              <strong>Test: ${escapeHtml(top.title || top.name)}</strong>
+              <span class="badge badge--ghost" style="font-size:0.65rem; color:#2563eb; margin-left:6px;">Test Repaso</span>
+            </div>
+          </div>
+        </td>
+        <td style="text-align:center;">
+          ${crits.length > 0 
+            ? crits.map(cr => `<span class="badge badge--ghost" style="font-size:0.7rem; margin:1px;">${escapeHtml(cr)}</span>`).join('') 
+            : '<span style="color:var(--text-muted); font-size:0.75rem;">—</span>'}
+        </td>
+        <td style="text-align:center;">
+          ${hasGrade 
+            ? `<span class="gb-badge-grade ${getGradeBadgeClass(val)}">${val.toFixed(2)}</span>` 
+            : '<span class="gb-badge-grade gb-badge--empty">Sin realizar</span>'}
+        </td>
+        <td style="color:var(--text-secondary); font-size:0.8rem;">
+          ${hasGrade 
+            ? `Último intento: ${escapeHtml(dateStr)} (${tstg.attemptsCount} intento${tstg.attemptsCount > 1 ? 's' : ''})` 
+            : '<span style="color:var(--text-muted); font-style:italic;">Sin intentos registrados</span>'}
+        </td>
+      </tr>`;
+  }).join('');
+
+  tasksTbody.innerHTML = taskRowsHtml + testRowsHtml;
+
+  modal.classList.add('modal-backdrop--visible');
+}
+
+function attachGradebookControls() {
+  if (gradebookControlsAttached) return;
+  gradebookControlsAttached = true;
+
+  // View Switcher Buttons
+  const viewBtns = document.querySelectorAll('.gradebook-view-btn');
+  viewBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      viewBtns.forEach(b => b.classList.remove('gradebook-view-btn--active'));
+      btn.classList.add('gradebook-view-btn--active');
+      gradebookView = btn.dataset.view;
+      renderGradebookTable();
+    });
+  });
+
+  // Búsqueda
+  $('gradebook-search')?.addEventListener('input', (e) => {
+    gradebookSearchQuery = e.target.value.trim();
+    renderGradebookTable();
+  });
+
+  // Filtro estado
+  $('gradebook-filter-status')?.addEventListener('change', (e) => {
+    gradebookStatusFilter = e.target.value;
+    renderGradebookTable();
+  });
+
+  // Exportar CSV
+  $('btn-gradebook-export-csv')?.addEventListener('click', () => {
+    if (!gradebookData) return;
+    const classSubject = classData.subject_id || classData.subjectId || 'cyr';
+    const csv = exportGradebookCSV(gradebookData, gradebookView);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `cuaderno_${classSubject}_${gradebookView}_${classData.name.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
+  // Imprimir
+  $('btn-gradebook-print')?.addEventListener('click', () => {
+    window.print();
+  });
+
+  // Cerrar Modal Ficha
+  const modal = $('modal-student-evolution');
+  $('btn-close-evolution-modal')?.addEventListener('click', () => {
+    modal.classList.remove('modal-backdrop--visible');
+  });
+  $('btn-close-evolution-modal-footer')?.addEventListener('click', () => {
+    modal.classList.remove('modal-backdrop--visible');
+  });
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('modal-backdrop--visible');
+  });
 }
 

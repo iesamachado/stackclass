@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { supabase } from './supabase-config.js';
+import { LOCAL_TOPICS } from './topics_data.js';
 export { supabase };
 
 // ══════════════════════════════════════════════════════════════════
@@ -67,6 +68,9 @@ export async function updateUserProfile(uid, data) {
   if (mapped.guildId !== undefined && mapped.guild_id === undefined) {
     mapped.guild_id = mapped.guildId;
   }
+  if (mapped.gremio !== undefined && mapped.guild_id === undefined) {
+    mapped.guild_id = mapped.gremio;
+  }
   delete mapped.guildId;
   delete mapped.gremio;
 
@@ -122,7 +126,10 @@ export async function getGuilds(subjectId = null) {
     console.error('Error fetching guilds:', error);
     return [];
   }
-  return data || [];
+  return (data || []).map(g => ({
+    ...g,
+    image: g.image_url || g.image || ''
+  }));
 }
 
 export async function getMedals(subjectId = null) {
@@ -524,11 +531,46 @@ export async function getStudentClasses(studentId) {
 }
 
 export async function getClassMembers(classId) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('class_members')
     .select('student_id, joined_at, users(id, email, display_name, display_name_anon, avatar, xp, guild_id, logros)')
     .eq('class_id', classId);
-  return (data || []).map(row => ({ ...row.users, joined_at: row.joined_at }));
+  if (error) {
+    console.warn('Error fetching class members:', error);
+    return [];
+  }
+  return (data || []).map(row => {
+    const u = row.users || {};
+    const uid = u.id || row.student_id;
+    const dName = u.display_name || u.display_name_anon || u.email?.split('@')[0] || 'Alumno';
+    const dNameAnon = u.display_name_anon || u.display_name || 'Alumno';
+    const photo = u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${uid}`;
+    const xpVal = u.xp ?? 0;
+    const guildVal = u.guild_id || null;
+    const logrosVal = u.logros || [];
+
+    return {
+      ...u,
+      id: uid,
+      uid: uid,
+      studentId: uid,
+      student_id: uid,
+      email: u.email || '',
+      display_name: u.display_name || '',
+      displayName: dName,
+      display_name_anon: u.display_name_anon || '',
+      displayNameAnonymized: dNameAnon,
+      avatar: u.avatar || '',
+      photoURL: photo,
+      xp: xpVal,
+      puntosTotal: xpVal,
+      guild_id: guildVal,
+      gremio: guildVal,
+      logros: logrosVal,
+      medals: logrosVal,
+      joined_at: row.joined_at
+    };
+  });
 }
 
 export async function joinClassByPin(pin, studentId) {
@@ -656,26 +698,78 @@ export async function toggleTopicInClass(classId, topicId, active) {
 //  TAREAS (ASSIGNMENTS)
 // ══════════════════════════════════════════════════════════════════
 
+function mapAssignment(a) {
+  if (!a) return null;
+  const targetScore = a.max_score !== undefined && a.max_score !== null ? Number(a.max_score) : 100;
+  return {
+    ...a,
+    id: a.id,
+    classId: a.class_id,
+    gameId: a.game_id,
+    title: a.title,
+    description: a.description,
+    dueDate: a.due_date,
+    targetScore,
+    maxScore: targetScore,
+    classroomId: a.classroom_id,
+    classroomCourseWorkId: a.classroom_id,
+    classroomCourseId: a.classroom_id,
+    createdAt: a.created_at
+  };
+}
+
 export async function createAssignment(classId, data) {
+  const payload = {
+    class_id: classId,
+    title: data.title,
+    game_id: data.game_id || data.gameId || null,
+    description: data.description || null,
+    due_date: (data.due_date || data.dueDate) ? new Date(data.due_date || data.dueDate).toISOString() : null,
+    max_score: Number(data.max_score ?? data.target_score ?? data.targetScore) || 100,
+    classroom_id: data.classroom_id || data.classroomId || data.classroomCourseWorkId || data.classroomCourseId || null
+  };
+
   const { data: assignment, error } = await supabase
-    .from('assignments').insert({ class_id: classId, ...data }).select().single();
+    .from('assignments').insert(payload).select().single();
   if (error) throw error;
-  return assignment;
+  return mapAssignment(assignment);
 }
 
 export async function updateAssignment(classId, assignmentId, updates) {
-  const { error } = await supabase.from('assignments').update(updates).eq('id', assignmentId);
+  const payload = {};
+  if (updates.title !== undefined) payload.title = updates.title;
+  if (updates.game_id !== undefined || updates.gameId !== undefined) {
+    payload.game_id = updates.game_id || updates.gameId;
+  }
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.due_date !== undefined || updates.dueDate !== undefined) {
+    const d = updates.due_date || updates.dueDate;
+    payload.due_date = d ? new Date(d).toISOString() : null;
+  }
+  if (updates.max_score !== undefined || updates.target_score !== undefined || updates.targetScore !== undefined) {
+    payload.max_score = Number(updates.max_score ?? updates.target_score ?? updates.targetScore) || 100;
+  }
+  if (updates.classroom_id !== undefined || updates.classroomId !== undefined || updates.classroomCourseWorkId !== undefined || updates.classroomCourseId !== undefined) {
+    payload.classroom_id = updates.classroom_id || updates.classroomId || updates.classroomCourseWorkId || updates.classroomCourseId;
+  }
+
+  const { error } = await supabase.from('assignments').update(payload).eq('id', assignmentId);
   if (error) throw error;
 }
 
 export async function getClassAssignments(classId) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('assignments').select('*').eq('class_id', classId).order('created_at', { ascending: false });
-  return data || [];
+  if (error) {
+    console.warn('Error al cargar assignments de clase:', error);
+    return [];
+  }
+  return (data || []).map(mapAssignment);
 }
 
 export async function deleteAssignment(assignmentId) {
-  await supabase.from('assignments').delete().eq('id', assignmentId);
+  const { error } = await supabase.from('assignments').delete().eq('id', assignmentId);
+  if (error) throw error;
 }
 
 function mapGameResult(r) {
@@ -724,23 +818,64 @@ export async function getStudentResultsInClass(classId, studentId) {
 // ══════════════════════════════════════════════════════════════════
 
 export async function getTopics(subjectId) {
-  const { data } = await supabase
-    .from('topics').select('id, name, description, icon, color, sort_order')
-    .eq('subject_id', subjectId).order('sort_order');
-  return data || [];
+  try {
+    const { data } = await supabase
+      .from('topics').select('id, name, description, icon, color, sort_order')
+      .eq('subject_id', subjectId).order('sort_order');
+    if (data && data.length > 0) return data;
+  } catch (err) {
+    console.warn('Error fetching topics from Supabase, using local fallback:', err);
+  }
+  return Object.values(LOCAL_TOPICS)
+    .filter(t => t.subject_id === subjectId)
+    .map(t => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      icon: t.icon,
+      color: t.color,
+      sort_order: t.sort_order
+    }))
+    .sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export async function getTopic(topicId) {
-  const { data, error } = await supabase
-    .from('topics').select('*').eq('id', topicId).maybeSingle();
-  if (error) throw error;
-  return data || null;
+  try {
+    const { data, error } = await supabase
+      .from('topics').select('*').eq('id', topicId).maybeSingle();
+    if (!error && data) return data;
+  } catch (err) {
+    console.warn('Error fetching topic from Supabase, using local fallback:', err);
+  }
+  // Revisar si hay versión editada en localStorage
+  try {
+    const cached = localStorage.getItem('stackclass_topic_' + topicId);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {}
+  return LOCAL_TOPICS[topicId] || null;
 }
 
 export async function upsertTopic(topic) {
-  const { error } = await supabase
-    .from('topics').upsert(topic, { onConflict: 'id' });
-  if (error) throw error;
+  let sbError = null;
+  try {
+    const { error } = await supabase
+      .from('topics').upsert(topic, { onConflict: 'id' });
+    if (error) sbError = error;
+  } catch (err) {
+    sbError = err;
+  }
+
+  // Actualizar siempre caché local en memoria y en localStorage
+  if (topic && topic.id) {
+    LOCAL_TOPICS[topic.id] = { ...LOCAL_TOPICS[topic.id], ...topic };
+    try {
+      localStorage.setItem('stackclass_topic_' + topic.id, JSON.stringify(LOCAL_TOPICS[topic.id]));
+    } catch (_) {}
+  }
+
+  if (sbError) {
+    console.warn('Advertencia al guardar en Supabase, cambios guardados localmente:', sbError);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1102,11 +1237,69 @@ export async function getClassResults(classId, gameId = null, limit = 200) {
 }
 
 export async function getClassRanking(classId, gameId = null) {
-  // Usa la vista class_ranking de PostgreSQL
-  let q = supabase.from('class_ranking').select('*').eq('class_id', classId);
-  const { data } = await q;
-  if (!data) return [];
-  return data.sort((a, b) => b.total_game_score - a.total_game_score);
+  if (gameId) {
+    const { data, error } = await supabase
+      .from('game_results')
+      .select('student_id, score, created_at, users(id, display_name, display_name_anon, avatar, email)')
+      .eq('class_id', classId)
+      .eq('game_id', gameId)
+      .eq('forced_fail', false)
+      .order('score', { ascending: false });
+
+    if (error || !data) {
+      console.warn('Error fetching game ranking:', error);
+      return [];
+    }
+
+    const bestMap = new Map();
+    data.forEach(row => {
+      const sid = row.student_id;
+      if (!bestMap.has(sid) || (row.score > bestMap.get(sid).score)) {
+        const u = row.users || {};
+        const dName = u.display_name || u.display_name_anon || u.email?.split('@')[0] || 'Alumno';
+        const dNameAnon = u.display_name_anon || u.display_name || 'Alumno';
+        const photo = u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${sid}`;
+        bestMap.set(sid, {
+          studentId: sid,
+          student_id: sid,
+          score: row.score,
+          total_game_score: row.score,
+          displayName: dName,
+          displayNameAnonymized: dNameAnon,
+          photoURL: photo,
+          avatar: photo
+        });
+      }
+    });
+
+    return Array.from(bestMap.values()).sort((a, b) => b.score - a.score);
+  }
+
+  // Si no hay gameId (ranking global de la clase)
+  const { data, error } = await supabase.from('class_ranking').select('*').eq('class_id', classId);
+  if (error || !data) {
+    console.warn('Error fetching class ranking:', error);
+    return [];
+  }
+
+  return data.map(r => {
+    const sid = r.student_id || r.studentId;
+    const scoreVal = r.total_game_score ?? r.score ?? 0;
+    const dName = r.display_name || r.displayName || r.display_name_anon || 'Alumno';
+    const dNameAnon = r.display_name_anon || r.displayNameAnonymized || r.display_name || 'Alumno';
+    const photo = r.avatar || r.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${sid}`;
+    return {
+      ...r,
+      studentId: sid,
+      student_id: sid,
+      score: scoreVal,
+      total_game_score: scoreVal,
+      displayName: dName,
+      displayNameAnonymized: dNameAnon,
+      photoURL: photo,
+      avatar: photo
+    };
+  }).sort((a, b) => b.score - a.score);
 }
 
 // ══════════════════════════════════════════════════════════════════

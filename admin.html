@@ -27,6 +27,128 @@
       align-items: center;
       gap: 4px;
     }
+
+    /* ── Secciones del Panel ─────────────────────────────────────────── */
+    .admin-section {
+      margin-bottom: var(--space-8);
+    }
+    .admin-section-header {
+      margin-bottom: var(--space-4);
+    }
+    .admin-section-title {
+      font-family: var(--font-heading);
+      font-size: var(--text-xl);
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin: 0;
+    }
+    .admin-section-subtitle {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-top: 4px;
+      margin-bottom: 0;
+    }
+
+    /* ── Grid de Módulos y Herramientas ──────────────────────────────── */
+    .admin-tools-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-6);
+    }
+    @media (max-width: 992px) {
+      .admin-tools-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 640px) {
+      .admin-tools-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .admin-module-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      background: var(--bg-card);
+      border: var(--border-width) solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      box-shadow: var(--shadow-card);
+      transition: all var(--transition-base);
+    }
+    .admin-module-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: var(--shadow-lg);
+    }
+    .admin-module-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+    }
+    .admin-tool-icon {
+      width: 44px;
+      height: 44px;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: 2px 2px 0 0 var(--border);
+    }
+    .admin-module-badge {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+    }
+    .admin-module-desc {
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      line-height: 1.5;
+      margin-bottom: var(--space-4);
+      flex-grow: 1;
+    }
+    .admin-module-footer {
+      margin-top: auto;
+    }
+
+    .code-box-inline {
+      background: var(--bg-surface);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: auto;
+    }
+
+    /* ── Layout de Gestión de Docentes ───────────────────────────────── */
+    .admin-teachers-grid {
+      display: grid;
+      grid-template-columns: minmax(340px, 380px) 1fr;
+      gap: var(--space-6);
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .admin-teachers-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .teacher-item-row {
       display: flex;
       align-items: center;
@@ -91,8 +213,8 @@
           <a href="dashboard_teacher.html" class="back-link" style="margin: 0; margin-right: var(--space-2);">← Volver a Mis Clases</a>
           <span class="admin-header-badge">👑 Zona de Administración</span>
         </div>
-        <h1 class="dashboard-title" style="margin-top: var(--space-2);">Gestión de Docentes y Acceso 🛡️</h1>
-        <p class="dashboard-subtitle">Autoriza a profesores con cuentas <strong>@g.educaand.es</strong>, <strong>@iesamachado.org</strong> o cualquier otro dominio para crear clases y acceder a ClassHub.</p>
+        <h1 class="dashboard-title" style="margin-top: var(--space-2);">Panel de Control y Administración 🛡️</h1>
+        <p class="dashboard-subtitle">Gestión global de StackClass: edición curricular de temarios, herramientas de mantenimiento, control de accesos y docentes autorizados.</p>
       </header>
 
       <!-- Stats y métricas rápidas -->
@@ -114,17 +236,98 @@
         </div>
       </div>
 
-      <!-- Sección de Lista y Acciones -->
-      <div class="dashboard-grid dashboard-grid--sidebar animate-fade-up delay-2">
-        
-        <!-- Sidebar: Invitar / Autorizar nuevo docente -->
-        <aside>
-          <div class="card" style="position: sticky; top: calc(var(--navbar-height) + var(--space-4));">
+      <!-- Sección 1: Módulos y Herramientas del Sistema (Grid de 3 columnas de ancho completo) -->
+      <section class="admin-section animate-fade-up delay-2">
+        <div class="admin-section-header">
+          <h2 class="admin-section-title">⚙️ Módulos de Gestión y Mantenimiento</h2>
+          <p class="admin-section-subtitle">Accesos directos para la edición curricular de temarios, sincronización de gamificación y migraciones.</p>
+        </div>
+
+        <div class="admin-tools-grid">
+          
+          <!-- Tarjeta 1: Editor de Temario -->
+          <div class="admin-module-card">
+            <div>
+              <div class="admin-module-header">
+                <div class="admin-tool-icon">📚</div>
+                <span class="admin-module-badge" style="background:#e0f2fe; color:#0369a1; border-color:#7dd3fc;">Curricular</span>
+              </div>
+              <h3 class="card-title" style="margin-bottom: var(--space-2);">Editor de Temario</h3>
+              <p class="admin-module-desc">
+                Edita visualmente los bloques teóricos, explicaciones, diagramas, imágenes y componentes interactivos de <strong>Computación y Robótica</strong> y <strong>TIC 2</strong>.
+              </p>
+            </div>
+            <div class="admin-module-footer">
+              <a href="admin_temario.html" class="btn btn-primary btn--full" style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span>✏️</span> Abrir Editor de Contenidos
+              </a>
+            </div>
+          </div>
+
+          <!-- Tarjeta 2: Mantenimiento Gamificación -->
+          <div class="admin-module-card">
+            <div>
+              <div class="admin-module-header">
+                <div class="admin-tool-icon">🎮</div>
+                <span class="admin-module-badge" style="background:#fef3c7; color:#92400e; border-color:#fcd34d;">Gamificación</span>
+              </div>
+              <h3 class="card-title" style="margin-bottom: var(--space-2);">Mantenimiento Gamificación</h3>
+              <p class="admin-module-desc">
+                Calcula y otorga puntos de experiencia (XP) y medallas retroactivamente por todas las partidas guardadas con anterioridad.
+              </p>
+            </div>
+            <div class="admin-module-footer">
+              <button type="button" class="btn btn-primary btn--full" id="btn-migrate-xp">
+                <span>⭐</span> Calcular XP Retroactivo
+              </button>
+              <p id="migrate-xp-status" class="form-hint" style="margin-top:var(--space-2); font-size:var(--text-xs); color:var(--text-muted); text-align:center; min-height:18px; margin-bottom:0;"></p>
+            </div>
+          </div>
+
+          <!-- Tarjeta 3: Migración Firebase -->
+          <div class="admin-module-card">
+            <div>
+              <div class="admin-module-header">
+                <div class="admin-tool-icon">🔥</div>
+                <span class="admin-module-badge" style="background:#fee2e2; color:#991b1b; border-color:#fca5a5;">Base de Datos</span>
+              </div>
+              <h3 class="card-title" style="margin-bottom: var(--space-2);">Migración Firebase</h3>
+              <p class="admin-module-desc">
+                Importa la <strong>XP</strong>, <strong>medallas</strong> y <strong>partidas</strong> acumuladas de Firebase Firestore a Supabase para el traspaso definitivo.
+              </p>
+              <div class="code-box-inline">
+                <code>npm run migrate:firebase</code>
+              </div>
+            </div>
+            <div class="admin-module-footer">
+              <button type="button" class="btn btn-outline btn--full" id="btn-copy-migrate-cmd">
+                <span>📋</span> Copiar Comando
+              </button>
+              <p class="form-hint" style="margin-top: var(--space-2); font-size: 11px; text-align: center; margin-bottom: 0;">
+                💡 Simulación: <code>npm run migrate:dry-run</code>
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Sección 2: Gestión de Docentes y Permisos (Grid equilibrado de 2 columnas) -->
+      <section class="admin-section animate-fade-up delay-3" style="margin-top: var(--space-8);">
+        <div class="admin-section-header">
+          <h2 class="admin-section-title">👥 Gestión de Docentes y Accesos</h2>
+          <p class="admin-section-subtitle">Autoriza a profesores con cuentas <strong>@g.educaand.es</strong>, <strong>@iesamachado.org</strong> o cualquier otro dominio para crear clases y acceder a StackClass.</p>
+        </div>
+
+        <div class="admin-teachers-grid">
+          
+          <!-- Columna Izquierda: Formulario para Invitar / Autorizar Docente -->
+          <div class="card">
             <div class="card-header">
-              <h2 class="card-title">➕ Invitar / Autorizar Docente</h2>
+              <h3 class="card-title" style="font-size: var(--text-lg); margin: 0;">➕ Invitar / Autorizar Docente</h3>
             </div>
             <p class="form-hint" style="margin-bottom: var(--space-4);">
-              Los docentes deben ser invitados previamente para poder iniciar sesión. Puedes asignarles acceso como <strong>Docente</strong> o con permisos de <strong>Superadministrador</strong>.
+              Los docentes deben estar invitados para iniciar sesión. Puedes otorgarles rol de <strong>Docente</strong> o permisos de <strong>Superadministrador</strong>.
             </p>
 
             <form id="form-add-teacher" novalidate>
@@ -158,46 +361,12 @@
               </div>
             </form>
           </div>
-          
-          <div class="card" style="margin-top: var(--space-4);">
-            <div class="card-header">
-              <h2 class="card-title">🎮 Mantenimiento Gamificación</h2>
-            </div>
-            <p class="form-hint" style="margin-bottom: var(--space-4);">
-              Otorga puntos de experiencia (XP) y medallas retroactivamente por todas las partidas jugadas antes de activar el sistema de gamificación.
-            </p>
-            <button type="button" class="btn btn-primary btn--full" id="btn-migrate-xp">
-              <span>⭐</span> Calcular XP Retroactivo
-            </button>
-            <p id="migrate-xp-status" style="margin-top:var(--space-2); font-size:var(--text-xs); color:var(--text-muted); text-align:center;"></p>
-          </div>
 
-          <div class="card" style="margin-top: var(--space-4);">
-            <div class="card-header">
-              <h2 class="card-title">🔥 Migración Firebase</h2>
-            </div>
-            <p class="form-hint" style="margin-bottom: var(--space-3);">
-              Importa la <strong>XP</strong>, <strong>medallas</strong> y <strong>partidas</strong> acumuladas de Firebase Firestore a Supabase cuando decidas hacer el traspaso definitivo.
-            </p>
-            <div style="background: var(--bg-surface); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: var(--text-xs); margin-bottom: var(--space-3);">
-              <span style="font-weight: 700;">Comando en terminal:</span>
-              <code style="display: block; margin-top: 6px; padding: 6px 10px; background: var(--bg-card); border-radius: 4px; font-family: var(--font-mono); font-size: var(--text-xs); border: 1px solid var(--border);">npm run migrate:firebase</code>
-            </div>
-            <button type="button" class="btn btn-outline btn--full" id="btn-copy-migrate-cmd">
-              <span>📋</span> Copiar Comando
-            </button>
-            <p class="form-hint" style="margin-top: var(--space-2); font-size: 11px;">
-              💡 Simulación sin cambios: <code>npm run migrate:dry-run</code>
-            </p>
-          </div>
-        </aside>
-
-        <!-- Contenido principal: Lista de docentes autorizados -->
-        <section>
+          <!-- Columna Derecha: Lista de Docentes Autorizados -->
           <div class="card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
               <div>
-                <h2 class="card-title" style="margin: 0;">Docentes Autorizados</h2>
+                <h3 class="card-title" style="margin: 0; font-size: var(--text-lg);">Docentes Autorizados</h3>
                 <small class="text-muted" id="teachers-count-subtitle">Cargando...</small>
               </div>
               
@@ -218,9 +387,9 @@
               No se encontraron docentes con ese criterio de búsqueda.
             </p>
           </div>
-        </section>
 
-      </div>
+        </div>
+      </section>
 
     </div>
   </main>

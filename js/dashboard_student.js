@@ -21,7 +21,7 @@ requireAuth({
 
     // Gamification
     const pts = profile.puntosTotal !== undefined ? profile.puntosTotal : (profile.xp || 0);
-    const { getLeague, initGamification } = await import('./common/gamification.js');
+    const { getLeague, initGamification, getGuildsForSubject } = await import('./common/gamification.js');
     await initGamification();
     const league = getLeague(pts);
     
@@ -32,7 +32,10 @@ requireAuth({
     const gremio = profile.gremio || profile.guild_id;
     if (gremio && $('hero-guild-info')) {
       $('hero-guild-info').style.display = 'block';
-      if ($('hero-guild-name')) $('hero-guild-name').textContent = gremio;
+      const guilds = getGuildsForSubject(profile.subject_id);
+      const foundG = guilds.find(g => g.id === gremio || g.name === gremio);
+      const displayName = foundG ? `${foundG.icon || '🛡️'} ${foundG.name}` : gremio;
+      if ($('hero-guild-name')) $('hero-guild-name').textContent = displayName;
     }
 
     checkNoAccessAlert();

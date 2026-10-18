@@ -397,17 +397,22 @@ export function renderPodium(ranking, containerId) {
 
   container.innerHTML = `
     <div class="podium">
-      ${top.map((r, i) => `
+      ${top.map((r, i) => {
+        const sid = r.studentId || r.student_id || '';
+        const name = r.displayNameAnonymized || r.displayName || r.display_name_anon || r.display_name || r.name || 'Alumno';
+        const photo = r.photoURL || r.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${sid}`;
+        const score = r.score ?? r.total_game_score ?? 0;
+        return `
         <div class="podium-position podium-position--${i + 1}">
           <div class="podium-medal">${medals[i]}</div>
           <img class="podium-avatar" 
-               src="${escapeHtml(r.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${r.studentId}`)}"
-               alt="${escapeHtml(r.displayNameAnonymized || r.displayName || 'Alumno')}">
-          <div class="podium-name">${escapeHtml(r.displayNameAnonymized || r.displayName || 'Alumno')}</div>
-          <div class="podium-score">${r.score}</div>
+               src="${escapeHtml(photo)}"
+               alt="${escapeHtml(name)}">
+          <div class="podium-name">${escapeHtml(name)}</div>
+          <div class="podium-score">${score}</div>
           <div class="podium-bar"></div>
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -434,18 +439,23 @@ export function renderRankingTable(ranking, containerId, { myUid = null } = {}) 
         </tr>
       </thead>
       <tbody>
-        ${ranking.map((r, i) => `
-          <tr class="${r.studentId === myUid ? 'ranking-table__row--me' : ''}">
+        ${ranking.map((r, i) => {
+          const sid = r.studentId || r.student_id || '';
+          const name = r.displayNameAnonymized || r.displayName || r.display_name_anon || r.display_name || r.name || 'Alumno';
+          const photo = r.photoURL || r.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${sid}`;
+          const score = r.score ?? r.total_game_score ?? 0;
+          return `
+          <tr class="${sid === myUid ? 'ranking-table__row--me' : ''}">
             <td class="ranking-pos">${medals[i] || i + 1}</td>
             <td class="ranking-name">
               <img class="ranking-avatar" 
-                   src="${escapeHtml(r.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${r.studentId}`)}"
+                   src="${escapeHtml(photo)}"
                    alt="">
-              ${escapeHtml(r.displayNameAnonymized || r.displayName || 'Alumno')}
+              ${escapeHtml(name)}
             </td>
-            <td class="ranking-score">${r.score}</td>
-          </tr>
-        `).join('')}
+            <td class="ranking-score">${score}</td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 }

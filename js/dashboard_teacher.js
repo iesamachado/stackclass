@@ -63,6 +63,11 @@ function renderClasses(classes) {
       window.location.href = `class_detail.html?classId=${btn.dataset.classId}`;
     });
   });
+  list.querySelectorAll('[data-action="gradebook"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.location.href = `class_detail.html?classId=${btn.dataset.classId}&tab=gradebook`;
+    });
+  });
   list.querySelectorAll('[data-action="copy-pin"]').forEach(btn => {
     btn.addEventListener('click', async () => {
       await copyToClipboard(btn.dataset.pin);
@@ -96,9 +101,12 @@ function renderClassCard(cls) {
         <span>👨‍🎓 ${members.length} alumnos</span>
         <span>🎮 ${enabledGames.length} juegos activos</span>
       </div>
-      <div class="class-card-actions">
-        <button class="btn btn-primary btn--sm" data-action="manage" data-class-id="${cls.id}">
+      <div class="class-card-actions" style="display:flex; gap:8px;">
+        <button class="btn btn-primary btn--sm" data-action="manage" data-class-id="${cls.id}" style="flex:1;">
           ⚙️ Gestionar clase
+        </button>
+        <button class="btn btn-secondary btn--sm" data-action="gradebook" data-class-id="${cls.id}" title="Abrir Cuaderno Docente LOMLOE de esta clase" style="display:inline-flex; align-items:center; gap:4px;">
+          📒 Cuaderno
         </button>
       </div>
     </div>`;

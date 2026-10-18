@@ -107,6 +107,9 @@ function renderTopicContent(topic) {
   $("topic-loading").style.display = "none";
   container.style.display = "block";
 
+  // Renderizar diagramas de flujo y Mermaid
+  renderTopicDiagrams(container);
+
   // Interceptar botones y enlaces que apunten a test.html para abrir el test modal directamente
   container.querySelectorAll('a[href*="test.html"]').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -114,6 +117,113 @@ function renderTopicContent(topic) {
       $("btn-start-test")?.click();
     });
   });
+}
+
+// ──────────────────────────────────────────────────────────────────────
+//  DIAGRAMAS DE FLUJO Y MERMAID
+// ──────────────────────────────────────────────────────────────────────
+function getSemaforoFlowchartSvg() {
+  return `
+    <div class="flowchart-svg-container" role="img" aria-label="Diagrama de flujo del algoritmo para cruzar el semáforo">
+      <svg viewBox="0 0 500 490" xmlns="http://www.w3.org/2000/svg" style="max-width: 480px; width: 100%; height: auto; margin: 10px auto; display: block; font-family: 'Inter', system-ui, -apple-system, sans-serif;">
+        <defs>
+          <marker id="flow-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#334155" />
+          </marker>
+          <filter id="diagram-shadow" x="-8%" y="-8%" width="120%" height="120%">
+            <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.08" />
+          </filter>
+        </defs>
+
+        <!-- 1. Inicio -->
+        <rect x="180" y="10" width="140" height="38" rx="19" ry="19" fill="#e2e8f0" stroke="#64748b" stroke-width="2.5" filter="url(#diagram-shadow)"/>
+        <text x="250" y="34" text-anchor="middle" font-weight="700" font-size="14" fill="#1e293b">Inicio</text>
+
+        <!-- Flecha 1 -> 2 -->
+        <line x1="250" y1="48" x2="250" y2="76" stroke="#334155" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+        <!-- 2. Llegar al paso de cebra -->
+        <rect x="140" y="78" width="220" height="42" rx="6" ry="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2.5" filter="url(#diagram-shadow)"/>
+        <text x="250" y="104" text-anchor="middle" font-weight="600" font-size="13.5" fill="#1e3a8a">Llegar al paso de cebra</text>
+
+        <!-- Flecha 2 -> 3 -->
+        <line x1="250" y1="120" x2="250" y2="148" stroke="#334155" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+        <!-- 3. Mirar el semáforo -->
+        <rect x="155" y="150" width="190" height="42" rx="6" ry="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2.5" filter="url(#diagram-shadow)"/>
+        <text x="250" y="176" text-anchor="middle" font-weight="600" font-size="13.5" fill="#1e3a8a">Mirar el semáforo</text>
+
+        <!-- Flecha 3 -> 4 -->
+        <line x1="250" y1="192" x2="250" y2="220" stroke="#334155" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+        <!-- 4. Rombo: ¿Está verde? -->
+        <polygon points="250,222 340,265 250,308 160,265" fill="#fef08a" stroke="#eab308" stroke-width="2.5" filter="url(#diagram-shadow)"/>
+        <text x="250" y="270" text-anchor="middle" font-weight="700" font-size="13.5" fill="#854d0e">¿Está verde?</text>
+
+        <!-- Rama NO: Salida a la derecha -->
+        <line x1="340" y1="265" x2="385" y2="265" stroke="#334155" stroke-width="2" marker-end="url(#flow-arrow)"/>
+        <rect x="345" y="244" width="34" height="18" fill="#ffffff" rx="3" stroke="#cbd5e1" stroke-width="1"/>
+        <text x="362" y="257" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626">No</text>
+
+        <!-- Caja: Esperar -->
+        <rect x="388" y="244" width="95" height="42" rx="6" ry="6" fill="#ffedd5" stroke="#ea580c" stroke-width="2.5" filter="url(#diagram-shadow)"/>
+        <text x="435" y="270" text-anchor="middle" font-weight="600" font-size="13" fill="#9a3412">Esperar</text>
+
+        <!-- Bucle de vuelta: Esperar -> Mirar el semáforo -->
+        <path d="M 435,244 L 435,171 L 348,171" fill="none" stroke="#334155" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+        <!-- Rama SÍ: Salida hacia abajo -->
+        <line x1="250" y1="308" x2="250" y2="352" stroke="#334155" stroke-width="2" marker-end="url(#flow-arrow)"/>
+        <rect x="256" y="320" width="24" height="18" fill="#ffffff" rx="3" stroke="#cbd5e1" stroke-width="1"/>
+        <text x="268" y="333" text-anchor="middle" font-size="11" font-weight="700" fill="#16a34a">Sí</text>
+
+        <!-- 5. Cruzar la calle -->
+        <rect x="155" y="354" width="190" height="42" rx="6" ry="6" fill="#dcfce7" stroke="#22c55e" stroke-width="2.5" filter="url(#diagram-shadow)"/>
+        <text x="250" y="380" text-anchor="middle" font-weight="600" font-size="13.5" fill="#14532d">Cruzar la calle</text>
+
+        <!-- Flecha 5 -> 6 -->
+        <line x1="250" y1="396" x2="250" y2="426" stroke="#334155" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+        <!-- 6. Fin -->
+        <rect x="180" y="428" width="140" height="38" rx="19" ry="19" fill="#e2e8f0" stroke="#64748b" stroke-width="2.5" filter="url(#diagram-shadow)"/>
+        <text x="250" y="452" text-anchor="middle" font-weight="700" font-size="14" fill="#1e293b">Fin</text>
+      </svg>
+    </div>
+  `;
+}
+
+function renderTopicDiagrams(container) {
+  const mermaidNodes = container.querySelectorAll('.mermaid');
+  if (mermaidNodes.length === 0) return;
+
+  mermaidNodes.forEach(node => {
+    const raw = (node.textContent || '').trim();
+    if (raw.includes('Cruzar el semáforo') || raw.includes('paso de cebra') || raw.includes('verde') || raw.includes('flowchart')) {
+      node.innerHTML = getSemaforoFlowchartSvg();
+      node.setAttribute('data-rendered', 'true');
+    }
+  });
+
+  const unrendered = container.querySelectorAll('.mermaid:not([data-rendered="true"])');
+  if (unrendered.length > 0) {
+    if (window.mermaid) {
+      try {
+        window.mermaid.run({ nodes: unrendered });
+      } catch (err) {
+        console.warn('Error ejecutando Mermaid:', err);
+      }
+    } else {
+      import('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs')
+        .then(({ default: mermaid }) => {
+          window.mermaid = mermaid;
+          mermaid.initialize({ startOnLoad: false, theme: 'base' });
+          mermaid.run({ nodes: unrendered });
+        })
+        .catch(err => {
+          console.warn('Mermaid CDN no disponible, se mantiene fallback nativo:', err);
+        });
+    }
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────

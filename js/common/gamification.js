@@ -12,15 +12,29 @@ import { showToast, triggerConfetti } from './ui.js';
 // ──────────────────────────────────────────────────────────────────────
 //  ESTADO Y CATÁLOGOS EN MEMORIA (CARGADOS DINÁMICAMENTE DESDE LA BBDD)
 // ──────────────────────────────────────────────────────────────────────
+export const DEFAULT_TIC2_GUILDS = [
+  { id: 'turing', subject_id: 'tic2', name: 'La Hermandad de Turing', icon: '🗝️', color: '#8e44ad', image: 'img/turing.png', desc: 'Herederos del mismísimo Alan Turing. Maestros de la lógica y la criptografía. Su objetivo es descifrar los secretos mejor guardados del ciberespacio.' },
+  { id: 'lovelace', subject_id: 'tic2', name: 'Los Hijos de Lovelace', icon: '⚙️', color: '#2980b9', image: 'img/lovelace.png', desc: 'Bajo el manto de Ada Lovelace, la primera programadora de la historia. Son los arquitectos del código, estructurados, analíticos y elegantes.' },
+  { id: 'hopper', subject_id: 'tic2', name: 'El Escuadrón de Hopper', icon: '🐛', color: '#16a085', image: 'img/hopper.png', desc: 'Inspirados en Grace Hopper. Compiladores natos, depuradores incansables y siempre listos para encontrar y aplastar cualquier "bug" en el código.' },
+  { id: 'stallman', subject_id: 'tic2', name: 'La Resistencia de Stallman', icon: '🐃', color: '#e67e22', image: 'img/stallman.png', desc: 'Devotos del Software Libre y herederos de la filosofía GNU de Richard Stallman. Luchan por la libertad del código y el conocimiento sin cadenas.' }
+];
+
+export const DEFAULT_CYR_GUILDS = [
+  { id: 'r2d2', subject_id: 'cyr', name: 'La Brigada R2-D2', icon: '🔵', color: '#00bcd4', image: 'img/gremios/r2d2.png', desc: 'Fieles, valientes y siempre listos para la misión. Inspirados en el famoso astromecánico de Star Wars.' },
+  { id: 'walle', subject_id: 'cyr', name: 'El Colectivo WALL·E', icon: '🟠', color: '#ff9800', image: 'img/gremios/walle.png', desc: 'Curiosos, creativos y con un enorme corazón. Como el robot de Pixar, valoran la creatividad.' },
+  { id: 'baymax', subject_id: 'cyr', name: 'La Unidad Baymax', icon: '🤍', color: '#e53935', image: 'img/gremios/baymax.png', desc: 'Pacíficos, empáticos y siempre dispuestos a ayudar. Destacan por su compañerismo.' },
+  { id: 'terminator', subject_id: 'cyr', name: 'La Orden Terminator', icon: '💀', color: '#607d8b', image: 'img/gremios/terminator.png', desc: 'Imparables, determinados y forjados en acero. Como el T-800, no conocen el abandono.' }
+];
+
 export const LEAGUES = [];
 export const GAME_XP_CONFIG = {};
 export const MEDALS_CATALOG = [];
 export const TIC2_MEDALS_CATALOG = [];
 export const CYR_MEDALS_CATALOG = [];
 export const MEDAL_XP = {};
-export const GUILDS_CATALOG = [];
-export const TIC2_GUILDS_CATALOG = [];
-export const CYR_GUILDS_CATALOG = [];
+export const GUILDS_CATALOG = [...DEFAULT_TIC2_GUILDS, ...DEFAULT_CYR_GUILDS];
+export const TIC2_GUILDS_CATALOG = [...DEFAULT_TIC2_GUILDS];
+export const CYR_GUILDS_CATALOG = [...DEFAULT_CYR_GUILDS];
 
 let _initPromise = null;
 
@@ -137,7 +151,7 @@ export async function loadGuilds(subjectId = null) {
             subject_id: g.subject_id,
             name: g.name,
             icon: g.icon,
-            image: g.image,
+            image: g.image_url || g.image || (g.subject_id === 'tic2' ? `img/${g.id}.png` : `img/gremios/${g.id}.png`),
             color: g.color,
             desc: g.description,
             description: g.description
@@ -148,16 +162,24 @@ export async function loadGuilds(subjectId = null) {
         });
         return GUILDS_CATALOG;
       } else {
-        return list.map(g => ({
+        const mapped = list.map(g => ({
           id: g.id,
           subject_id: g.subject_id,
           name: g.name,
           icon: g.icon,
-          image: g.image,
+          image: g.image_url || g.image || (g.subject_id === 'tic2' ? `img/${g.id}.png` : `img/gremios/${g.id}.png`),
           color: g.color,
           desc: g.description,
           description: g.description
         }));
+        if (String(subjectId).toLowerCase().includes('tic')) {
+          TIC2_GUILDS_CATALOG.length = 0;
+          TIC2_GUILDS_CATALOG.push(...mapped);
+        } else {
+          CYR_GUILDS_CATALOG.length = 0;
+          CYR_GUILDS_CATALOG.push(...mapped);
+        }
+        return mapped;
       }
     }
   } catch (err) {
