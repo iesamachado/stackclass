@@ -40,8 +40,8 @@
   /* ── Semánticos ──────────────────────────────────────────── */
   --success:        #23A094;
   --success-subtle: #D5F2EF;
-  --warning:        #FFE300;
-  --warning-subtle: #FFF9C4;
+  --warning:        #b45309;
+  --warning-subtle: #fef3c7;
   --error:          #FF4C4C;
   --error-subtle:   #FFD6D6;
   --info:           #90A8FF;

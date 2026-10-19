@@ -863,12 +863,12 @@ async function loadAssignmentsTab() {
                 <tr style="border-bottom:1px solid var(--border);">
                   <td style="padding:8px 12px;">${escapeHtml(r.name)}</td>
                   <td style="padding:8px 12px; text-align:center;">${r.score}</td>
-                  <td style="padding:8px 12px; text-align:center; font-weight:600; color:${r.done ? 'var(--success)' : r.score > 0 ? 'var(--warning)' : 'var(--text-muted)'}">
+                  <td style="padding:8px 12px; text-align:center; font-weight:700; color:${r.done ? 'var(--success)' : r.score > 0 ? (r.grade >= 5 ? 'var(--warning)' : 'var(--error)') : 'var(--text-muted)'}">
                     ${r.score > 0 ? r.grade + '/10' : '—'}
                   </td>
                   <td style="padding:8px 12px; min-width:120px;">
-                    <div style="background:var(--border); border-radius:99px; height:6px; overflow:hidden;">
-                      <div style="background:${r.done ? 'var(--success)' : 'var(--primary)'}; width:${r.pct}%; height:100%; border-radius:99px;"></div>
+                    <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:99px; height:8px; overflow:hidden;">
+                      <div style="background:${r.done ? 'var(--success)' : 'var(--warning)'}; width:${r.pct}%; height:100%; border-radius:99px;"></div>
                     </div>
                   </td>
                   <td style="padding:8px 12px; text-align:center;">${r.statusBadge}</td>
@@ -1187,6 +1187,8 @@ async function loadExamsTab() {
     members = await getClassMembers(classData.id);
   }
 
+  const examsRef = query(collection(db, 'examenes_test'), where('claseId', '==', classData.id));
+
   if (unsubscribeExams) unsubscribeExams();
   unsubscribeExams = onSnapshot(examsRef, (snap) => {
     const exams = [];
@@ -1201,25 +1203,32 @@ async function loadExamsTab() {
     if (!exams.length) {
       list.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay exámenes generados.</td></tr>';
     } else {
-      list.innerHTML = exams.map(ex => `
+      list.innerHTML = exams.map(ex => {
+        const title = ex.titulo || ex.title || 'Examen';
+        const numQ = ex.numPreguntas !== undefined ? ex.numPreguntas : (ex.questionIds ? ex.questionIds.length : (ex.question_ids ? ex.question_ids.length : 0));
+        const duration = ex.tiempoMinutos || ex.durationMins || 45;
+        const isActive = ex.activo !== undefined ? ex.activo : (ex.active !== undefined ? ex.active : false);
+        const dateStr = ex.creadoEn?.toDate ? ex.creadoEn.toDate().toLocaleDateString() : (ex.createdAt ? new Date(ex.createdAt).toLocaleDateString() : '');
+        return `
         <tr>
-          <td><strong>${escapeHtml(ex.titulo)}</strong></td>
-          <td>${ex.numPreguntas} preg.</td>
-          <td>${ex.tiempoMinutos} min</td>
+          <td><strong>${escapeHtml(title)}</strong></td>
+          <td>${numQ} preg.</td>
+          <td>${duration} min</td>
           <td>
-            <span class="badge ${ex.activo ? 'badge--success' : 'badge--muted'}">
-              ${ex.activo ? 'Activo' : 'Cerrado'}
+            <span class="badge ${isActive ? 'badge--success' : 'badge--muted'}">
+              ${isActive ? 'Activo' : 'Cerrado'}
             </span>
           </td>
-          <td>${ex.creadoEn?.toDate ? ex.creadoEn.toDate().toLocaleDateString() : ''}</td>
+          <td>${dateStr}</td>
           <td>
-            ${ex.activo 
+            ${isActive 
               ? `<button class="btn btn-ghost btn--sm" onclick="window._cerrarExamenTest('${ex.id}')" title="Cerrar examen">🔒</button>`
               : `<button class="btn btn-ghost btn--sm" onclick="window._activarExamenTest('${ex.id}')" title="Abrir examen">🔓</button>`}
             <button class="btn btn-ghost btn--sm" onclick="window._deleteExamenTest('${ex.id}')" title="Eliminar" style="color:var(--error)">🗑️</button>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     }
   });
 
@@ -1296,14 +1305,14 @@ async function loadExamsTab() {
 }
 
 window._activarExamenTest = async (id) => {
-  await updateDoc(doc(db, 'classes', classData.id, 'examenes_test', id), { activo: true });
+  await updateDoc(doc(db, 'examenes_test', id), { activo: true });
 };
 window._cerrarExamenTest = async (id) => {
-  await updateDoc(doc(db, 'classes', classData.id, 'examenes_test', id), { activo: false });
+  await updateDoc(doc(db, 'examenes_test', id), { activo: false });
 };
 window._deleteExamenTest = async (id) => {
   if (confirm('¿Seguro que deseas eliminar este examen?')) {
-    await deleteDoc(doc(db, 'classes', classData.id, 'examenes_test', id));
+    await deleteDoc(doc(db, 'examenes_test', id));
   }
 };
 
@@ -2770,7 +2779,7 @@ function updateGradebookKPIs(data) {
       passEl.textContent = `${stats.passRate}%`;
       const passedCount = Math.round((stats.passRate / 100) * stats.studentsWithGrade);
       countEl.textContent = `(${passedCount}/${stats.studentsWithGrade} evaluados)`;
-      passEl.style.color = stats.passRate >= 75 ? 'var(--success)' : stats.passRate >= 50 ? '#eab308' : 'var(--error)';
+      passEl.style.color = stats.passRate >= 75 ? 'var(--success)' : stats.passRate >= 50 ? 'var(--warning)' : 'var(--error)';
     } else {
       passEl.textContent = '—';
       countEl.textContent = '(0 evaluados)';
@@ -2990,7 +2999,7 @@ function renderGradebookTable() {
       });
       html += `
         <td style="text-align:center; font-weight:600;">
-          <span style="font-size:0.85rem; color:${sr.progressPct >= 75 ? 'var(--success)' : sr.progressPct >= 50 ? '#eab308' : 'var(--text-muted)'};">
+          <span style="font-size:0.85rem; color:${sr.progressPct >= 75 ? 'var(--success)' : sr.progressPct >= 50 ? 'var(--warning)' : 'var(--text-muted)'};">
             ${sr.progressPct}%
           </span>
           <div style="font-size:0.7rem; color:var(--text-muted);">(${sr.gradedActivitiesCount}/${sr.totalActivitiesCount})</div>
@@ -3053,7 +3062,7 @@ function openStudentEvolutionModal(studentId) {
   // Progreso
   $('m-evo-progress-text').textContent = `${sr.gradedActivitiesCount} / ${sr.totalActivitiesCount} actividades (${sr.progressPct}%)`;
   $('m-evo-progress-bar').style.width = `${sr.progressPct}%`;
-  $('m-evo-progress-bar').style.background = sr.progressPct >= 75 ? 'var(--success)' : sr.progressPct >= 50 ? '#eab308' : 'var(--primary)';
+  $('m-evo-progress-bar').style.background = sr.progressPct >= 75 ? 'var(--success)' : sr.progressPct >= 50 ? 'var(--warning)' : 'var(--primary)';
 
   // Competencias Específicas
   const compListContainer = $('m-evo-competencies-list');
@@ -3062,7 +3071,7 @@ function openStudentEvolutionModal(studentId) {
     const val = cg?.grade;
     const hasGrade = val !== null && val !== undefined;
     const pct = hasGrade ? Math.round(val * 10) : 0;
-    const color = hasGrade ? (val >= 7 ? 'var(--success)' : val >= 5 ? '#eab308' : 'var(--error)') : '#94a3b8';
+    const color = hasGrade ? (val >= 7 ? 'var(--success)' : val >= 5 ? 'var(--warning)' : 'var(--error)') : '#94a3b8';
     const qCe = getQualitativeGrade(val);
 
     return `

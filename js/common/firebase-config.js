@@ -151,12 +151,22 @@ export function doc(dbOrCol, ...paths) {
     table = dbOrCol.table;
     id = paths[0];
   } else if (paths.length >= 2) {
-    table = resolveTable(paths[0]);
-    id = paths[1];
+    if (paths.length === 4 && resolveTable(paths[0]) === "classes") {
+      table = resolveTable(paths[2]);
+      id = paths[3];
+    } else {
+      table = resolveTable(paths[0]);
+      id = paths[1];
+    }
   } else if (paths.length === 1) {
     const parts = paths[0].split("/");
-    table = resolveTable(parts[0]);
-    id = parts[1];
+    if (parts.length === 4 && resolveTable(parts[0]) === "classes") {
+      table = resolveTable(parts[2]);
+      id = parts[3];
+    } else {
+      table = resolveTable(parts[0]);
+      id = parts[1];
+    }
   }
 
   return { type: "doc", table, id };
@@ -345,6 +355,7 @@ export async function getDocs(queryOrCol) {
       if (item.task_id && !item.taskId) item.taskId = item.task_id;
       if (item.student_id && !item.studentId) item.studentId = item.student_id;
       if (item.class_id && !item.classId) item.classId = item.class_id;
+      if (item.rubric_scores && !item.rubricScores) item.rubricScores = item.rubric_scores;
     }
     if (table === "exams") {
       if (item.title && !item.titulo) item.titulo = item.title;
@@ -459,7 +470,17 @@ export async function updateDoc(docRef, data) {
     if (payload.teacher_feedback !== undefined) payload.feedback = payload.teacher_feedback;
     delete payload.final_grade;
     delete payload.teacher_feedback;
-    delete payload.rubric_scores;
+  }
+
+  if (docRef.table === "exams") {
+    if (payload.activo !== undefined) {
+      payload.active = payload.activo;
+      delete payload.activo;
+    }
+    if (payload.titulo !== undefined) {
+      payload.title = payload.titulo;
+      delete payload.titulo;
+    }
   }
 
   if (docRef.table === "topic_questions") {
@@ -525,6 +546,33 @@ export async function addDoc(colRef, data) {
     delete payload.topic;
     delete payload.creada_en;
     delete payload.creado_en;
+  }
+
+  if (colRef.table === "exams") {
+    const classIdFromConstraint = colRef.constraints?.find(c => c.field === "class_id")?.value;
+    payload.class_id = payload.class_id || classIdFromConstraint;
+    if (payload.titulo !== undefined) {
+      payload.title = payload.titulo;
+      delete payload.titulo;
+    }
+    if (payload.activo !== undefined) {
+      payload.active = payload.activo;
+      delete payload.activo;
+    }
+    if (payload.tiempo_minutos !== undefined) {
+      payload.duration_mins = payload.tiempo_minutos;
+      delete payload.tiempo_minutos;
+    }
+    if (!payload.created_by) {
+      const { data: authData } = await supabase.auth.getUser();
+      payload.created_by = authData?.user?.id || "b56eb190-8997-4d9b-89d6-7a338839b2ac";
+    }
+    if (!payload.question_ids) {
+      payload.question_ids = [];
+    }
+    delete payload.creado_en;
+    delete payload.num_preguntas;
+    delete payload.topic_filter;
   }
 
   const { data: inserted, error } = await supabase

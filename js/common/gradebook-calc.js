@@ -154,7 +154,7 @@ export function getQualitativeGrade(grade) {
   }
   const n = Number(grade);
   if (n < 5.0)  return { code: 'IN', label: 'Insuficiente',  badgeClass: 'badge--error',   color: 'var(--error)' };
-  if (n < 6.0)  return { code: 'SU', label: 'Suficiente',    badgeClass: 'badge--warning', color: '#eab308' };
+  if (n < 6.0)  return { code: 'SU', label: 'Suficiente',    badgeClass: 'badge--warning', color: 'var(--warning, #b45309)' };
   if (n < 7.0)  return { code: 'BI', label: 'Bien',          badgeClass: 'badge--info',    color: '#0284c7' };
   if (n < 9.0)  return { code: 'NT', label: 'Notable',       badgeClass: 'badge--accent',  color: '#6366f1' };
   return               { code: 'SB', label: 'Sobresaliente', badgeClass: 'badge--success', color: 'var(--success)' };

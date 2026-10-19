@@ -54,10 +54,10 @@
     /* ── Grid de Módulos y Herramientas ──────────────────────────────── */
     .admin-tools-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: var(--space-6);
     }
-    @media (max-width: 992px) {
+    @media (max-width: 1200px) {
       .admin-tools-grid {
         grid-template-columns: repeat(2, 1fr);
       }
@@ -209,9 +209,14 @@
 
       <!-- Cabecera de la página -->
       <header class="dashboard-header animate-fade-up">
-        <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
-          <a href="dashboard_teacher.html" class="back-link" style="margin: 0; margin-right: var(--space-2);">← Volver a Mis Clases</a>
-          <span class="admin-header-badge">👑 Zona de Administración</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+            <a href="dashboard_teacher.html" class="back-link" style="margin: 0; margin-right: var(--space-2);">← Volver a Mis Clases</a>
+            <span class="admin-header-badge">👑 Zona de Administración</span>
+          </div>
+          <a href="database_er.html" class="btn btn-outline btn--sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 800; background: #ffffff; box-shadow: 2px 2px 0px 0px var(--border);">
+            <span>📐</span> Diagrama ER de Base de Datos
+          </a>
         </div>
         <h1 class="dashboard-title" style="margin-top: var(--space-2);">Panel de Control y Administración 🛡️</h1>
         <p class="dashboard-subtitle">Gestión global de StackClass: edición curricular de temarios, herramientas de mantenimiento, control de accesos y docentes autorizados.</p>
@@ -306,6 +311,25 @@
               <p class="form-hint" style="margin-top: var(--space-2); font-size: 11px; text-align: center; margin-bottom: 0;">
                 💡 Simulación: <code>npm run migrate:dry-run</code>
               </p>
+            </div>
+          </div>
+
+          <!-- Tarjeta 4: Diagrama Entidad-Relación -->
+          <div class="admin-module-card">
+            <div>
+              <div class="admin-module-header">
+                <div class="admin-tool-icon">📐</div>
+                <span class="admin-module-badge" style="background:#e0e7ff; color:#3730a3; border-color:#a5b4fc;">Arquitectura</span>
+              </div>
+              <h3 class="card-title" style="margin-bottom: var(--space-2);">Diagrama ER (Supabase)</h3>
+              <p class="admin-module-desc">
+                Explora el modelo <strong>Entidad-Relación</strong> interactivo de las 24 tablas en PostgreSQL con notación clásica de <strong>Peter Chen</strong> (rectángulos, rombos y elipses) y <strong>Relacional SQL</strong>.
+              </p>
+            </div>
+            <div class="admin-module-footer">
+              <a href="database_er.html" class="btn btn-primary btn--full" style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span>🔍</span> Ver Diagrama ER Interactivo
+              </a>
             </div>
           </div>
 

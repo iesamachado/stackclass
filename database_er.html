@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StackClass — Diagrama Entidad-Relación (Notación Chen y Relacional)</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
+  <link rel="stylesheet" href="css/common/design-system.css">
+  <link rel="stylesheet" href="css/common/reset.css">
+  <link rel="stylesheet" href="css/common/layout.css">
+  <link rel="stylesheet" href="css/common/components.css">
+  <style>
+    :root {
+      --canvas-bg: #ffffff;
+    }
+    body.page {
+      background-color: var(--bg-root, #F5F1E7);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .er-header {
+      background: var(--bg-surface, #ffffff);
+      border-bottom: 3px solid #000000;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 4px 0px rgba(0,0,0,0.1);
+    }
+    .er-header-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .er-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--text-primary, #000000);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Selector de Notación (Chen vs Relacional) */
+    .notation-toggle-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: #F5F1E7;
+      border: 2px solid #000000;
+      border-radius: 8px;
+      padding: 0.35rem 0.5rem;
+      box-shadow: 2px 2px 0px #000000;
+    }
+    .notation-label {
+      font-weight: 800;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      padding: 0 0.4rem;
+    }
+    .notation-btn {
+      background: #ffffff;
+      border: 2px solid #000000;
+      padding: 0.4rem 0.8rem;
+      font-weight: 800;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 2px 2px 0px #000000;
+      transition: all 0.1s ease;
+    }
+    .notation-btn.active {
+      background: #FF90E8;
+      box-shadow: 1px 1px 0px #000000;
+      transform: translate(1px, 1px);
+    }
+
+    /* Leyenda de simbología Chen */
+    .chen-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: #FFFDF5;
+      border: 2px dashed #000000;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .legend-shape-rect {
+      width: 22px;
+      height: 14px;
+      background: #FFE300;
+      border: 2px solid #000000;
+      display: inline-block;
+    }
+    .legend-shape-diamond {
+      width: 14px;
+      height: 14px;
+      background: #FF90E8;
+      border: 2px solid #000000;
+      transform: rotate(45deg);
+      display: inline-block;
+      margin: 0 4px;
+    }
+    .legend-shape-oval {
+      width: 22px;
+      height: 14px;
+      background: #ffffff;
+      border: 1.5px solid #000000;
+      border-radius: 99px;
+      display: inline-block;
+    }
+    .legend-shape-oval-pk {
+      width: 22px;
+      height: 14px;
+      background: #D5F2EF;
+      border: 2px solid #000000;
+      border-radius: 99px;
+      display: inline-block;
+    }
+
+    /* Selector de Vistas / Pestañas */
+    .er-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      border-bottom: 2px solid #000000;
+      padding-bottom: 0.5rem;
+    }
+    .er-tab-btn {
+      background: #ffffff;
+      border: 2px solid #000000;
+      padding: 0.5rem 1rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      box-shadow: 2px 2px 0px #000000;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .er-tab-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0px #000000;
+      background: #FFFDF5;
+    }
+    .er-tab-btn.active {
+      background: #FFE300;
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px #000000;
+    }
+
+    /* Contenedor del visor */
+    .viewer-layout {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      padding: 1.5rem 2rem;
+      gap: 1.5rem;
+    }
+    .diagram-card {
+      background: #ffffff;
+      border: 3px solid #000000;
+      border-radius: 12px;
+      box-shadow: 6px 6px 0px #000000;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      min-height: 620px;
+    }
+    .diagram-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.25rem;
+      background: #f8fafc;
+      border-bottom: 2px solid #000000;
+      gap: 0.5rem;
+      z-index: 10;
+    }
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .tool-btn {
+      background: #ffffff;
+      border: 2px solid #000000;
+      padding: 0.4rem 0.75rem;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 2px 2px 0px #000000;
+      transition: all 0.1s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .tool-btn:hover {
+      background: #FFE300;
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0px #000000;
+    }
+    .tool-btn:active {
+      transform: translate(1px, 1px);
+      box-shadow: 0px 0px 0px #000000;
+    }
+
+    /* Área de renderizado del SVG */
+    .diagram-viewport {
+      flex: 1;
+      width: 100%;
+      height: 700px;
+      overflow: hidden;
+      position: relative;
+      background-color: var(--canvas-bg);
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 24px 24px;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .diagram-viewport:active {
+      cursor: grabbing;
+    }
+    .mermaid-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mermaid-container svg {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+    }
+
+    /* Diccionario de datos */
+    .dictionary-card {
+      background: #ffffff;
+      border: 3px solid #000000;
+      border-radius: 12px;
+      box-shadow: 6px 6px 0px #000000;
+      padding: 1.5rem;
+    }
+    .dict-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .search-input {
+      padding: 0.6rem 1rem;
+      border: 2px solid #000000;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      width: 320px;
+      max-width: 100%;
+      box-shadow: 2px 2px 0px #000000;
+    }
+    .search-input:focus {
+      outline: none;
+      background: #FFFDF5;
+      border-color: #000000;
+      box-shadow: 3px 3px 0px #FF90E8;
+    }
+    .table-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1.25rem;
+    }
+    .table-card {
+      border: 2px solid #000000;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 3px 3px 0px #000000;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-card-head {
+      background: #f1f5f9;
+      border-bottom: 2px solid #000000;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .table-card-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: #000000;
+    }
+    .badge-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border: 1px solid #000000;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .table-card-body {
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      flex: 1;
+    }
+    .field-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .field-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.3rem 0;
+      border-bottom: 1px dashed #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+    .field-item:last-child {
+      border-bottom: none;
+    }
+    .field-name {
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .field-name.is-pk {
+      color: #b45309;
+      font-weight: 800;
+    }
+    .field-name.is-fk {
+      color: #2563eb;
+    }
+    .field-type {
+      color: #64748b;
+    }
+
+    /* Modal pantalla completa */
+    .fullscreen-mode {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+    .fullscreen-mode .diagram-viewport {
+      height: calc(100vh - 60px) !important;
+    }
+
+    /* Cargando */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      z-index: 50;
+      font-weight: 800;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid #000000;
+      border-top-color: #FF90E8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- Mermaid.js & SVG Pan Zoom -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+</head>
+<body class="page">
+
+  <!-- Header -->
+  <header class="er-header">
+    <div class="er-header-top">
+      <div>
+        <h1 class="er-title">📐 StackClass — Diagrama Entidad-Relación</h1>
+        <p style="color:var(--text-secondary); margin-top:4px; font-size:1rem;">
+          Modelo de base de datos relacional PostgreSQL en <strong>Supabase</strong> con soporte LOMLOE, Gamificación y Multitenancy.
+        </p>
+      </div>
+
+      <!-- Selector de Modo de Notación -->
+      <div class="notation-toggle-bar">
+        <span class="notation-label">Notación:</span>
+        <button class="notation-btn active" id="btnModeChen" data-mode="chen">
+          🔶 Clásica Chen (Cuadrados, Rombos, Elipses)
+        </button>
+        <button class="notation-btn" id="btnModeRelational" data-mode="relational">
+          📊 Tablas Relacionales (SQL / Crow's Foot)
+        </button>
+      </div>
+    </div>
+
+    <!-- Leyenda Chen -->
+    <div class="chen-legend" id="chenLegend">
+      <span class="legend-item"><span class="legend-shape-rect"></span> <strong>Rectángulo:</strong> Entidad</span>
+      <span class="legend-item"><span class="legend-shape-diamond"></span> <strong>Rombo:</strong> Relación</span>
+      <span class="legend-item"><span class="legend-shape-oval"></span> <strong>Elipse:</strong> Atributo</span>
+      <span class="legend-item"><span class="legend-shape-oval-pk"></span> <strong>Elipse (Azul/Negrita):</strong> Clave Primaria (PK)</span>
+      <span class="legend-item"><strong style="background:#e2e8f0; padding:2px 6px; border:1px solid #000; border-radius:4px;">(min, max)</strong> <strong>Líneas:</strong> Cardinalidad (1,1), (0,N), (1,N)</span>
+    </div>
+
+    <!-- Pestañas de Vista -->
+    <nav class="er-tabs" id="viewTabs">
+      <button class="er-tab-btn active" data-view="global">🌟 Vista Global Completa</button>
+      <button class="er-tab-btn" data-view="academic">🎓 Académico & Cuaderno LOMLOE</button>
+      <button class="er-tab-btn" data-view="gamification">🏆 Gamificación, Gremios & Ligas</button>
+      <button class="er-tab-btn" data-view="evaluation">📝 Evaluación, Tests & Exámenes</button>
+      <button class="er-tab-btn" data-view="games">🎮 Minijuegos & Multijugador en Vivo</button>
+    </nav>
+  </header>
+
+  <!-- Visor principal -->
+  <main class="viewer-layout">
+    
+    <section class="diagram-card" id="diagramCard">
+      <div class="diagram-toolbar">
+        <div class="tool-group">
+          <span style="font-weight:800; font-size:0.95rem; margin-right:6px;" id="currentViewTitle">🌟 Modelo Conceptual Chen Global</span>
+          <span class="badge" style="background:#FFE300; border:1px solid #000; font-size:0.75rem; font-weight:bold;" id="notationBadge">Notación Chen</span>
+        </div>
+        <div class="tool-group">
+          <button class="tool-btn" id="btnZoomIn" title="Acercar (Zoom +)">🔍 +</button>
+          <button class="tool-btn" id="btnZoomOut" title="Alejar (Zoom -)">🔎 -</button>
+          <button class="tool-btn" id="btnResetPan" title="Ajustar y Centrar">🔄 Centrar</button>
+          <button class="tool-btn" id="btnCopyMermaid" title="Copiar código Mermaid">📋 Copiar Mermaid</button>
+          <button class="tool-btn" id="btnDownloadSvg" title="Descargar archivo SVG">💾 Guardar SVG</button>
+          <button class="tool-btn" id="btnFullscreen" title="Pantalla completa">⛶ Pantalla Completa</button>
+        </div>
+      </div>
+
+      <!-- Viewport del diagrama -->
+      <div class="diagram-viewport" id="diagramViewport">
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="spinner"></div>
+          <div id="loadingText">Renderizando diagrama Chen con cuadrados, rombos y elipses...</div>
+        </div>
+        <div class="mermaid-container" id="mermaidOutput"></div>
+      </div>
+    </section>
+
+    <!-- Diccionario de datos -->
+    <section class="dictionary-card">
+      <div class="dict-header">
+        <div>
+          <h2 style="font-size:1.4rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+            📚 Diccionario de Datos & Especificación Relacional
+          </h2>
+          <p style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.9rem;">
+            Listado exhaustivo de las 24 entidades físicas en PostgreSQL con sus atributos, tipos y restricciones.
+          </p>
+        </div>
+        <input type="text" id="dictSearch" class="search-input" placeholder="🔍 Filtrar entidades o atributos (ej: rubric, ce, xp)...">
+      </div>
+
+      <div class="table-grid" id="tablesGrid">
+        <!-- Generado dinámicamente -->
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════
+    // DIAGRAMAS NOTACIÓN CHEN (CUADRADOS, ROMBOS, ELIPSES, CARDINALIDADES)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const CHEN_DIAGRAMS = {
+      global: `flowchart TD
+    %% Clases de estilo Chen (Neo-Brutalism)
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+
+    %% ENTIDADES (CUADRADOS / RECTÁNGULOS)
+    E_SUB["ASIGNATURA"]:::entity
+    E_USER["USUARIO"]:::entity
+    E_CLASS["CLASE / AULA"]:::entity
+    E_TOPIC["TEMA LOMLOE"]:::entity
+    E_QTEST["PREGUNTA TEST"]:::entity
+    E_RTEST["INTENTO TEST"]:::entity
+    E_OTASK["TAREA OFFLINE"]:::entity
+    E_OGRADE["CALIFICACIÓN OFFLINE"]:::entity
+    E_EXAM["EXAMEN OFICIAL"]:::entity
+    E_REXM["ENTREGA EXAMEN"]:::entity
+    E_GAME["PARTIDA JUEGO"]:::entity
+    E_GUILD["GREMIO"]:::entity
+    E_MEDAL["MEDALLA LOGRO"]:::entity
+    E_LIVE["SESIÓN DIRECTO"]:::entity
+    E_PART["PARTICIPANTE"]:::entity
+    E_BOT["BOT ARENA"]:::entity
+
+    %% ATRIBUTOS (ELIPSES / ÓVALOS)
+    A_SUB_ID(["🔑 id (PK)"]):::pk
+    A_SUB_NOM(["nombre"]):::attr
+    E_SUB --- A_SUB_ID
+    E_SUB --- A_SUB_NOM
+
+    A_U_ID(["🔑 id (PK)"]):::pk
+    A_U_EMAIL(["email (UK)"]):::attr
+    A_U_NAME(["nombre"]):::attr
+    A_U_ROL(["rol"]):::attr
+    A_U_XP(["xp"]):::attr
+    E_USER --- A_U_ID
+    E_USER --- A_U_EMAIL
+    E_USER --- A_U_NAME
+    E_USER --- A_U_ROL
+    E_USER --- A_U_XP
+
+    A_C_ID(["🔑 id (PK)"]):::pk
+    A_C_NAME(["nombre"]):::attr
+    A_C_PIN(["pin (UK)"]):::attr
+    A_C_MAP(["criteria_mapping"]):::attr
+    E_CLASS --- A_C_ID
+    E_CLASS --- A_C_NAME
+    E_CLASS --- A_C_PIN
+    E_CLASS --- A_C_MAP
+
+    A_T_ID(["🔑 id (PK)"]):::pk
+    A_T_NAME(["nombre"]):::attr
+    E_TOPIC --- A_T_ID
+    E_TOPIC --- A_T_NAME
+
+    A_OT_ID(["🔑 id (PK)"]):::pk
+    A_OT_TIT(["titulo"]):::attr
+    A_OT_RUB(["rubric (JSONB)"]):::attr
+    E_OTASK --- A_OT_ID
+    E_OTASK --- A_OT_TIT
+    E_OTASK --- A_OT_RUB
+
+    A_OG_ID(["🔑 id (PK)"]):::pk
+    A_OG_SCO(["score (0-10)"]):::attr
+    A_OG_RSC(["rubric_scores"]):::attr
+    A_OG_FBK(["feedback"]):::attr
+    E_OGRADE --- A_OG_ID
+    E_OGRADE --- A_OG_SCO
+    E_OGRADE --- A_OG_RSC
+    E_OGRADE --- A_OG_FBK
+
+    A_EX_ID(["🔑 id (PK)"]):::pk
+    A_EX_TIT(["titulo"]):::attr
+    A_EX_DUR(["duracion_mins"]):::attr
+    E_EXAM --- A_EX_ID
+    E_EXAM --- A_EX_TIT
+    E_EXAM --- A_EX_DUR
+
+    A_G_ID(["🔑 id (PK)"]):::pk
+    A_G_GID(["game_id"]):::attr
+    A_G_SCO(["score"]):::attr
+    E_GAME --- A_G_ID
+    E_GAME --- A_G_GID
+    E_GAME --- A_G_SCO
+
+    %% RELACIONES (ROMBOS) Y CARDINALIDADES
+    R_IMPARTE{"IMPARTE"}:::relation
+    E_SUB ---|"(1,1)"| R_IMPARTE
+    R_IMPARTE ---|"(0,N)"| E_CLASS
+
+    R_TUTORA{"TUTORIZA"}:::relation
+    E_USER ---|"(0,N)"| R_TUTORA
+    R_TUTORA ---|"(1,1)"| E_CLASS
+
+    R_MATRICULA{"MATRICULADO"}:::relation
+    E_USER ---|"(0,N)"| R_MATRICULA
+    R_MATRICULA ---|"(1,N)"| E_CLASS
+
+    R_ORGANIZA{"ORGANIZA"}:::relation
+    E_SUB ---|"(1,1)"| R_ORGANIZA
+    R_ORGANIZA ---|"(1,N)"| E_TOPIC
+
+    R_BANCO{"CONTIENE"}:::relation
+    E_TOPIC ---|"(1,1)"| R_BANCO
+    R_BANCO ---|"(1,N)"| E_QTEST
+
+    R_EVAL_TEMA{"EVALÚA"}:::relation
+    E_TOPIC ---|"(1,1)"| R_EVAL_TEMA
+    R_EVAL_TEMA ---|"(0,N)"| E_RTEST
+
+    R_HACE_TEST{"REALIZA"}:::relation
+    E_USER ---|"(0,N)"| R_HACE_TEST
+    R_HACE_TEST ---|"(1,1)"| E_RTEST
+
+    R_ASIG_OFF{"PLANIFICA"}:::relation
+    E_CLASS ---|"(1,1)"| R_ASIG_OFF
+    R_ASIG_OFF ---|"(0,N)"| E_OTASK
+
+    R_CALIF_OFF{"CALIFICA_CON"}:::relation
+    E_OTASK ---|"(1,1)"| R_CALIF_OFF
+    R_CALIF_OFF ---|"(0,N)"| E_OGRADE
+
+    R_RECIBE_NOTA{"OBTIENE"}:::relation
+    E_USER ---|"(0,N)"| R_RECIBE_NOTA
+    R_RECIBE_NOTA ---|"(1,1)"| E_OGRADE
+
+    R_CORRIGE{"EVALÚA"}:::relation
+    E_USER ---|"(0,N)"| R_CORRIGE
+    R_CORRIGE ---|"(1,1)"| E_OGRADE
+
+    R_CONVOCA{"CONVOCA"}:::relation
+    E_CLASS ---|"(1,1)"| R_CONVOCA
+    R_CONVOCA ---|"(0,N)"| E_EXAM
+
+    R_GENERA_ENT{"ENTREGA"}:::relation
+    E_EXAM ---|"(1,1)"| R_GENERA_ENT
+    R_GENERA_ENT ---|"(0,N)"| E_REXM
+
+    R_ALUM_EXAM{"REALIZA"}:::relation
+    E_USER ---|"(0,N)"| R_ALUM_EXAM
+    R_ALUM_EXAM ---|"(1,1)"| E_REXM
+
+    R_JUEGA{"JUEGA"}:::relation
+    E_USER ---|"(0,N)"| R_JUEGA
+    R_JUEGA ---|"(1,1)"| E_GAME
+
+    R_GREMIO{"PERTENECE"}:::relation
+    E_USER ---|"(0,1)"| R_GREMIO
+    R_GREMIO ---|"(0,N)"| E_GUILD
+
+    R_SUB_GUILD{"DEFINE"}:::relation
+    E_SUB ---|"(1,1)"| R_SUB_GUILD
+    R_SUB_GUILD ---|"(1,N)"| E_GUILD
+
+    R_SUB_MEDAL{"OTORGA"}:::relation
+    E_SUB ---|"(1,1)"| R_SUB_MEDAL
+    R_SUB_MEDAL ---|"(1,N)"| E_MEDAL
+
+    R_HOST{"CREA"}:::relation
+    E_USER ---|"(0,N)"| R_HOST
+    R_HOST ---|"(1,1)"| E_LIVE
+
+    R_AGRUPA{"CONECTA"}:::relation
+    E_LIVE ---|"(1,1)"| R_AGRUPA
+    R_AGRUPA ---|"(0,N)"| E_PART
+
+    R_COMPITE{"PARTICIPA"}:::relation
+    E_USER ---|"(0,N)"| R_COMPITE
+    R_COMPITE ---|"(1,1)"| E_PART
+
+    R_PROG{"PROGRAMA"}:::relation
+    E_USER ---|"(0,N)"| R_PROG
+    R_PROG ---|"(1,1)"| E_BOT`,
+
+      academic: `flowchart TD
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+
+    %% ENTIDADES
+    E_SUB["ASIGNATURA"]:::entity
+    E_CLASS["CLASE / AULA"]:::entity
+    E_DOCENTE["DOCENTE (USUARIO)"]:::entity
+    E_ALUMNO["ALUMNO (USUARIO)"]:::entity
+    E_OTASK["TAREA OFFLINE"]:::entity
+    E_OGRADE["CALIFICACIÓN OFFLINE"]:::entity
+    E_ASG["TAREA ONLINE"]:::entity
+
+    %% ATRIBUTOS ASIGNATURA
+    A_S1(["🔑 id (PK)"]):::pk
+    A_S2(["nombre"]):::attr
+    A_S3(["icono"]):::attr
+    A_S4(["color"]):::attr
+    A_S5(["descripcion"]):::attr
+    A_S6(["activo"]):::attr
+    E_SUB --- A_S1
+    E_SUB --- A_S2
+    E_SUB --- A_S3
+    E_SUB --- A_S4
+    E_SUB --- A_S5
+    E_SUB --- A_S6
+
+    %% ATRIBUTOS CLASE
+    A_C1(["🔑 id (PK)"]):::pk
+    A_C2(["nombre"]):::attr
+    A_C3(["nivel"]):::attr
+    A_C4(["pin (UK)"]):::attr
+    A_C5(["criteria_mapping (JSONB)"]):::attr
+    A_C6(["classroom_id"]):::attr
+    A_C7(["activo"]):::attr
+    E_CLASS --- A_C1
+    E_CLASS --- A_C2
+    E_CLASS --- A_C3
+    E_CLASS --- A_C4
+    E_CLASS --- A_C5
+    E_CLASS --- A_C6
+    E_CLASS --- A_C7
+
+    %% ATRIBUTOS TAREA OFFLINE
+    A_T1(["🔑 id (PK)"]):::pk
+    A_T2(["titulo"]):::attr
+    A_T3(["descripcion"]):::attr
+    A_T4(["rubric (JSONB)"]):::attr
+    A_T5(["max_score"]):::attr
+    E_OTASK --- A_T1
+    E_OTASK --- A_T2
+    E_OTASK --- A_T3
+    E_OTASK --- A_T4
+    E_OTASK --- A_T5
+
+    %% ATRIBUTOS CALIFICACIÓN OFFLINE
+    A_G1(["🔑 id (PK)"]):::pk
+    A_G2(["score (0-10)"]):::attr
+    A_G3(["rubric_scores (JSONB)"]):::attr
+    A_G4(["feedback"]):::attr
+    A_G5(["graded_at"]):::attr
+    E_OGRADE --- A_G1
+    E_OGRADE --- A_G2
+    E_OGRADE --- A_G3
+    E_OGRADE --- A_G4
+    E_OGRADE --- A_G5
+
+    %% ATRIBUTOS TAREA ONLINE
+    A_O1(["🔑 id (PK)"]):::pk
+    A_O2(["titulo"]):::attr
+    A_O3(["due_date"]):::attr
+    A_O4(["max_score"]):::attr
+    A_O5(["game_id"]):::attr
+    E_ASG --- A_O1
+    E_ASG --- A_O2
+    E_ASG --- A_O3
+    E_ASG --- A_O4
+    E_ASG --- A_O5
+
+    %% RELACIONES
+    R_IMPARTE{"IMPARTE"}:::relation
+    E_SUB ---|"(1,1)"| R_IMPARTE
+    R_IMPARTE ---|"(0,N)"| E_CLASS
+
+    R_TUTORA{"TUTORIZA"}:::relation
+    E_DOCENTE ---|"(0,N)"| R_TUTORA
+    R_TUTORA ---|"(1,1)"| E_CLASS
+
+    R_MAT{"MATRICULADO"}:::relation
+    E_ALUMNO ---|"(0,N)"| R_MAT
+    R_MAT ---|"(1,N)"| E_CLASS
+
+    R_PLAN{"PLANIFICA"}:::relation
+    E_CLASS ---|"(1,1)"| R_PLAN
+    R_PLAN ---|"(0,N)"| E_OTASK
+
+    R_RUB{"EVALUADA_CON"}:::relation
+    E_OTASK ---|"(1,1)"| R_RUB
+    R_RUB ---|"(0,N)"| E_OGRADE
+
+    R_OBT{"OBTIENE_NOTA"}:::relation
+    E_ALUMNO ---|"(0,N)"| R_OBT
+    R_OBT ---|"(1,1)"| E_OGRADE
+
+    R_CORR{"CORRIGE"}:::relation
+    E_DOCENTE ---|"(0,N)"| R_CORR
+    R_CORR ---|"(1,1)"| E_OGRADE
+
+    R_ASIG{"ASIGNA"}:::relation
+    E_CLASS ---|"(1,1)"| R_ASIG
+    R_ASIG ---|"(0,N)"| E_ASG`,
+
+      gamification: `flowchart TD
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+
+    E_SUB["ASIGNATURA"]:::entity
+    E_USER["USUARIO"]:::entity
+    E_GUILD["GREMIO"]:::entity
+    E_MEDAL["MEDALLA LOGRO"]:::entity
+    E_LEAGUE["LIGA"]:::entity
+    E_BOT["BOT ARENA"]:::entity
+
+    %% Atributos USUARIO
+    A_U1(["🔑 id (PK)"]):::pk
+    A_U2(["email (UK)"]):::attr
+    A_U3(["display_name"]):::attr
+    A_U4(["display_name_anon"]):::attr
+    A_U5(["xp"]):::attr
+    A_U6(["logros (ARRAY)"]):::attr
+    A_U7(["digital_wellbeing"]):::attr
+    E_USER --- A_U1
+    E_USER --- A_U2
+    E_USER --- A_U3
+    E_USER --- A_U4
+    E_USER --- A_U5
+    E_USER --- A_U6
+    E_USER --- A_U7
+
+    %% Atributos GREMIO
+    A_G1(["🔑 id (PK)"]):::pk
+    A_G2(["nombre"]):::attr
+    A_G3(["icono"]):::attr
+    A_G4(["color"]):::attr
+    A_G5(["image_url"]):::attr
+    A_G6(["lore"]):::attr
+    E_GUILD --- A_G1
+    E_GUILD --- A_G2
+    E_GUILD --- A_G3
+    E_GUILD --- A_G4
+    E_GUILD --- A_G5
+    E_GUILD --- A_G6
+
+    %% Atributos MEDALLA
+    A_M1(["🔑 id (PK)"]):::pk
+    A_M2(["nombre"]):::attr
+    A_M3(["descripcion"]):::attr
+    A_M4(["xp_value"]):::attr
+    A_M5(["icono"]):::attr
+    E_MEDAL --- A_M1
+    E_MEDAL --- A_M2
+    E_MEDAL --- A_M3
+    E_MEDAL --- A_M4
+    E_MEDAL --- A_M5
+
+    %% Atributos LIGA
+    A_L1(["🔑 id (PK)"]):::pk
+    A_L2(["nombre"]):::attr
+    A_L3(["min_xp"]):::attr
+    A_L4(["trofeo"]):::attr
+    A_L5(["sort_order"]):::attr
+    E_LEAGUE --- A_L1
+    E_LEAGUE --- A_L2
+    E_LEAGUE --- A_L3
+    E_LEAGUE --- A_L4
+    E_LEAGUE --- A_L5
+
+    %% Atributos BOT
+    A_B1(["🔑 id (PK)"]):::pk
+    A_B2(["nombre"]):::attr
+    A_B3(["codigo_js"]):::attr
+    A_B4(["wins"]):::attr
+    A_B5(["losses"]):::attr
+    E_BOT --- A_B1
+    E_BOT --- A_B2
+    E_BOT --- A_B3
+    E_BOT --- A_B4
+    E_BOT --- A_B5
+
+    %% Relaciones
+    R_S_G{"CONTIENE"}:::relation
+    E_SUB ---|"(1,1)"| R_S_G
+    R_S_G ---|"(1,N)"| E_GUILD
+
+    R_S_M{"OTORGA"}:::relation
+    E_SUB ---|"(1,1)"| R_S_M
+    R_S_M ---|"(1,N)"| E_MEDAL
+
+    R_U_G{"AFILIADO_A"}:::relation
+    E_USER ---|"(0,1)"| R_U_G
+    R_U_G ---|"(0,N)"| E_GUILD
+
+    R_U_M{"DESBLOQUEA"}:::relation
+    E_USER ---|"(0,N)"| R_U_M
+    R_U_M ---|"(0,N)"| E_MEDAL
+
+    R_U_L{"CLASIFICA_EN"}:::relation
+    E_USER ---|"(0,N)"| R_U_L
+    R_U_L ---|"(1,1)"| E_LEAGUE
+
+    R_U_B{"PROGRAMA"}:::relation
+    E_USER ---|"(0,N)"| R_U_B
+    R_U_B ---|"(1,1)"| E_BOT`,
+
+      evaluation: `flowchart TD
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+
+    E_TOPIC["TEMA LOMLOE"]:::entity
+    E_QTEST["PREGUNTA TEST"]:::entity
+    E_RTEST["INTENTO TEST"]:::entity
+    E_ALUMNO["ALUMNO"]:::entity
+    E_CLASS["CLASE"]:::entity
+    E_EXAM["EXAMEN OFICIAL"]:::entity
+    E_REXM["ENTREGA EXAMEN"]:::entity
+
+    %% Atributos TEMA
+    A_T1(["🔑 id (PK)"]):::pk
+    A_T2(["nombre"]):::attr
+    A_T3(["blocks (JSONB)"]):::attr
+    E_TOPIC --- A_T1
+    E_TOPIC --- A_T2
+    E_TOPIC --- A_T3
+
+    %% Atributos PREGUNTA TEST
+    A_QT1(["🔑 id (PK)"]):::pk
+    A_QT2(["enunciado"]):::attr
+    A_QT3(["opciones (JSONB)"]):::attr
+    A_QT4(["ce (LOMLOE)"]):::attr
+    A_QT5(["criterio (LOMLOE)"]):::attr
+    A_QT6(["dificultad"]):::attr
+    E_QTEST --- A_QT1
+    E_QTEST --- A_QT2
+    E_QTEST --- A_QT3
+    E_QTEST --- A_QT4
+    E_QTEST --- A_QT5
+    E_QTEST --- A_QT6
+
+    %% Atributos INTENTO TEST
+    A_RT1(["🔑 id (PK)"]):::pk
+    A_RT2(["score (0-10)"]):::attr
+    A_RT3(["raw_score"]):::attr
+    A_RT4(["respuestas (JSONB)"]):::attr
+    A_RT5(["fecha_real"]):::attr
+    E_RTEST --- A_RT1
+    E_RTEST --- A_RT2
+    E_RTEST --- A_RT3
+    E_RTEST --- A_RT4
+    E_RTEST --- A_RT5
+
+    %% Atributos EXAMEN
+    A_E1(["🔑 id (PK)"]):::pk
+    A_E2(["titulo"]):::attr
+    A_E3(["duration_mins"]):::attr
+    A_E4(["question_ids"]):::attr
+    A_E5(["activo"]):::attr
+    E_EXAM --- A_E1
+    E_EXAM --- A_E2
+    E_EXAM --- A_E3
+    E_EXAM --- A_E4
+    E_EXAM --- A_E5
+
+    %% Atributos ENTREGA EXAMEN
+    A_RE1(["🔑 id (PK)"]):::pk
+    A_RE2(["score (0-10)"]):::attr
+    A_RE3(["raw_score"]):::attr
+    A_RE4(["respuestas"]):::attr
+    A_RE5(["forced_fail"]):::attr
+    E_REXM --- A_RE1
+    E_REXM --- A_RE2
+    E_REXM --- A_RE3
+    E_REXM --- A_RE4
+    E_REXM --- A_RE5
+
+    %% Relaciones
+    R_BANC{"BANCO_PREGUNTAS"}:::relation
+    E_TOPIC ---|"(1,1)"| R_BANC
+    R_BANC ---|"(1,N)"| E_QTEST
+
+    R_EVAL{"EVALÚA_TEMA"}:::relation
+    E_TOPIC ---|"(1,1)"| R_EVAL
+    R_EVAL ---|"(0,N)"| E_RTEST
+
+    R_HACE{"REALIZA_TEST"}:::relation
+    E_ALUMNO ---|"(0,N)"| R_HACE
+    R_HACE ---|"(1,1)"| E_RTEST
+
+    R_CONV{"CONVOCA"}:::relation
+    E_CLASS ---|"(1,1)"| R_CONV
+    R_CONV ---|"(0,N)"| E_EXAM
+
+    R_GEN{"GENERA"}:::relation
+    E_EXAM ---|"(1,1)"| R_GEN
+    R_GEN ---|"(0,N)"| E_REXM
+
+    R_ENTR{"ENTREGA"}:::relation
+    E_ALUMNO ---|"(0,N)"| R_ENTR
+    R_ENTR ---|"(1,1)"| E_REXM`,
+
+      games: `flowchart TD
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+
+    E_USER["USUARIO"]:::entity
+    E_CLASS["CLASE"]:::entity
+    E_GAME["PARTIDA JUEGO"]:::entity
+    E_LIVE["SESIÓN DIRECTO"]:::entity
+    E_PART["PARTICIPANTE"]:::entity
+    E_TXT["TEXTO MECANOGRAFÍA"]:::entity
+
+    %% Atributos PARTIDA
+    A_G1(["🔑 id (PK)"]):::pk
+    A_G2(["game_id"]):::attr
+    A_G3(["score"]):::attr
+    A_G4(["duration_secs"]):::attr
+    A_G5(["metadata (wpm, acc)"]):::attr
+    A_G6(["created_at"]):::attr
+    E_GAME --- A_G1
+    E_GAME --- A_G2
+    E_GAME --- A_G3
+    E_GAME --- A_G4
+    E_GAME --- A_G5
+    E_GAME --- A_G6
+
+    %% Atributos SALA DIRECTO
+    A_L1(["🔑 pin (PK)"]):::pk
+    A_L2(["game_id"]):::attr
+    A_L3(["status"]):::attr
+    A_L4(["config"]):::attr
+    E_LIVE --- A_L1
+    E_LIVE --- A_L2
+    E_LIVE --- A_L3
+    E_LIVE --- A_L4
+
+    %% Atributos PARTICIPANTE
+    A_P1(["🔑 id (PK)"]):::pk
+    A_P2(["display_name"]):::attr
+    A_P3(["score"]):::attr
+    A_P4(["progress %"]):::attr
+    A_P5(["status"]):::attr
+    E_PART --- A_P1
+    E_PART --- A_P2
+    E_PART --- A_P3
+    E_PART --- A_P4
+    E_PART --- A_P5
+
+    %% Atributos TEXTO
+    A_TX1(["🔑 id (PK)"]):::pk
+    A_TX2(["titulo"]):::attr
+    A_TX3(["contenido"]):::attr
+    A_TX4(["dificultad"]):::attr
+    E_TXT --- A_TX1
+    E_TXT --- A_TX2
+    E_TXT --- A_TX3
+    E_TXT --- A_TX4
+
+    %% Relaciones
+    R_JUG{"JUEGA"}:::relation
+    E_USER ---|"(0,N)"| R_JUG
+    R_JUG ---|"(1,1)"| E_GAME
+
+    R_VINC{"EN_CONTEXTO"}:::relation
+    E_CLASS ---|"(0,1)"| R_VINC
+    R_VINC ---|"(0,N)"| E_GAME
+
+    R_HOST{"ANFITRIÓN"}:::relation
+    E_USER ---|"(0,N)"| R_HOST
+    R_HOST ---|"(1,1)"| E_LIVE
+
+    R_INV{"INVITA_AULA"}:::relation
+    E_CLASS ---|"(0,1)"| R_INV
+    R_INV ---|"(0,N)"| E_LIVE
+
+    R_SALA{"CONECTA"}:::relation
+    E_LIVE ---|"(1,1)"| R_SALA
+    R_SALA ---|"(0,N)"| E_PART
+
+    R_COMP{"COMPITE"}:::relation
+    E_USER ---|"(0,N)"| R_COMP
+    R_COMP ---|"(1,1)"| E_PART
+
+    R_RED{"REDACTA"}:::relation
+    E_USER ---|"(0,N)"| R_RED
+    R_RED ---|"(0,N)"| E_TXT`
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DIAGRAMAS NOTACIÓN RELACIONAL (TABLAS FÍSICAS POSTGRESQL)
+    // ═══════════════════════════════════════════════════════════════════════
+    const RELATIONAL_DIAGRAMS = {
+      global: `erDiagram
+    subjects ||--o{ guilds : "contiene"
+    subjects ||--o{ medals : "define"
+    subjects ||--o{ topics : "organiza"
+    subjects ||--o{ classes : "imparte"
+    subjects ||--o{ topic_questions : "agrupa"
+    subjects ||--o{ exam_questions : "asigna"
+    subjects ||--o{ game_results : "clasifica"
+    subjects ||--o{ allowed_teachers : "especialidad"
+    subjects ||--o{ users : "preferente"
+
+    users ||--o{ classes : "docente_tutor"
+    users ||--o{ class_members : "matriculado"
+    classes ||--o{ class_members : "alumnos"
+
+    classes ||--o{ assignments : "asigna_online"
+    classes ||--o{ offline_tasks : "asigna_offline"
+    classes ||--o{ offline_grades : "contiene_notas"
+    classes ||--o{ exams : "programa_examenes"
+    classes ||--o{ exam_questions : "preguntas_aula"
+    classes ||--o{ exam_results : "notas_examen"
+    classes ||--o{ game_results : "partidas_clase"
+    classes ||--o{ live_sessions : "sesiones_directo"
+    classes ||--o{ mecanoclass_texts : "textos_clase"
+
+    topics ||--o{ topic_questions : "banco_preguntas"
+    topics ||--o{ topic_test_results : "evalua_tema"
+    users ||--o{ topic_test_results : "hace_test"
+
+    exams ||--o{ exam_results : "genera_entregas"
+    users ||--o{ exams : "docente_autor"
+    users ||--o{ exam_results : "alumno_evaluado"
+    users ||--o{ exam_questions : "docente_redactor"
+
+    offline_tasks ||--o{ offline_grades : "evaluada_con_rubrica"
+    users ||--o{ offline_grades : "alumno_calificado"
+    users ||--o{ offline_grades : "docente_corrector"
+
+    users ||--o{ game_results : "juega_partida"
+    users ||--o{ live_sessions : "anfitrion"
+    live_sessions ||--o{ live_participants : "conecta_a"
+    users ||--o{ live_participants : "jugador"
+    users ||--o{ mecanoclass_texts : "autor_texto"
+    users ||--o{ arena_bots : "programador_bot"
+
+    subjects {
+        text id PK "tic2, cyr"
+        text name "Nombre oficial"
+        text icon "Icono"
+        text color "Color hex"
+        text description "Currículo"
+        boolean active "Activo"
+        timestamptz created_at "Creación"
+    }
+    guilds {
+        text id PK "turing, r2d2..."
+        text subject_id PK,FK "Asignatura"
+        text name "Nombre hermandad"
+        text color "Color"
+        text image_url "Insignia"
+    }
+    medals {
+        text id PK "first_blood..."
+        text subject_id PK,FK "Asignatura"
+        text name "Título logro"
+        integer xp_value "XP recompensa"
+    }
+    leagues {
+        text id PK "bronce, plata..."
+        text name "División"
+        integer min_xp "Umbral XP"
+        integer sort_order "Jerarquía"
+    }
+    users {
+        text id PK "UUID canónico"
+        text email UK "Email @iesamachado.org"
+        text display_name "Nombre real"
+        text display_name_anon "Alias ranking"
+        text role "student / teacher"
+        text subject_id FK "Asignatura"
+        text guild_id "Gremio"
+        integer xp "Puntos XP"
+        text_array logros "Medallas"
+        jsonb digital_wellbeing "Límites uso"
+    }
+    classes {
+        text id PK "UUID aula"
+        text teacher_id FK "Profesor tutor"
+        text subject_id FK "Asignatura"
+        text name "Nombre grupo"
+        text pin UK "PIN matrícula"
+        jsonb criteria_mapping "Ponderaciones LOMLOE"
+    }
+    class_members {
+        text id PK "UUID matrícula"
+        text class_id FK "Aula"
+        text student_id FK "Alumno"
+    }
+    topics {
+        text id PK "topic_kanban, block1"
+        text subject_id FK "Asignatura"
+        text name "Título unidad"
+        jsonb blocks "Subtemas"
+    }
+    topic_questions {
+        text id PK "UUID pregunta"
+        text topic_id FK "Tema"
+        text enunciado "Enunciado"
+        jsonb opciones "Opciones"
+        text ce "Competencia LOMLOE"
+        text criterio "Criterio LOMLOE"
+    }
+    topic_test_results {
+        text id PK "UUID intento"
+        text student_id FK "Alumno"
+        text topic_id FK "Tema"
+        numeric score "Nota / 10"
+        timestamptz created_at "Fecha real"
+    }
+    offline_tasks {
+        text id PK "UUID / código tarea"
+        text class_id FK "Aula"
+        text title "Práctica"
+        jsonb rubric "Rúbrica criterios"
+    }
+    offline_grades {
+        text id PK "UUID nota"
+        text task_id FK "Tarea"
+        text student_id FK "Alumno"
+        numeric score "Nota final"
+        jsonb rubric_scores "Notas por criterio"
+        text feedback "Feedback"
+    }
+    exams {
+        text id PK "UUID examen"
+        text class_id FK "Aula"
+        text created_by FK "Profesor autor"
+        text title "Examen"
+        integer duration_mins "Minutos"
+    }
+    exam_results {
+        text id PK "UUID entrega"
+        text exam_id FK "Examen"
+        text student_id FK "Alumno"
+        numeric score "Nota / 10"
+        jsonb respuestas "Respuestas"
+    }
+    game_results {
+        text id PK "UUID partida"
+        text student_id FK "Alumno"
+        text game_id "Minijuego"
+        numeric score "Puntuación"
+        jsonb metadata "wpm, precision"
+    }
+    live_sessions {
+        text pin PK "PIN 6 dígitos"
+        text host_id FK "Profesor anfitrión"
+        text game_id "Modo juego"
+        text status "lobby, running, finished"
+    }
+    live_participants {
+        text id PK "UUID participante"
+        text session_pin FK "Sala"
+        text student_id FK "Alumno"
+        numeric score "Puntuación vivo"
+    }
+    mecanoclass_texts {
+        text id PK "UUID texto"
+        text class_id FK "Aula"
+        text title "Título"
+        text content "Cuerpo textual"
+    }
+    arena_bots {
+        text id PK "UUID bot"
+        text owner_id FK "Programador"
+        text name "Nombre bot"
+        integer wins "Victorias"
+        integer losses "Derrotas"
+    }`,
+
+      academic: `erDiagram
+    subjects ||--o{ classes : "imparte"
+    users ||--o{ classes : "tutor"
+    users ||--o{ class_members : "matricula"
+    classes ||--o{ class_members : "alumnos"
+    classes ||--o{ assignments : "asigna_online"
+    classes ||--o{ offline_tasks : "asigna_offline"
+    classes ||--o{ offline_grades : "contiene_notas"
+    offline_tasks ||--o{ offline_grades : "evaluada_con"
+    users ||--o{ offline_grades : "alumno_evaluado"
+
+    subjects { text id PK text name }
+    classes { text id PK text teacher_id FK text subject_id FK text name text pin UK jsonb criteria_mapping }
+    class_members { text id PK text class_id FK text student_id FK }
+    assignments { text id PK text class_id FK text title timestamptz due_date }
+    offline_tasks { text id PK text class_id FK text title jsonb rubric numeric max_score }
+    offline_grades { text id PK text task_id FK text student_id FK numeric score jsonb rubric_scores text feedback }
+    users { text id PK text email UK text role }`,
+
+      gamification: `erDiagram
+    subjects ||--o{ guilds : "gremios"
+    subjects ||--o{ medals : "medallas"
+    users }o--o| guilds : "afiliado"
+    users ||--o{ arena_bots : "programa"
+
+    users { text id PK text email UK text display_name integer xp text_array logros text guild_id FK }
+    guilds { text id PK text subject_id PK,FK text name text color }
+    medals { text id PK text subject_id PK,FK text name integer xp_value }
+    leagues { text id PK text name integer min_xp }
+    arena_bots { text id PK text owner_id FK text name integer wins }`,
+
+      evaluation: `erDiagram
+    topics ||--o{ topic_questions : "preguntas"
+    topics ||--o{ topic_test_results : "evalua"
+    users ||--o{ topic_test_results : "alumno"
+    classes ||--o{ exams : "convoca"
+    exams ||--o{ exam_results : "entregas"
+    users ||--o{ exam_results : "examinado"
+
+    topics { text id PK text name }
+    topic_questions { text id PK text topic_id FK text enunciado text ce text criterio }
+    topic_test_results { text id PK text student_id FK text topic_id FK numeric score jsonb respuestas }
+    exams { text id PK text class_id FK text title integer duration_mins }
+    exam_results { text id PK text exam_id FK text student_id FK numeric score }
+    users { text id PK text display_name }`,
+
+      games: `erDiagram
+    users ||--o{ game_results : "juega"
+    users ||--o{ live_sessions : "anfitrion"
+    live_sessions ||--o{ live_participants : "conecta"
+    users ||--o{ live_participants : "jugador"
+    classes ||--o{ mecanoclass_texts : "textos"
+
+    game_results { text id PK text student_id FK text game_id numeric score jsonb metadata }
+    live_sessions { text pin PK text host_id FK text game_id text status }
+    live_participants { text id PK text session_pin FK text student_id FK numeric score }
+    mecanoclass_texts { text id PK text class_id FK text title text content }
+    users { text id PK text display_name }`
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DICCIONARIO RELACIONAL DE LAS 24 TABLAS
+    // ═══════════════════════════════════════════════════════════════════════
+    const DATA_DICTIONARY = [
+      {
+        table: 'subjects',
+        module: 'Núcleo Académico',
+        badgeColor: '#FF90E8',
+        desc: 'Asignaturas multitenant del centro (TIC II en Bachillerato y Computación y Robótica en ESO).',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'Clave identificadora corta (tic2, cyr)' },
+          { name: 'name', type: 'TEXT', key: '', desc: 'Nombre completo oficial de la materia' },
+          { name: 'icon', type: 'TEXT', key: '', desc: 'Emoji distintivo' },
+          { name: 'color', type: 'TEXT', key: '', desc: 'Color hexadecimal de interfaz' },
+          { name: 'description', type: 'TEXT', key: '', desc: 'Descripción curricular' },
+          { name: 'active', type: 'BOOLEAN', key: '', desc: 'Estado de activación' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de alta' }
+        ]
+      },
+      {
+        table: 'guilds',
+        module: 'Gamificación',
+        badgeColor: '#FFE300',
+        desc: 'Hermandades temáticas por asignatura (Turing, Lovelace, R2-D2, WALL·E...).',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'Identificador del gremio' },
+          { name: 'subject_id', type: 'TEXT', key: 'PK, FK', desc: 'Asignatura vinculada (subjects.id)' },
+          { name: 'name', type: 'TEXT', key: '', desc: 'Nombre de la hermandad' },
+          { name: 'icon', type: 'TEXT', key: '', desc: 'Emblema o emoji' },
+          { name: 'color', type: 'TEXT', key: '', desc: 'Color temático de gremio' },
+          { name: 'image_url', type: 'TEXT', key: '', desc: 'Ruta imagen de insignia' },
+          { name: 'description', type: 'TEXT', key: '', desc: 'Lore, filosofía y valores' }
+        ]
+      },
+      {
+        table: 'medals',
+        module: 'Gamificación',
+        badgeColor: '#FFE300',
+        desc: 'Catálogo de logros e insignias desbloqueables por asignatura con recompensa en XP.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'Identificador del logro' },
+          { name: 'subject_id', type: 'TEXT', key: 'PK, FK', desc: 'Asignatura vinculada (subjects.id)' },
+          { name: 'name', type: 'TEXT', key: '', desc: 'Título de la medalla' },
+          { name: 'description', type: 'TEXT', key: '', desc: 'Condición pedagógica de obtención' },
+          { name: 'icon', type: 'TEXT', key: '', desc: 'Icono visual' },
+          { name: 'xp_value', type: 'INTEGER', key: '', desc: 'Recompensa en puntos XP' },
+          { name: 'public', type: 'BOOLEAN', key: '', desc: 'Visibilidad en catálogo' }
+        ]
+      },
+      {
+        table: 'leagues',
+        module: 'Gamificación',
+        badgeColor: '#FFE300',
+        desc: 'Divisiones competitivas según umbral de experiencia acumulada (Bronce, Plata, Oro...).',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'Clave de liga' },
+          { name: 'name', type: 'TEXT', key: '', desc: 'Nombre de división' },
+          { name: 'min_xp', type: 'INTEGER', key: '', desc: 'Umbral mínimo de XP para clasificar' },
+          { name: 'icon', type: 'TEXT', key: '', desc: 'Trofeo visual' },
+          { name: 'color', type: 'TEXT', key: '', desc: 'Color distintivo de liga' },
+          { name: 'sort_order', type: 'INTEGER', key: '', desc: 'Orden jerárquico ascendente' }
+        ]
+      },
+      {
+        table: 'game_xp_configs',
+        module: 'Gamificación',
+        badgeColor: '#FFE300',
+        desc: 'Parámetros matemáticos de experiencia para regular la recompensa y saturación en cada minijuego.',
+        fields: [
+          { name: 'game_id', type: 'TEXT', key: 'PK', desc: 'ID del juego (mecanoclass, kanban_hero...)' },
+          { name: 'base', type: 'INTEGER', key: '', desc: 'XP base asignado' },
+          { name: 'max_ref', type: 'NUMERIC', key: '', desc: 'Puntuación de referencia al 100%' }
+        ]
+      },
+      {
+        table: 'users',
+        module: 'Identidad & Perfiles',
+        badgeColor: '#90A8FF',
+        desc: 'Alumnado y profesorado de la plataforma con sincronización Google OAuth, XP y medallas.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID canónico Supabase / Firebase UID' },
+          { name: 'email', type: 'TEXT', key: 'UK', desc: 'Correo @iesamachado.org' },
+          { name: 'display_name', type: 'TEXT', key: '', desc: 'Nombre y apellidos' },
+          { name: 'display_name_anon', type: 'TEXT', key: '', desc: 'Alias anonimizado para ranking' },
+          { name: 'role', type: 'TEXT', key: '', desc: 'student o teacher' },
+          { name: 'is_superadmin', type: 'BOOLEAN', key: '', desc: 'Permisos de superadministrador' },
+          { name: 'avatar', type: 'TEXT', key: '', desc: 'URL o SVG DiceBear' },
+          { name: 'subject_id', type: 'TEXT', key: 'FK', desc: 'Materia principal (subjects.id)' },
+          { name: 'guild_id', type: 'TEXT', key: '', desc: 'Gremio del estudiante' },
+          { name: 'xp', type: 'INTEGER', key: '', desc: 'Puntos de Experiencia acumulados' },
+          { name: 'logros', type: 'TEXT[]', key: '', desc: 'Array de IDs de medallas ganadas' },
+          { name: 'digital_wellbeing', type: 'JSONB', key: '', desc: 'Alertas y límites de bienestar digital' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de alta' },
+          { name: 'updated_at', type: 'TIMESTAMPTZ', key: '', desc: 'Última actividad' }
+        ]
+      },
+      {
+        table: 'allowed_teachers',
+        module: 'Control de Acceso',
+        badgeColor: '#90A8FF',
+        desc: 'Lista blanca de docentes con derecho a iniciar sesión con rol de profesor y gestionar clases.',
+        fields: [
+          { name: 'email', type: 'TEXT', key: 'PK', desc: 'Correo electrónico institucional' },
+          { name: 'name', type: 'TEXT', key: '', desc: 'Nombre y apellidos' },
+          { name: 'subject_id', type: 'TEXT', key: 'FK', desc: 'Asignatura asignada (subjects.id)' },
+          { name: 'role', type: 'TEXT', key: '', desc: 'teacher' },
+          { name: 'is_superadmin', type: 'BOOLEAN', key: '', desc: 'Flag de superadministrador' },
+          { name: 'added_by', type: 'TEXT', key: '', desc: 'Email de quien dio de alta' },
+          { name: 'active', type: 'BOOLEAN', key: '', desc: 'Permiso activo' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de alta' }
+        ]
+      },
+      {
+        table: 'allowed_students',
+        module: 'Control de Acceso',
+        badgeColor: '#90A8FF',
+        desc: 'Lista blanca para admitir alumnos pertenecientes a las listas oficiales del centro.',
+        fields: [
+          { name: 'email', type: 'TEXT', key: 'PK', desc: 'Correo institucional del alumno' },
+          { name: 'allowed', type: 'BOOLEAN', key: '', desc: 'Acceso permitido' },
+          { name: 'recovered', type: 'BOOLEAN', key: '', desc: 'Cuenta recuperada o migrada' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de registro' }
+        ]
+      },
+      {
+        table: 'classes',
+        module: 'Académico LOMLOE',
+        badgeColor: '#FF90E8',
+        desc: 'Aulas docentes vinculadas a un profesor titular, con PIN de acceso y ponderaciones de criterios LOMLOE.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID del aula' },
+          { name: 'teacher_id', type: 'TEXT', key: 'FK', desc: 'Profesor tutor (users.id)' },
+          { name: 'subject_id', type: 'TEXT', key: 'FK', desc: 'Asignatura (subjects.id)' },
+          { name: 'name', type: 'TEXT', key: '', desc: 'Nombre del grupo (ej. 2º Bach TIC II)' },
+          { name: 'level', type: 'TEXT', key: '', desc: 'Nivel curricular' },
+          { name: 'pin', type: 'TEXT', key: 'UK', desc: 'PIN único de 6 caracteres para unirse' },
+          { name: 'enabled_games', type: 'TEXT[]', key: '', desc: 'Minijuegos habilitados para la clase' },
+          { name: 'enabled_topics', type: 'TEXT[]', key: '', desc: 'Temas visibles para el grupo' },
+          { name: 'criteria_mapping', type: 'JSONB', key: '', desc: 'Ponderación de criterios LOMLOE' },
+          { name: 'classroom_id', type: 'TEXT', key: '', desc: 'ID curso en Google Classroom' },
+          { name: 'active', type: 'BOOLEAN', key: '', desc: 'Curso académico activo' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha creación' },
+          { name: 'updated_at', type: 'TIMESTAMPTZ', key: '', desc: 'Última modificación' }
+        ]
+      },
+      {
+        table: 'class_members',
+        module: 'Académico LOMLOE',
+        badgeColor: '#FF90E8',
+        desc: 'Relación N:M de matriculación entre alumnos y clases.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID de matrícula' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula vinculada (classes.id)' },
+          { name: 'student_id', type: 'TEXT', key: 'FK', desc: 'Alumno matriculado (users.id)' },
+          { name: 'joined_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha y hora de inscripción' }
+        ]
+      },
+      {
+        table: 'assignments',
+        module: 'Académico LOMLOE',
+        badgeColor: '#FF90E8',
+        desc: 'Tareas online asignadas a la clase con fecha límite, vinculables a minijuegos y Google Classroom.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID de la tarea' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula asignada (classes.id)' },
+          { name: 'game_id', type: 'TEXT', key: '', desc: 'Minijuego requerido (opcional)' },
+          { name: 'title', type: 'TEXT', key: '', desc: 'Título de la tarea' },
+          { name: 'description', type: 'TEXT', key: '', desc: 'Instrucciones de entrega' },
+          { name: 'due_date', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha límite de entrega' },
+          { name: 'max_score', type: 'INTEGER', key: '', desc: 'Puntuación máxima (ej. 100)' },
+          { name: 'classroom_id', type: 'TEXT', key: '', desc: 'ID CourseWork Google Classroom' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de publicación' }
+        ]
+      },
+      {
+        table: 'topics',
+        module: 'Currículo LOMLOE',
+        badgeColor: '#D5F2EF',
+        desc: 'Unidades didácticas del temario estructuradas con bloques de teoría interactiva y criterios oficiales.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'Clave tema (topic_kanban, block1...)' },
+          { name: 'subject_id', type: 'TEXT', key: 'FK', desc: 'Asignatura (subjects.id)' },
+          { name: 'name', type: 'TEXT', key: '', desc: 'Título de la unidad' },
+          { name: 'description', type: 'TEXT', key: '', desc: 'Resumen pedagógico y objetivos' },
+          { name: 'icon', type: 'TEXT', key: '', desc: 'Emoji distintivo' },
+          { name: 'color', type: 'TEXT', key: '', desc: 'Color temático' },
+          { name: 'sort_order', type: 'INTEGER', key: '', desc: 'Posición secuencial en temario' },
+          { name: 'blocks', type: 'JSONB', key: '', desc: 'Array de bloques teóricos' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de alta' },
+          { name: 'updated_at', type: 'TIMESTAMPTZ', key: '', desc: 'Última modificación' }
+        ]
+      },
+      {
+        table: 'topic_questions',
+        module: 'Currículo LOMLOE',
+        badgeColor: '#D5F2EF',
+        desc: 'Banco de preguntas tipo test vinculadas a competencias específicas (ce) y criterios LOMLOE.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID de la pregunta' },
+          { name: 'topic_id', type: 'TEXT', key: 'FK', desc: 'Tema (topics.id)' },
+          { name: 'subject_id', type: 'TEXT', key: 'FK', desc: 'Asignatura (subjects.id)' },
+          { name: 'enunciado', type: 'TEXT', key: '', desc: 'Texto de la pregunta' },
+          { name: 'opciones', type: 'JSONB', key: '', desc: 'Array de opciones [{ texto, correcta }]' },
+          { name: 'ce', type: 'TEXT', key: '', desc: 'Competencia Específica (ej. 3)' },
+          { name: 'criterio', type: 'TEXT', key: '', desc: 'Criterio de Evaluación (ej. 3.1)' },
+          { name: 'dificultad', type: 'TEXT', key: '', desc: 'baja, media o alta' },
+          { name: 'active', type: 'BOOLEAN', key: '', desc: 'Habilitada en tests aleatorios' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de creación' }
+        ]
+      },
+      {
+        table: 'topic_test_results',
+        module: 'Currículo LOMLOE',
+        badgeColor: '#D5F2EF',
+        desc: 'Resultados y marcas temporales reales de tests de repaso con nota numérica sobre 10.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID de la entrega' },
+          { name: 'student_id', type: 'TEXT', key: 'FK', desc: 'Alumno evaluado (users.id)' },
+          { name: 'topic_id', type: 'TEXT', key: 'FK', desc: 'Tema evaluado (topics.id)' },
+          { name: 'subject_id', type: 'TEXT', key: 'FK', desc: 'Asignatura (subjects.id)' },
+          { name: 'score', type: 'NUMERIC', key: '', desc: 'Nota final calculada sobre 10' },
+          { name: 'raw_score', type: 'NUMERIC', key: '', desc: 'Puntuación bruta' },
+          { name: 'max_possible', type: 'INTEGER', key: '', desc: 'Total preguntas del test' },
+          { name: 'respuestas', type: 'JSONB', key: '', desc: 'Detalle de respuestas marcadas' },
+          { name: 'forced_fail', type: 'BOOLEAN', key: '', desc: 'Penalización por abandono o trampa' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha real de realización' }
+        ]
+      },
+      {
+        table: 'offline_tasks',
+        module: 'Evaluación LOMLOE',
+        badgeColor: '#FF90E8',
+        desc: 'Prácticas de aula offline con rúbricas personalizables y ponderación de criterios.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID o identificador de tarea' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula asignada (classes.id)' },
+          { name: 'title', type: 'TEXT', key: '', desc: 'Título de la práctica' },
+          { name: 'description', type: 'TEXT', key: '', desc: 'Instrucciones de aula' },
+          { name: 'rubric', type: 'JSONB', key: '', desc: 'Estructura de criterios y niveles' },
+          { name: 'max_score', type: 'NUMERIC', key: '', desc: 'Nota máxima (ej. 10.00)' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de publicación' }
+        ]
+      },
+      {
+        table: 'offline_grades',
+        module: 'Evaluación LOMLOE',
+        badgeColor: '#FF90E8',
+        desc: 'Evaluaciones offline con desglose por criterio de rúbrica (rubric_scores) y feedback.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID calificación' },
+          { name: 'task_id', type: 'TEXT', key: 'FK', desc: 'Tarea evaluada (offline_tasks.id)' },
+          { name: 'student_id', type: 'TEXT', key: 'FK', desc: 'Alumno calificado (users.id)' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula del alumno (classes.id)' },
+          { name: 'score', type: 'NUMERIC', key: '', desc: 'Nota final sobre 10' },
+          { name: 'feedback', type: 'TEXT', key: '', desc: 'Comentario pedagógico' },
+          { name: 'graded_by', type: 'TEXT', key: 'FK', desc: 'Docente corrector (users.id)' },
+          { name: 'rubric_scores', type: 'JSONB', key: '', desc: 'Puntuaciones criterio a criterio' },
+          { name: 'graded_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de corrección' }
+        ]
+      },
+      {
+        table: 'exams',
+        module: 'Exámenes Oficiales',
+        badgeColor: '#b45309',
+        desc: 'Exámenes formales cronometrados creados por el docente para una clase específica.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID del examen' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula examinada (classes.id)' },
+          { name: 'created_by', type: 'TEXT', key: 'FK', desc: 'Docente creador (users.id)' },
+          { name: 'title', type: 'TEXT', key: '', desc: 'Título del examen' },
+          { name: 'question_ids', type: 'TEXT[]', key: '', desc: 'IDs de preguntas asignadas' },
+          { name: 'duration_mins', type: 'INTEGER', key: '', desc: 'Límite de tiempo en minutos' },
+          { name: 'active', type: 'BOOLEAN', key: '', desc: 'Estado de apertura del examen' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de creación' }
+        ]
+      },
+      {
+        table: 'exam_questions',
+        module: 'Exámenes Oficiales',
+        badgeColor: '#b45309',
+        desc: 'Banco de preguntas exclusivas de examen asociadas al aula y redactadas por el profesorado.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID de la pregunta' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula origen (classes.id)' },
+          { name: 'subject_id', type: 'TEXT', key: 'FK', desc: 'Asignatura (subjects.id)' },
+          { name: 'enunciado', type: 'TEXT', key: '', desc: 'Texto del ítem' },
+          { name: 'opciones', type: 'JSONB', key: '', desc: 'Array de opciones de respuesta' },
+          { name: 'ce', type: 'TEXT', key: '', desc: 'Competencia LOMLOE' },
+          { name: 'criterio', type: 'TEXT', key: '', desc: 'Criterio LOMLOE' },
+          { name: 'dificultad', type: 'TEXT', key: '', desc: 'Nivel de dificultad' },
+          { name: 'created_by', type: 'TEXT', key: 'FK', desc: 'Docente autor (users.id)' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de creación' }
+        ]
+      },
+      {
+        table: 'exam_results',
+        module: 'Exámenes Oficiales',
+        badgeColor: '#b45309',
+        desc: 'Entregas de exámenes de los alumnos con cálculo automático de calificación.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID de la entrega' },
+          { name: 'exam_id', type: 'TEXT', key: 'FK', desc: 'Examen (exams.id)' },
+          { name: 'student_id', type: 'TEXT', key: 'FK', desc: 'Alumno evaluado (users.id)' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula del examen (classes.id)' },
+          { name: 'score', type: 'NUMERIC', key: '', desc: 'Nota final sobre 10' },
+          { name: 'raw_score', type: 'NUMERIC', key: '', desc: 'Aciertos brutos' },
+          { name: 'respuestas', type: 'JSONB', key: '', desc: 'Respuestas marcadas' },
+          { name: 'forced_fail', type: 'BOOLEAN', key: '', desc: 'Bloqueado por abandono o trampa' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de entrega' }
+        ]
+      },
+      {
+        table: 'game_results',
+        module: 'Minijuegos & Telemetría',
+        badgeColor: '#23A094',
+        desc: 'Registro detallado de partidas jugadas en minijuegos (mecanografía, kanban, helados, etc.).',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID de la partida' },
+          { name: 'student_id', type: 'TEXT', key: 'FK', desc: 'Alumno jugador (users.id)' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula vinculada (opcional)' },
+          { name: 'subject_id', type: 'TEXT', key: 'FK', desc: 'Asignatura (subjects.id)' },
+          { name: 'game_id', type: 'TEXT', key: '', desc: 'Identificador del minijuego' },
+          { name: 'score', type: 'NUMERIC', key: '', desc: 'Puntuación lograda' },
+          { name: 'duration_secs', type: 'INTEGER', key: '', desc: 'Tiempo de juego en segundos' },
+          { name: 'metadata', type: 'JSONB', key: '', desc: 'Métricas detalladas (wpm, precisión, nivel)' },
+          { name: 'forced_fail', type: 'BOOLEAN', key: '', desc: 'Anulación de partida' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha y hora de juego' }
+        ]
+      },
+      {
+        table: 'live_sessions',
+        module: 'Multijugador en Directo',
+        badgeColor: '#FF6B35',
+        desc: 'Salas en tiempo real tipo Kahoot para juegos competitivos simultáneos en el aula.',
+        fields: [
+          { name: 'pin', type: 'TEXT', key: 'PK', desc: 'Código PIN numérico de 6 dígitos' },
+          { name: 'host_id', type: 'TEXT', key: 'FK', desc: 'Docente anfitrión (users.id)' },
+          { name: 'game_id', type: 'TEXT', key: '', desc: 'Tipo de juego multijugador' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula participante (classes.id)' },
+          { name: 'status', type: 'TEXT', key: '', desc: 'lobby, running o finished' },
+          { name: 'config', type: 'JSONB', key: '', desc: 'Configuración de la partida' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Hora de creación' },
+          { name: 'updated_at', type: 'TIMESTAMPTZ', key: '', desc: 'Último latido de sala' }
+        ]
+      },
+      {
+        table: 'live_participants',
+        module: 'Multijugador en Directo',
+        badgeColor: '#FF6B35',
+        desc: 'Estudiantes conectados a una sesión multijugador con puntuación y progreso en vivo.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID de participante' },
+          { name: 'session_pin', type: 'TEXT', key: 'FK', desc: 'PIN de la sala (live_sessions.pin)' },
+          { name: 'student_id', type: 'TEXT', key: 'FK', desc: 'Alumno conectado (users.id)' },
+          { name: 'display_name', type: 'TEXT', key: '', desc: 'Alias del jugador en la sala' },
+          { name: 'score', type: 'NUMERIC', key: '', desc: 'Puntuación en tiempo real' },
+          { name: 'progress', type: 'NUMERIC', key: '', desc: 'Porcentaje de avance (0-100)' },
+          { name: 'status', type: 'TEXT', key: '', desc: 'waiting, playing o finished' },
+          { name: 'metadata', type: 'JSONB', key: '', desc: 'Estadísticas del jugador en sala' },
+          { name: 'joined_at', type: 'TIMESTAMPTZ', key: '', desc: 'Hora de conexión' }
+        ]
+      },
+      {
+        table: 'mecanoclass_texts',
+        module: 'Contenidos de Minijuegos',
+        badgeColor: '#23A094',
+        desc: 'Textos personalizados redactados por el docente para velocidad de mecanografía.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID del texto' },
+          { name: 'class_id', type: 'TEXT', key: 'FK', desc: 'Aula asignada (classes.id)' },
+          { name: 'created_by', type: 'TEXT', key: 'FK', desc: 'Docente autor (users.id)' },
+          { name: 'title', type: 'TEXT', key: '', desc: 'Título del texto' },
+          { name: 'content', type: 'TEXT', key: '', desc: 'Cuerpo textual a teclear' },
+          { name: 'difficulty', type: 'TEXT', key: '', desc: 'Nivel de dificultad asignado' },
+          { name: 'active', type: 'BOOLEAN', key: '', desc: 'Visible en catálogo' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de alta' }
+        ]
+      },
+      {
+        table: 'arena_bots',
+        module: 'Creatividad & Programación',
+        badgeColor: '#90A8FF',
+        desc: 'Bots de combate programados en JavaScript por los alumnos para la Arena.',
+        fields: [
+          { name: 'id', type: 'TEXT', key: 'PK', desc: 'UUID del bot' },
+          { name: 'owner_id', type: 'TEXT', key: 'FK', desc: 'Alumno programador (users.id)' },
+          { name: 'name', type: 'TEXT', key: '', desc: 'Nombre del combatiente' },
+          { name: 'code', type: 'TEXT', key: '', desc: 'Código fuente ejecutable JS' },
+          { name: 'wins', type: 'INTEGER', key: '', desc: 'Victorias en combates' },
+          { name: 'losses', type: 'INTEGER', key: '', desc: 'Derrotas en combates' },
+          { name: 'public', type: 'BOOLEAN', key: '', desc: 'Disponible para batallas públicas' },
+          { name: 'created_at', type: 'TIMESTAMPTZ', key: '', desc: 'Fecha de alta' },
+          { name: 'updated_at', type: 'TIMESTAMPTZ', key: '', desc: 'Última actualización' }
+        ]
+      }
+    ];
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONTROLADOR DE RENDERIZADO Y EVENTOS
+    // ═══════════════════════════════════════════════════════════════════════
+    let currentMode = 'chen'; // 'chen' o 'relational'
+    let currentViewKey = 'global';
+    let panZoomInstance = null;
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#ffffff',
+        primaryBorderColor: '#000000',
+        primaryTextColor: '#000000',
+        lineColor: '#000000',
+        secondaryColor: '#FF90E8',
+        tertiaryColor: '#FFE300',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        fontSize: '12px'
+      },
+      flowchart: {
+        diagramPadding: 20,
+        curve: 'basis',
+        htmlLabels: true
+      },
+      er: {
+        diagramPadding: 20,
+        layoutDirection: 'TB',
+        useMaxWidth: false
+      }
+    });
+
+    const VIEW_TITLES = {
+      global: '🌟 Modelo Global Completo',
+      academic: '🎓 Módulo Académico & Cuaderno LOMLOE',
+      gamification: '🏆 Gamificación, Gremios & Ligas',
+      evaluation: '📝 Evaluación, Tests & Exámenes',
+      games: '🎮 Minijuegos & Multijugador en Directo'
+    };
+
+    async function renderCurrentDiagram() {
+      const overlay = document.getElementById('loadingOverlay');
+      const container = document.getElementById('mermaidOutput');
+      const loadingText = document.getElementById('loadingText');
+      
+      loadingText.textContent = currentMode === 'chen' 
+        ? 'Renderizando diagrama Chen con cuadrados, rombos, elipses y cardinalidades...' 
+        : 'Renderizando diagrama relacional de tablas...';
+        
+      overlay.style.display = 'flex';
+
+      const title = (currentMode === 'chen' ? '🔶 Chen: ' : '📊 Relacional: ') + (VIEW_TITLES[currentViewKey] || '');
+      document.getElementById('currentViewTitle').textContent = title;
+      document.getElementById('notationBadge').textContent = currentMode === 'chen' ? 'Notación Chen' : 'Notación Relacional';
+      document.getElementById('notationBadge').style.background = currentMode === 'chen' ? '#FFE300' : '#FF90E8';
+      document.getElementById('chenLegend').style.display = currentMode === 'chen' ? 'flex' : 'none';
+
+      if (panZoomInstance) {
+        panZoomInstance.destroy();
+        panZoomInstance = null;
+      }
+      container.innerHTML = '';
+
+      const dict = currentMode === 'chen' ? CHEN_DIAGRAMS : RELATIONAL_DIAGRAMS;
+      const code = dict[currentViewKey] || dict.global;
+      const uniqueId = 'mermaid-svg-' + Date.now();
+
+      try {
+        const { svg } = await mermaid.render(uniqueId, code);
+        container.innerHTML = svg;
+
+        const svgElement = container.querySelector('svg');
+        if (svgElement) {
+          svgElement.style.width = '100%';
+          svgElement.style.height = '100%';
+          
+          panZoomInstance = svgPanZoom(svgElement, {
+            zoomEnabled: true,
+            controlIconsEnabled: false,
+            fit: true,
+            center: true,
+            minZoom: 0.1,
+            maxZoom: 10,
+            zoomScaleSensitivity: 0.25,
+            dblClickZoomEnabled: true,
+            mouseWheelZoomEnabled: true
+          });
+
+          setTimeout(() => {
+            if (panZoomInstance) {
+              panZoomInstance.resize();
+              panZoomInstance.fit();
+              panZoomInstance.center();
+            }
+          }, 100);
+        }
+      } catch (err) {
+        console.error('Error renderizando Mermaid:', err);
+        container.innerHTML = `<div style="padding:2rem; color:red; font-weight:bold;">Error: ${err.message}</div>`;
+      } finally {
+        overlay.style.display = 'none';
+      }
+    }
+
+    // Selector de Notación
+    document.getElementById('btnModeChen').addEventListener('click', () => {
+      currentMode = 'chen';
+      document.getElementById('btnModeChen').classList.add('active');
+      document.getElementById('btnModeRelational').classList.remove('active');
+      renderCurrentDiagram();
+    });
+
+    document.getElementById('btnModeRelational').addEventListener('click', () => {
+      currentMode = 'relational';
+      document.getElementById('btnModeRelational').classList.add('active');
+      document.getElementById('btnModeChen').classList.remove('active');
+      renderCurrentDiagram();
+    });
+
+    // Pestañas
+    document.querySelectorAll('.er-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.er-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentViewKey = btn.dataset.view;
+        renderCurrentDiagram();
+      });
+    });
+
+    // Controles Zoom y Pan
+    document.getElementById('btnZoomIn').addEventListener('click', () => {
+      if (panZoomInstance) panZoomInstance.zoomIn();
+    });
+    document.getElementById('btnZoomOut').addEventListener('click', () => {
+      if (panZoomInstance) panZoomInstance.zoomOut();
+    });
+    document.getElementById('btnResetPan').addEventListener('click', () => {
+      if (panZoomInstance) {
+        panZoomInstance.reset();
+        panZoomInstance.fit();
+        panZoomInstance.center();
+      }
+    });
+
+    // Copiar Mermaid
+    document.getElementById('btnCopyMermaid').addEventListener('click', async () => {
+      const dict = currentMode === 'chen' ? CHEN_DIAGRAMS : RELATIONAL_DIAGRAMS;
+      const code = dict[currentViewKey] || dict.global;
+      try {
+        await navigator.clipboard.writeText(code);
+        const originalText = document.getElementById('btnCopyMermaid').innerHTML;
+        document.getElementById('btnCopyMermaid').innerHTML = '✅ ¡Copiado!';
+        setTimeout(() => {
+          document.getElementById('btnCopyMermaid').innerHTML = originalText;
+        }, 2000);
+      } catch (e) {
+        alert('Código copiado al portapapeles.');
+      }
+    });
+
+    // Descargar SVG
+    document.getElementById('btnDownloadSvg').addEventListener('click', () => {
+      const svgEl = document.querySelector('#mermaidOutput svg');
+      if (!svgEl) return;
+      const serializer = new XMLSerializer();
+      const svgBlob = new Blob([serializer.serializeToString(svgEl)], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stackclass_er_${currentMode}_${currentViewKey}.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Pantalla completa
+    document.getElementById('btnFullscreen').addEventListener('click', () => {
+      const card = document.getElementById('diagramCard');
+      card.classList.toggle('fullscreen-mode');
+      const isFull = card.classList.contains('fullscreen-mode');
+      document.getElementById('btnFullscreen').textContent = isFull ? '✕ Salir' : '⛶ Pantalla Completa';
+      setTimeout(() => {
+        if (panZoomInstance) {
+          panZoomInstance.resize();
+          panZoomInstance.fit();
+          panZoomInstance.center();
+        }
+      }, 100);
+    });
+
+    // Diccionario de datos
+    function renderDictionary(filter = '') {
+      const grid = document.getElementById('tablesGrid');
+      grid.innerHTML = '';
+      const q = filter.trim().toLowerCase();
+
+      const filtered = DATA_DICTIONARY.filter(t => {
+        if (!q) return true;
+        if (t.table.toLowerCase().includes(q)) return true;
+        if (t.module.toLowerCase().includes(q)) return true;
+        if (t.desc.toLowerCase().includes(q)) return true;
+        return t.fields.some(f => f.name.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q) || f.type.toLowerCase().includes(q));
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1; padding:2rem; text-align:center; font-weight:700; color:var(--text-muted);">No se encontraron entidades que coincidan con "${filter}".</div>`;
+        return;
+      }
+
+      filtered.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'table-card';
+
+        const fieldsHtml = t.fields.map(f => {
+          const isPk = f.key.includes('PK');
+          const isFk = f.key.includes('FK');
+          const keyBadge = isPk ? '<span style="color:#b45309; font-weight:bold; margin-right:4px;">🔑 PK</span>' : (isFk ? '<span style="color:#2563eb; font-weight:bold; margin-right:4px;">🔗 FK</span>' : '');
+          
+          return `
+            <li class="field-item">
+              <div>
+                ${keyBadge}
+                <span class="field-name ${isPk ? 'is-pk' : (isFk ? 'is-fk' : '')}">${f.name}</span>
+                <span style="display:block; font-size:0.75rem; color:#64748b; font-family:Inter, sans-serif;">${f.desc}</span>
+              </div>
+              <span class="field-type">${f.type}</span>
+            </li>
+          `;
+        }).join('');
+
+        card.innerHTML = `
+          <div class="table-card-head">
+            <span class="table-card-title">${t.table}</span>
+            <span class="badge-tag" style="background:${t.badgeColor};">${t.module}</span>
+          </div>
+          <div class="table-card-body">
+            <p style="margin:0 0 0.75rem 0; font-size:0.8rem; color:#475569;">${t.desc}</p>
+            <ul class="field-list">
+              ${fieldsHtml}
+            </ul>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById('dictSearch').addEventListener('input', (e) => {
+      renderDictionary(e.target.value);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCurrentDiagram();
+      renderDictionary();
+    });
+  </script>
+</body>
+</html>
