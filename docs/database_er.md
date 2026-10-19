@@ -15,10 +15,10 @@ Este documento contiene el **Modelo Conceptual Entidad-Relación (Peter Chen)** 
 ```mermaid
 flowchart TD
     %% Estilos Chen Neo-Brutalism
-    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
-    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
-    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
-    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3.5px,font-weight:900,color:#000000,font-size:20px;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:17px;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000000,font-size:16px,font-weight:600;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:3px,font-weight:900,color:#000000,font-size:16px;
 
     %% ENTIDADES (RECTÁNGULOS)
     E_SUB["ASIGNATURA"]:::entity
@@ -197,10 +197,10 @@ Muestra todas las entidades, relaciones y la totalidad de los atributos en elips
 
 ```mermaid
 flowchart TD
-    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
-    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
-    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
-    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3.5px,font-weight:900,color:#000000,font-size:20px;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:17px;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000000,font-size:16px,font-weight:600;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:3px,font-weight:900,color:#000000,font-size:16px;
 
     %% ENTIDADES
     E_SUB["ASIGNATURA"]:::entity
@@ -317,10 +317,10 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
-    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
-    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
-    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3.5px,font-weight:900,color:#000000,font-size:20px;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:17px;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000000,font-size:16px,font-weight:600;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:3px,font-weight:900,color:#000000,font-size:16px;
 
     E_SUB["ASIGNATURA"]:::entity
     E_USER["USUARIO"]:::entity
@@ -427,10 +427,10 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
-    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
-    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
-    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3.5px,font-weight:900,color:#000000,font-size:20px;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:17px;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000000,font-size:16px,font-weight:600;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:3px,font-weight:900,color:#000000,font-size:16px;
 
     E_TOPIC["TEMA LOMLOE"]:::entity
     E_QTEST["PREGUNTA TEST"]:::entity
@@ -530,10 +530,10 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3px,font-weight:800,color:#000000;
-    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2px,font-weight:800,color:#000000;
-    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:1.5px,color:#000000,font-size:11px;
-    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:11px;
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3.5px,font-weight:900,color:#000000,font-size:20px;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:17px;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000000,font-size:16px,font-weight:600;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:3px,font-weight:900,color:#000000,font-size:16px;
 
     E_USER["USUARIO"]:::entity
     E_CLASS["CLASE"]:::entity

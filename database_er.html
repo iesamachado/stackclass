@@ -18,56 +18,66 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
     }
     .er-header {
       background: var(--bg-surface, #ffffff);
       border-bottom: 3px solid #000000;
-      padding: 1.5rem 2rem;
-      box-shadow: 0 4px 0px rgba(0,0,0,0.1);
+      padding: 0.5rem 1.25rem;
+      box-shadow: 0 3px 0px rgba(0,0,0,0.1);
+      z-index: 20;
     }
     .er-header-top {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 1rem;
-      margin-bottom: 0.75rem;
+      gap: 0.75rem;
     }
     .er-title {
-      font-size: 1.85rem;
+      font-size: 1.25rem;
       font-weight: 800;
       color: var(--text-primary, #000000);
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.5rem;
+      margin: 0;
+    }
+    .er-header-sub {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.4rem;
     }
 
-    /* Selector de Notación (Chen vs Relacional) */
+    /* Selector de Notación */
     .notation-toggle-bar {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.4rem;
       background: #F5F1E7;
       border: 2px solid #000000;
-      border-radius: 8px;
-      padding: 0.35rem 0.5rem;
+      border-radius: 6px;
+      padding: 0.2rem 0.4rem;
       box-shadow: 2px 2px 0px #000000;
     }
     .notation-label {
       font-weight: 800;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
-      padding: 0 0.4rem;
+      padding: 0 0.3rem;
     }
     .notation-btn {
       background: #ffffff;
       border: 2px solid #000000;
-      padding: 0.4rem 0.8rem;
+      padding: 0.3rem 0.65rem;
       font-weight: 800;
-      font-size: 0.85rem;
-      border-radius: 6px;
+      font-size: 0.8rem;
+      border-radius: 5px;
       cursor: pointer;
-      box-shadow: 2px 2px 0px #000000;
+      box-shadow: 1.5px 1.5px 0px #000000;
       transition: all 0.1s ease;
     }
     .notation-btn.active {
@@ -76,54 +86,55 @@
       transform: translate(1px, 1px);
     }
 
-    /* Leyenda de simbología Chen */
+    /* Leyenda Chen */
     .chen-legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem;
+      gap: 0.6rem;
       align-items: center;
-      margin-top: 0.75rem;
-      padding: 0.5rem 0.75rem;
+      margin-top: 0.4rem;
+      padding: 0.35rem 0.65rem;
       background: #FFFDF5;
       border: 2px dashed #000000;
-      border-radius: 8px;
-      font-size: 0.82rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
       font-weight: 700;
+      transition: all 0.2s ease;
     }
     .legend-item {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.35rem;
     }
     .legend-shape-rect {
-      width: 22px;
-      height: 14px;
+      width: 18px;
+      height: 12px;
       background: #FFE300;
-      border: 2px solid #000000;
+      border: 1.5px solid #000000;
       display: inline-block;
     }
     .legend-shape-diamond {
-      width: 14px;
-      height: 14px;
+      width: 11px;
+      height: 11px;
       background: #FF90E8;
-      border: 2px solid #000000;
+      border: 1.5px solid #000000;
       transform: rotate(45deg);
       display: inline-block;
-      margin: 0 4px;
+      margin: 0 3px;
     }
     .legend-shape-oval {
-      width: 22px;
-      height: 14px;
+      width: 18px;
+      height: 12px;
       background: #ffffff;
       border: 1.5px solid #000000;
       border-radius: 99px;
       display: inline-block;
     }
     .legend-shape-oval-pk {
-      width: 22px;
-      height: 14px;
+      width: 18px;
+      height: 12px;
       background: #D5F2EF;
-      border: 2px solid #000000;
+      border: 1.5px solid #000000;
       border-radius: 99px;
       display: inline-block;
     }
@@ -132,27 +143,25 @@
     .er-tabs {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 0.75rem;
-      border-bottom: 2px solid #000000;
-      padding-bottom: 0.5rem;
+      gap: 0.35rem;
     }
     .er-tab-btn {
       background: #ffffff;
       border: 2px solid #000000;
-      padding: 0.5rem 1rem;
-      font-weight: 700;
-      font-size: 0.9rem;
+      padding: 0.35rem 0.75rem;
+      font-weight: 800;
+      font-size: 0.82rem;
       cursor: pointer;
       box-shadow: 2px 2px 0px #000000;
-      transition: all 0.15s ease;
+      transition: all 0.1s ease;
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.3rem;
+      border-radius: 5px;
     }
     .er-tab-btn:hover {
       transform: translate(-1px, -1px);
-      box-shadow: 3px 3px 0px #000000;
+      box-shadow: 2.5px 2.5px 0px #000000;
       background: #FFFDF5;
     }
     .er-tab-btn.active {
@@ -161,47 +170,49 @@
       box-shadow: 1px 1px 0px #000000;
     }
 
-    /* Contenedor del visor */
+    /* Layout Visor Casi Pantalla Completa */
     .viewer-layout {
       display: flex;
       flex-direction: column;
       flex: 1;
-      padding: 1.5rem 2rem;
-      gap: 1.5rem;
+      padding: 0.4rem 0.8rem 0.8rem 0.8rem;
+      gap: 0.6rem;
+      min-height: 0;
     }
     .diagram-card {
       background: #ffffff;
       border: 3px solid #000000;
-      border-radius: 12px;
-      box-shadow: 6px 6px 0px #000000;
+      border-radius: 10px;
+      box-shadow: 4px 4px 0px #000000;
       display: flex;
       flex-direction: column;
       position: relative;
       overflow: hidden;
-      min-height: 620px;
+      height: calc(100vh - 120px);
+      min-height: 520px;
     }
     .diagram-toolbar {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      padding: 0.75rem 1.25rem;
+      padding: 0.45rem 0.85rem;
       background: #f8fafc;
       border-bottom: 2px solid #000000;
-      gap: 0.5rem;
+      gap: 0.4rem;
       z-index: 10;
     }
     .tool-group {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.35rem;
     }
     .tool-btn {
       background: #ffffff;
       border: 2px solid #000000;
-      padding: 0.4rem 0.75rem;
-      font-weight: 700;
-      font-size: 0.85rem;
+      padding: 0.35rem 0.65rem;
+      font-weight: 800;
+      font-size: 0.82rem;
       border-radius: 6px;
       cursor: pointer;
       box-shadow: 2px 2px 0px #000000;
@@ -209,55 +220,157 @@
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
+      color: #000000;
     }
     .tool-btn:hover {
       background: #FFE300;
       transform: translate(-1px, -1px);
-      box-shadow: 3px 3px 0px #000000;
+      box-shadow: 2.5px 2.5px 0px #000000;
     }
     .tool-btn:active {
       transform: translate(1px, 1px);
       box-shadow: 0px 0px 0px #000000;
     }
 
-    /* Área de renderizado del SVG */
+    /* Control de Fuente */
+    .font-size-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: #F5F1E7;
+      border: 2px solid #000000;
+      border-radius: 6px;
+      padding: 0.15rem 0.35rem;
+      box-shadow: 1.5px 1.5px 0px #000000;
+    }
+    .font-control-label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding-right: 0.15rem;
+    }
+    .font-btn {
+      padding: 0.2rem 0.45rem !important;
+      font-size: 0.8rem !important;
+    }
+    .font-size-badge {
+      font-weight: 900;
+      font-size: 0.85rem;
+      min-width: 38px;
+      text-align: center;
+      background: #ffffff;
+      border: 1px solid #000000;
+      border-radius: 4px;
+      padding: 0.1rem 0.3rem;
+    }
+
+    /* Área de renderizado del SVG - 100% de espacio reservado sin confinamiento */
     .diagram-viewport {
       flex: 1;
       width: 100%;
-      height: 700px;
+      height: 100%;
       overflow: hidden;
       position: relative;
       background-color: var(--canvas-bg);
-      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
       background-size: 24px 24px;
       cursor: grab;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
     .diagram-viewport:active {
       cursor: grabbing;
     }
     .mermaid-container {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      overflow: hidden;
     }
     .mermaid-container svg {
       width: 100% !important;
       height: 100% !important;
-      max-width: none !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      display: block !important;
     }
 
-    /* Diccionario de datos */
+    /* Estilos de tipografía ampliada para Proyector / Clase */
+    .edgeLabel, .edgeLabel span {
+      font-size: 16px !important;
+      font-weight: 900 !important;
+      color: #000000 !important;
+    }
+    .edgeLabel {
+      background: #ffffff !important;
+      border: 1.5px solid #000000 !important;
+      border-radius: 4px !important;
+      padding: 2px 6px !important;
+      box-shadow: 1px 1px 0px #000000 !important;
+    }
+    .er.entityBox {
+      font-size: 19px !important;
+      font-weight: 800 !important;
+      fill: #FFE300 !important;
+      stroke: #000000 !important;
+      stroke-width: 2.5px !important;
+    }
+    .er.entityLabel {
+      font-size: 19px !important;
+      font-weight: 900 !important;
+      fill: #000000 !important;
+    }
+    .er.attributeBoxEven, .er.attributeBoxOdd {
+      stroke: #000000 !important;
+      stroke-width: 1.5px !important;
+    }
+    .er.attributeBoxEven text, .er.attributeBoxOdd text, text.er.attributeBoxEven, text.er.attributeBoxOdd {
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      fill: #000000 !important;
+    }
+    .er.relationshipLabel {
+      font-size: 16px !important;
+      font-weight: 800 !important;
+      fill: #000000 !important;
+    }
+    .er.relationshipLine {
+      stroke: #000000 !important;
+      stroke-width: 2px !important;
+    }
+
+    /* Diccionario de datos plegable */
     .dictionary-card {
       background: #ffffff;
       border: 3px solid #000000;
-      border-radius: 12px;
-      box-shadow: 6px 6px 0px #000000;
-      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 4px 4px 0px #000000;
+      padding: 0;
+      transition: all 0.2s ease;
+    }
+    .dict-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+      background: #F8FAFC;
+      border-radius: 7px;
+      font-weight: 800;
+    }
+    .dict-summary:hover {
+      background: #FFFDF5;
+    }
+    .dict-toggle-text {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 700;
+    }
+    .dict-content {
+      padding: 0.5rem 1.25rem 1.5rem 1.25rem;
+      border-top: 2px solid #000000;
     }
     .dict-header {
       display: flex;
@@ -365,9 +478,10 @@
       z-index: 9999 !important;
       border-radius: 0 !important;
       box-shadow: none !important;
+      padding: 0 !important;
     }
     .fullscreen-mode .diagram-viewport {
-      height: calc(100vh - 60px) !important;
+      height: calc(100vh - 48px) !important;
     }
 
     /* Cargando */
@@ -399,73 +513,99 @@
     }
   </style>
 
+  <!-- Estilos dinámicos para escalado de fuente en clase -->
+  <style id="dynamicFontStyles"></style>
+
   <!-- Mermaid.js & SVG Pan Zoom -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 </head>
 <body class="page">
 
-  <!-- Header -->
+  <!-- Header Compacto -->
   <header class="er-header">
     <div class="er-header-top">
-      <div>
-        <h1 class="er-title">📐 StackClass — Diagrama Entidad-Relación</h1>
-        <p style="color:var(--text-secondary); margin-top:4px; font-size:1rem;">
-          Modelo de base de datos relacional PostgreSQL en <strong>Supabase</strong> con soporte LOMLOE, Gamificación y Multitenancy.
-        </p>
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <a href="admin.html" class="tool-btn" style="text-decoration:none; padding:0.3rem 0.65rem;" title="Volver al Panel de Administración">⬅ Admin</a>
+        <h1 class="er-title">📐 StackClass — Modelo Entidad-Relación</h1>
+        <span class="badge" style="background:#FFE300; border:1px solid #000; font-size:0.72rem; font-weight:800; padding:2px 6px; border-radius:4px;">Supabase PostgreSQL</span>
       </div>
 
       <!-- Selector de Modo de Notación -->
       <div class="notation-toggle-bar">
         <span class="notation-label">Notación:</span>
         <button class="notation-btn active" id="btnModeChen" data-mode="chen">
-          🔶 Clásica Chen (Cuadrados, Rombos, Elipses)
+          🔶 Notación Chen
         </button>
         <button class="notation-btn" id="btnModeRelational" data-mode="relational">
-          📊 Tablas Relacionales (SQL / Crow's Foot)
+          📊 Relacional SQL
         </button>
       </div>
     </div>
 
-    <!-- Leyenda Chen -->
+    <!-- Pestañas de Vista y Accesos Rápidos -->
+    <div class="er-header-sub">
+      <nav class="er-tabs" id="viewTabs">
+        <button class="er-tab-btn active" data-view="global">🌟 Vista Global Completa</button>
+        <button class="er-tab-btn" data-view="academic">🎓 Académico & LOMLOE</button>
+        <button class="er-tab-btn" data-view="gamification">🏆 Gamificación & Gremios</button>
+        <button class="er-tab-btn" data-view="evaluation">📝 Evaluación & Exámenes</button>
+        <button class="er-tab-btn" data-view="games">🎮 Minijuegos en Vivo</button>
+      </nav>
+
+      <div style="display:flex; align-items:center; gap:0.4rem;">
+        <button class="tool-btn" id="btnToggleLegend" style="font-size:0.78rem; padding:0.25rem 0.55rem;">ℹ️ Leyenda Chen</button>
+        <button class="tool-btn" id="btnScrollDict" style="font-size:0.78rem; padding:0.25rem 0.55rem; background:#FFFDF5;">📚 Diccionario (24)</button>
+      </div>
+    </div>
+
+    <!-- Leyenda Chen (Compacta) -->
     <div class="chen-legend" id="chenLegend">
       <span class="legend-item"><span class="legend-shape-rect"></span> <strong>Rectángulo:</strong> Entidad</span>
       <span class="legend-item"><span class="legend-shape-diamond"></span> <strong>Rombo:</strong> Relación</span>
       <span class="legend-item"><span class="legend-shape-oval"></span> <strong>Elipse:</strong> Atributo</span>
-      <span class="legend-item"><span class="legend-shape-oval-pk"></span> <strong>Elipse (Azul/Negrita):</strong> Clave Primaria (PK)</span>
-      <span class="legend-item"><strong style="background:#e2e8f0; padding:2px 6px; border:1px solid #000; border-radius:4px;">(min, max)</strong> <strong>Líneas:</strong> Cardinalidad (1,1), (0,N), (1,N)</span>
+      <span class="legend-item"><span class="legend-shape-oval-pk"></span> <strong>Elipse (Azul):</strong> Clave Primaria (PK)</span>
+      <span class="legend-item"><strong style="background:#e2e8f0; padding:1px 5px; border:1px solid #000; border-radius:3px; font-size:0.78rem;">(min, max)</strong> <strong>Líneas:</strong> Cardinalidad (1,1), (0,N), (1,N)</span>
     </div>
-
-    <!-- Pestañas de Vista -->
-    <nav class="er-tabs" id="viewTabs">
-      <button class="er-tab-btn active" data-view="global">🌟 Vista Global Completa</button>
-      <button class="er-tab-btn" data-view="academic">🎓 Académico & Cuaderno LOMLOE</button>
-      <button class="er-tab-btn" data-view="gamification">🏆 Gamificación, Gremios & Ligas</button>
-      <button class="er-tab-btn" data-view="evaluation">📝 Evaluación, Tests & Exámenes</button>
-      <button class="er-tab-btn" data-view="games">🎮 Minijuegos & Multijugador en Vivo</button>
-    </nav>
   </header>
 
-  <!-- Visor principal -->
+  <!-- Visor principal casi a pantalla completa -->
   <main class="viewer-layout">
     
     <section class="diagram-card" id="diagramCard">
       <div class="diagram-toolbar">
         <div class="tool-group">
-          <span style="font-weight:800; font-size:0.95rem; margin-right:6px;" id="currentViewTitle">🌟 Modelo Conceptual Chen Global</span>
-          <span class="badge" style="background:#FFE300; border:1px solid #000; font-size:0.75rem; font-weight:bold;" id="notationBadge">Notación Chen</span>
+          <span style="font-weight:900; font-size:0.95rem; margin-right:4px;" id="currentViewTitle">🌟 Modelo Conceptual Chen Global</span>
+          <span class="badge" style="background:#FFE300; border:1.5px solid #000; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:4px;" id="notationBadge">Notación Chen</span>
         </div>
+
         <div class="tool-group">
+          <!-- Control de Tamaño de Letra (Para clase / proyector) -->
+          <div class="font-size-control" title="Ajustar tamaño de letra para proyección en clase">
+            <span class="font-control-label">🎓 Letra:</span>
+            <button class="tool-btn font-btn" id="btnFontMinus" title="Disminuir tamaño de letra">A-</button>
+            <span id="fontSizeDisplay" class="font-size-badge">18px</span>
+            <button class="tool-btn font-btn" id="btnFontPlus" title="Aumentar tamaño de letra (Modo Proyector)">A+</button>
+          </div>
+
+          <!-- Selector de Orientación -->
+          <button class="tool-btn" id="btnToggleOrientation" title="Alternar entre Horizontal (Panorámica pantalla ancha) y Vertical (Columna)">
+            ↔️ Horizontal
+          </button>
+
+          <!-- Zoom y Pan -->
           <button class="tool-btn" id="btnZoomIn" title="Acercar (Zoom +)">🔍 +</button>
           <button class="tool-btn" id="btnZoomOut" title="Alejar (Zoom -)">🔎 -</button>
-          <button class="tool-btn" id="btnResetPan" title="Ajustar y Centrar">🔄 Centrar</button>
-          <button class="tool-btn" id="btnCopyMermaid" title="Copiar código Mermaid">📋 Copiar Mermaid</button>
-          <button class="tool-btn" id="btnDownloadSvg" title="Descargar archivo SVG">💾 Guardar SVG</button>
+          <button class="tool-btn" id="btnResetPan" title="Ajustar y Centrar al 100%">🔄 Centrar</button>
+
+          <!-- Acciones -->
+          <button class="tool-btn" id="btnCopyMermaid" title="Copiar código Mermaid">📋 Mermaid</button>
+          <button class="tool-btn" id="btnDownloadSvg" title="Descargar imagen SVG">💾 SVG</button>
           <button class="tool-btn" id="btnFullscreen" title="Pantalla completa">⛶ Pantalla Completa</button>
         </div>
       </div>
 
-      <!-- Viewport del diagrama -->
+      <!-- Viewport del diagrama - 100% espacio reservado -->
       <div class="diagram-viewport" id="diagramViewport">
         <div class="loading-overlay" id="loadingOverlay">
           <div class="spinner"></div>
@@ -475,24 +615,32 @@
       </div>
     </section>
 
-    <!-- Diccionario de datos -->
-    <section class="dictionary-card">
-      <div class="dict-header">
-        <div>
-          <h2 style="font-size:1.4rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
-            📚 Diccionario de Datos & Especificación Relacional
-          </h2>
-          <p style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.9rem;">
-            Listado exhaustivo de las 24 entidades físicas en PostgreSQL con sus atributos, tipos y restricciones.
-          </p>
+    <!-- Diccionario de datos plegable -->
+    <details class="dictionary-card" id="dictDetails">
+      <summary class="dict-summary">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.3rem;">📚</span>
+          <span style="font-size:1.1rem; font-weight:800;">Diccionario de Datos & Especificación Relacional</span>
+          <span class="badge" style="background:#FFE300; border:1.5px solid #000; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:4px;">24 Tablas PostgreSQL</span>
         </div>
-        <input type="text" id="dictSearch" class="search-input" placeholder="🔍 Filtrar entidades o atributos (ej: rubric, ce, xp)...">
-      </div>
+        <span class="dict-toggle-text">▼ Clic para desplegar / plegar</span>
+      </summary>
+      
+      <div class="dict-content">
+        <div class="dict-header" style="margin-top:1rem;">
+          <div>
+            <p style="margin:0; color:var(--text-muted); font-size:0.9rem;">
+              Listado exhaustivo de las 24 entidades físicas en PostgreSQL con sus atributos, tipos y restricciones.
+            </p>
+          </div>
+          <input type="text" id="dictSearch" class="search-input" placeholder="🔍 Filtrar tablas o campos (ej: rubric, score, xp)...">
+        </div>
 
-      <div class="table-grid" id="tablesGrid">
-        <!-- Generado dinámicamente -->
+        <div class="table-grid" id="tablesGrid">
+          <!-- Generado dinámicamente -->
+        </div>
       </div>
-    </section>
+    </details>
 
   </main>
 
@@ -1727,32 +1875,48 @@
     // ═══════════════════════════════════════════════════════════════════════
     let currentMode = 'chen'; // 'chen' o 'relational'
     let currentViewKey = 'global';
+    let currentOrientation = 'LR'; // 'LR' (Horizontal panorámica de clase) o 'TD' (Vertical)
+    let currentBaseFontSize = 18; // 18px base ampliada para proyector / clase
     let panZoomInstance = null;
 
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'base',
-      themeVariables: {
-        primaryColor: '#ffffff',
-        primaryBorderColor: '#000000',
-        primaryTextColor: '#000000',
-        lineColor: '#000000',
-        secondaryColor: '#FF90E8',
-        tertiaryColor: '#FFE300',
-        fontFamily: 'Inter, system-ui, sans-serif',
-        fontSize: '12px'
-      },
-      flowchart: {
-        diagramPadding: 20,
-        curve: 'basis',
-        htmlLabels: true
-      },
-      er: {
-        diagramPadding: 20,
-        layoutDirection: 'TB',
-        useMaxWidth: false
+    function getClassDefs(baseSize = 18) {
+      const entitySize = Math.round(baseSize * 1.15); // ~21px
+      const relSize = Math.round(baseSize * 0.95);    // ~17px
+      const attrSize = Math.round(baseSize * 0.88);   // ~16px
+      const pkSize = Math.round(baseSize * 0.88);     // ~16px
+      return `
+    classDef entity fill:#FFE300,stroke:#000000,stroke-width:3.5px,font-weight:900,color:#000000,font-size:${entitySize}px;
+    classDef relation fill:#FF90E8,stroke:#000000,stroke-width:2.5px,font-weight:800,color:#000000,font-size:${relSize}px;
+    classDef attr fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000000,font-size:${attrSize}px,font-weight:600;
+    classDef pk fill:#D5F2EF,stroke:#000000,stroke-width:3px,font-weight:900,color:#000000,font-size:${pkSize}px;`;
+    }
+
+    function updateDynamicStyles(baseSize = 18) {
+      const edgeSize = Math.round(baseSize * 0.88);
+      const tableHeadSize = Math.round(baseSize * 1.1);
+      const fieldSize = Math.round(baseSize * 0.88);
+      const styleEl = document.getElementById('dynamicFontStyles');
+      if (styleEl) {
+        styleEl.innerHTML = `
+          .edgeLabel, .edgeLabel span {
+            font-size: ${edgeSize}px !important;
+            font-weight: 900 !important;
+          }
+          .er.entityLabel, .er.entityBox text {
+            font-size: ${tableHeadSize}px !important;
+            font-weight: 900 !important;
+          }
+          .er.attributeBoxEven text, .er.attributeBoxOdd text, text.er.attributeBoxEven, text.er.attributeBoxOdd {
+            font-size: ${fieldSize}px !important;
+            font-weight: 600 !important;
+          }
+          .er.relationshipLabel {
+            font-size: ${edgeSize}px !important;
+            font-weight: 800 !important;
+          }
+        `;
       }
-    });
+    }
 
     const VIEW_TITLES = {
       global: '🌟 Modelo Global Completo',
@@ -1778,6 +1942,11 @@
       document.getElementById('notationBadge').textContent = currentMode === 'chen' ? 'Notación Chen' : 'Notación Relacional';
       document.getElementById('notationBadge').style.background = currentMode === 'chen' ? '#FFE300' : '#FF90E8';
       document.getElementById('chenLegend').style.display = currentMode === 'chen' ? 'flex' : 'none';
+      document.getElementById('fontSizeDisplay').textContent = currentBaseFontSize + 'px';
+      document.getElementById('btnToggleOrientation').textContent = currentOrientation === 'LR' ? '↔️ Horizontal' : '↕️ Vertical';
+      document.getElementById('btnToggleOrientation').style.display = currentMode === 'chen' ? 'inline-flex' : 'none';
+
+      updateDynamicStyles(currentBaseFontSize);
 
       if (panZoomInstance) {
         panZoomInstance.destroy();
@@ -1786,7 +1955,40 @@
       container.innerHTML = '';
 
       const dict = currentMode === 'chen' ? CHEN_DIAGRAMS : RELATIONAL_DIAGRAMS;
-      const code = dict[currentViewKey] || dict.global;
+      let code = dict[currentViewKey] || dict.global;
+
+      if (currentMode === 'chen') {
+        // Adaptar orientación dinámica (LR panorámica para aulas vs TD vertical)
+        code = code.replace(/flowchart\s+(TD|LR)/i, `flowchart ${currentOrientation}`);
+        // Aplicar estilos de fuentes ampliadas
+        code = code.replace(/classDef\s+entity[^\n]+\n\s*classDef\s+relation[^\n]+\n\s*classDef\s+attr[^\n]+\n\s*classDef\s+pk[^\n]+/gi, getClassDefs(currentBaseFontSize).trim());
+      }
+
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        themeVariables: {
+          primaryColor: '#ffffff',
+          primaryBorderColor: '#000000',
+          primaryTextColor: '#000000',
+          lineColor: '#000000',
+          secondaryColor: '#FF90E8',
+          tertiaryColor: '#FFE300',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: currentBaseFontSize + 'px'
+        },
+        flowchart: {
+          diagramPadding: 25,
+          curve: 'basis',
+          htmlLabels: true
+        },
+        er: {
+          diagramPadding: 25,
+          layoutDirection: 'TB',
+          useMaxWidth: false
+        }
+      });
+
       const uniqueId = 'mermaid-svg-' + Date.now();
 
       try {
@@ -1795,28 +1997,45 @@
 
         const svgElement = container.querySelector('svg');
         if (svgElement) {
+          // Solución al confinamiento del zoom: eliminar límites inline max-width y dar 100%
+          svgElement.removeAttribute('width');
+          svgElement.removeAttribute('height');
+          svgElement.style.removeProperty('max-width');
+          svgElement.style.removeProperty('width');
+          svgElement.style.removeProperty('height');
           svgElement.style.width = '100%';
           svgElement.style.height = '100%';
+          svgElement.style.maxWidth = '100%';
+          svgElement.style.maxHeight = '100%';
+          svgElement.style.display = 'block';
           
           panZoomInstance = svgPanZoom(svgElement, {
             zoomEnabled: true,
             controlIconsEnabled: false,
             fit: true,
             center: true,
-            minZoom: 0.1,
-            maxZoom: 10,
-            zoomScaleSensitivity: 0.25,
+            minZoom: 0.05,
+            maxZoom: 30,
+            zoomScaleSensitivity: 0.2,
             dblClickZoomEnabled: true,
             mouseWheelZoomEnabled: true
           });
 
+          // Ajustar y centrar al 100% del contenedor sin franjas muertas
+          requestAnimationFrame(() => {
+            if (panZoomInstance) {
+              panZoomInstance.resize();
+              panZoomInstance.fit();
+              panZoomInstance.center();
+            }
+          });
           setTimeout(() => {
             if (panZoomInstance) {
               panZoomInstance.resize();
               panZoomInstance.fit();
               panZoomInstance.center();
             }
-          }, 100);
+          }, 150);
         }
       } catch (err) {
         console.error('Error renderizando Mermaid:', err);
@@ -1841,7 +2060,7 @@
       renderCurrentDiagram();
     });
 
-    // Pestañas
+    // Pestañas de Vista
     document.querySelectorAll('.er-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.er-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1849,6 +2068,27 @@
         currentViewKey = btn.dataset.view;
         renderCurrentDiagram();
       });
+    });
+
+    // Controles de Tamaño de Fuente (Modo Clase)
+    document.getElementById('btnFontMinus').addEventListener('click', () => {
+      if (currentBaseFontSize > 12) {
+        currentBaseFontSize -= 2;
+        renderCurrentDiagram();
+      }
+    });
+
+    document.getElementById('btnFontPlus').addEventListener('click', () => {
+      if (currentBaseFontSize < 34) {
+        currentBaseFontSize += 2;
+        renderCurrentDiagram();
+      }
+    });
+
+    // Alternar Orientación Horizontal / Vertical
+    document.getElementById('btnToggleOrientation').addEventListener('click', () => {
+      currentOrientation = currentOrientation === 'LR' ? 'TD' : 'LR';
+      renderCurrentDiagram();
     });
 
     // Controles Zoom y Pan
@@ -1869,7 +2109,10 @@
     // Copiar Mermaid
     document.getElementById('btnCopyMermaid').addEventListener('click', async () => {
       const dict = currentMode === 'chen' ? CHEN_DIAGRAMS : RELATIONAL_DIAGRAMS;
-      const code = dict[currentViewKey] || dict.global;
+      let code = dict[currentViewKey] || dict.global;
+      if (currentMode === 'chen') {
+        code = code.replace(/flowchart\s+(TD|LR)/i, `flowchart ${currentOrientation}`);
+      }
       try {
         await navigator.clipboard.writeText(code);
         const originalText = document.getElementById('btnCopyMermaid').innerHTML;
@@ -1896,11 +2139,27 @@
       URL.revokeObjectURL(url);
     });
 
-    // Pantalla completa
+    // Pantalla completa con API nativa y fallback CSS
     document.getElementById('btnFullscreen').addEventListener('click', () => {
       const card = document.getElementById('diagramCard');
-      card.classList.toggle('fullscreen-mode');
-      const isFull = card.classList.contains('fullscreen-mode');
+      if (!document.fullscreenElement) {
+        if (card.requestFullscreen) {
+          card.requestFullscreen().catch(() => {
+            card.classList.toggle('fullscreen-mode');
+          });
+        } else {
+          card.classList.toggle('fullscreen-mode');
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+        card.classList.remove('fullscreen-mode');
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      const isFull = !!document.fullscreenElement;
       document.getElementById('btnFullscreen').textContent = isFull ? '✕ Salir' : '⛶ Pantalla Completa';
       setTimeout(() => {
         if (panZoomInstance) {
@@ -1908,7 +2167,28 @@
           panZoomInstance.fit();
           panZoomInstance.center();
         }
-      }, 100);
+      }, 150);
+    });
+
+    // Accesos rápidos de cabecera
+    document.getElementById('btnToggleLegend').addEventListener('click', () => {
+      const leg = document.getElementById('chenLegend');
+      leg.style.display = leg.style.display === 'none' ? 'flex' : 'none';
+    });
+
+    document.getElementById('btnScrollDict').addEventListener('click', () => {
+      const dictDetails = document.getElementById('dictDetails');
+      dictDetails.open = true;
+      dictDetails.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // Redimensionamiento de ventana
+    window.addEventListener('resize', () => {
+      if (panZoomInstance) {
+        panZoomInstance.resize();
+        panZoomInstance.fit();
+        panZoomInstance.center();
+      }
     });
 
     // Diccionario de datos
