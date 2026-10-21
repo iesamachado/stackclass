@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { supabase } from './supabase-config.js';
-import { getUserProfile, getUserByEmail, updateUserProfile, isStudentInAnyClass,
+import { getUserProfile, getUserByEmail, updateUserProfile, upsertUserProfile, isStudentInAnyClass,
          isTeacherAuthorized, resolvePendingStudent, syncCurrentUserProfile } from './db.js';
 import { generateAvatar, generateTeacherAvatar, anonymizeName,
          getUrlParams, getAppUrl } from './utils.js';
@@ -161,12 +161,37 @@ async function ensureProfile(user) {
       profile = {
         ...legacyUser,
         id: user.id,
-        email
+        email,
+        display_name: legacyUser.display_name || user.user_metadata?.full_name || email.split('@')[0],
+        display_name_anon: legacyUser.display_name_anon || anonymizeName(user.user_metadata?.full_name || email),
+        role: legacyUser.role || (teacher ? 'teacher' : 'student'),
+        avatar: legacyUser.avatar || user.user_metadata?.avatar_url || (teacher ? generateTeacherAvatar(email) : generateAvatar(email)),
+        is_superadmin: !!(legacyUser.is_superadmin || isSuperAdmin)
       };
+
       try {
-        await updateUserProfile(user.id, profile);
+        // Evitar colisión temporal de email único en users
+        await supabase.from('users').update({ email: `migrated_${legacyUser.id}_${email}` }).eq('id', legacyUser.id);
+        await upsertUserProfile(user.id, profile);
+
+        // Migrar class_members
+        const { data: legacyMems } = await supabase.from('class_members').select('class_id').eq('student_id', legacyUser.id);
+        if (legacyMems && legacyMems.length > 0) {
+          for (const m of legacyMems) {
+            await supabase.from('class_members').upsert({ class_id: m.class_id, student_id: user.id }, { onConflict: 'class_id,student_id' });
+          }
+          await supabase.from('class_members').delete().eq('student_id', legacyUser.id);
+        }
+
+        // Migrar resultados y borrar fila legacy
+        await supabase.from('game_results').update({ student_id: user.id }).eq('student_id', legacyUser.id);
+        await supabase.from('topic_test_results').update({ student_id: user.id }).eq('student_id', legacyUser.id);
+        await supabase.from('users').delete().eq('id', legacyUser.id);
       } catch (err) {
-        console.warn('Could not upsert legacy profile:', err);
+        console.warn('Could not fully migrate legacy profile in JS fallback:', err);
+        try {
+          await upsertUserProfile(user.id, profile);
+        } catch (_) {}
       }
     } else {
       const role = teacher ? 'teacher' : 'student';
@@ -191,7 +216,7 @@ async function ensureProfile(user) {
       };
 
       try {
-        await updateUserProfile(user.id, newProfile);
+        await upsertUserProfile(user.id, newProfile);
       } catch (err) {
         console.warn('Could not upsert user profile directly:', err);
       }

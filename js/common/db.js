@@ -82,6 +82,55 @@ export async function updateUserProfile(uid, data) {
   if (error) throw error;
 }
 
+export async function upsertUserProfile(uid, data) {
+  const mapped = { ...data };
+  if (mapped.displayName !== undefined && mapped.display_name === undefined) {
+    mapped.display_name = mapped.displayName;
+  }
+  delete mapped.displayName;
+
+  if (mapped.photoURL !== undefined && mapped.avatar === undefined) {
+    mapped.avatar = mapped.photoURL;
+  }
+  delete mapped.photoURL;
+  delete mapped.photo_url;
+  delete mapped.avatarUrl;
+  delete mapped.avatar_url;
+
+  if (mapped.displayNameAnonymized !== undefined && mapped.display_name_anon === undefined) {
+    mapped.display_name_anon = mapped.displayNameAnonymized;
+  }
+  delete mapped.displayNameAnonymized;
+
+  if (mapped.puntosTotal !== undefined && mapped.xp === undefined) {
+    mapped.xp = mapped.puntosTotal;
+  }
+  delete mapped.puntosTotal;
+  delete mapped.points;
+
+  if (mapped.subjectId !== undefined && mapped.subject_id === undefined) {
+    mapped.subject_id = mapped.subjectId;
+  }
+  delete mapped.subjectId;
+
+  if (mapped.guildId !== undefined && mapped.guild_id === undefined) {
+    mapped.guild_id = mapped.guildId;
+  }
+  if (mapped.gremio !== undefined && mapped.guild_id === undefined) {
+    mapped.guild_id = mapped.gremio;
+  }
+  delete mapped.guildId;
+  delete mapped.gremio;
+
+  delete mapped.uid;
+  mapped.id = uid;
+
+  const { data: res, error } = await supabase
+    .from('users').upsert(mapped, { onConflict: 'id' }).select().single();
+  if (error) throw error;
+  return res;
+}
+
 export async function getUserByEmail(email) {
   const { data, error } = await supabase
     .from('users').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
@@ -211,10 +260,50 @@ export async function isTeacherAuthorized(email) {
 
 export async function isStudentInAnyClass(email) {
   if (!email) return false;
-  const { data, error } = await supabase
-    .from('allowed_students').select('allowed').eq('email', email.toLowerCase().trim()).maybeSingle();
-  if (error) return false;
-  return data?.allowed === true;
+  const clean = email.toLowerCase().trim();
+
+  // 1. Comprobar en allowed_students
+  try {
+    const { data, error } = await supabase
+      .from('allowed_students').select('allowed').eq('email', clean).maybeSingle();
+    if (!error && data?.allowed === true) return true;
+  } catch (_) {}
+
+  // 2. Comprobar si ya existe en users con rol student
+  try {
+    const { data: u, error: uErr } = await supabase
+      .from('users').select('id, role').eq('email', clean).maybeSingle();
+    if (!uErr && u && (u.role === 'student' || u.role === 'alumn' || !u.role)) {
+      try {
+        await supabase.from('allowed_students').upsert({ email: clean, allowed: true }, { onConflict: 'email' });
+      } catch (_) {}
+      return true;
+    }
+  } catch (_) {}
+
+  // 3. Comprobar si pertenece a alguna clase en class_members
+  try {
+    const { data: u } = await supabase.from('users').select('id').eq('email', clean).maybeSingle();
+    if (u?.id) {
+      const { data: mems } = await supabase.from('class_members').select('class_id').eq('student_id', u.id).limit(1);
+      if (mems && mems.length > 0) {
+        try {
+          await supabase.from('allowed_students').upsert({ email: clean, allowed: true }, { onConflict: 'email' });
+        } catch (_) {}
+        return true;
+      }
+    }
+  } catch (_) {}
+
+  // 4. Comprobar cuenta del dominio institucional (@iesamachado.org)
+  if (clean.endsWith('@iesamachado.org')) {
+    try {
+      await supabase.from('allowed_students').upsert({ email: clean, allowed: true }, { onConflict: 'email' });
+    } catch (_) {}
+    return true;
+  }
+
+  return false;
 }
 
 export async function getAllowedTeachers() {
@@ -670,8 +759,26 @@ export async function removeStudentFromClass(classId, studentId) {
 
 export async function resolvePendingStudent(uid, email) {
   if (!email) return;
-  await supabase.from('allowed_students')
-    .upsert({ email: email.toLowerCase(), allowed: true }, { onConflict: 'email' });
+  const clean = email.toLowerCase().trim();
+  try {
+    await supabase.from('allowed_students')
+      .upsert({ email: clean, allowed: true }, { onConflict: 'email' });
+  } catch (_) {}
+
+  // Vincular membresías de clases que tuvieran un ID anterior con este mismo email
+  try {
+    const { data: legacyUsers } = await supabase.from('users').select('id').eq('email', clean);
+    const legacyIds = (legacyUsers || []).map(u => u.id).filter(id => id !== uid);
+    if (legacyIds.length > 0) {
+      const { data: mems } = await supabase.from('class_members').select('class_id').in('student_id', legacyIds);
+      if (mems && mems.length > 0) {
+        for (const m of mems) {
+          await supabase.from('class_members')
+            .upsert({ class_id: m.class_id, student_id: uid }, { onConflict: 'class_id,student_id' });
+        }
+      }
+    }
+  } catch (_) {}
 }
 
 export async function toggleGameInClass(classId, gameId, active) {
