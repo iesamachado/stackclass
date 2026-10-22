@@ -1733,7 +1733,7 @@ body::after {
   100% { top: 100%; }
 }
 
-/* ── 15. MIS ROBOTS (FIREBASE) ──────────────────────────────────── */
+/* ── 15. MIS ROBOTS ────────────────────────────────────────────── */
 .saved-bot-card {
   background: var(--bg-card);
   border: 1px solid rgba(255,255,255,0.1);

@@ -1077,7 +1077,7 @@ async function finalizarEntrenamientoCompleto() {
   if (totalPtsEl) totalPtsEl.textContent = `${state.puntuacionTotal} PTS`;
   if (modalFinal) modalFinal.classList.remove('hidden');
 
-  // Guardar partida en Firebase
+  // Guardar partida en Supabase
   if (state.user) {
     try {
       await saveGameResult(

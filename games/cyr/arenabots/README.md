@@ -7,14 +7,14 @@
 - **Programación Visual Simplificada**: Los alumnos utilizan comandos sencillos (ej. `avanzar()`, `disparar()`, `escudo()`) para programar las rutinas de combate de su robot.
 - **Sistema de Energía y Vida (HP)**: Requiere pensar de manera estratégica, ya que cada acción tiene un coste energético y usar el escudo en el momento adecuado es clave para ganar.
 - **Taller de Robots**: Permite la personalización completa del avatar del robot (piezas, cara, textura) y su color neón, usando la API de DiceBear (Bottts).
-- **Guardado en la Nube**: Integración con **Firebase** para iniciar sesión (mediante cuenta de Google) y guardar permanentemente los diseños y códigos en el perfil del jugador.
+- **Guardado en la Nube**: Integración con **Supabase** para guardar permanentemente los diseños, estadísticas y códigos en el perfil del jugador.
 
 ## 🛠️ Stack Tecnológico
 
 El proyecto está construido sin frameworks pesados para maximizar el rendimiento y facilitar su comprensión:
 - **Frontend**: HTML5, CSS3 (Variables, Flexbox, Grid) y Vanilla JavaScript (ES6 Modules).
 - **Motor Gráfico**: Renderizado en 2D puro utilizando la API de `<canvas>` de HTML5.
-- **Backend / BaaS**: Firebase Authentication (Google Auth) y Firebase Firestore.
+- **Backend / BaaS**: Supabase (PostgreSQL + Auth + Realtime).
 - **Avatares**: DiceBear API.
 
 ## 📂 Estructura del Proyecto
@@ -31,29 +31,8 @@ arenabots/
     ├── UIManager.js        # Gestor de eventos del DOM y modales
     ├── GameEngine.js       # Motor lógico, parser de código y control del Canvas
     ├── Bot.js              # Clase que representa a los robots y dibuja sus estados
-    ├── DataService.js      # Gestor de estados y configuraciones locales
-    ├── FirebaseService.js  # Gestor de Autenticación y base de datos en la nube
-    └── firebase-config.js  # Configuración y credenciales de Firebase
+    └── DataService.js      # Gestor de estados y conexión con Supabase
 ```
-
-## 🚀 Instalación y Uso Local
-
-Para ejecutar el proyecto en tu propio ordenador:
-
-1. **Clona o descarga** este repositorio.
-2. Inicia un **servidor web local** en la raíz del proyecto. Si tienes Python instalado, puedes abrir la terminal y ejecutar:
-   ```bash
-   python3 -m http.server 8765
-   ```
-3. Abre tu navegador y entra en: `http://localhost:8765`
-
-## 🔑 Configuración de Firebase
-
-Para que la base de datos y el inicio de sesión funcionen correctamente en tu entorno:
-1. Crea un proyecto en la [Consola de Firebase](https://console.firebase.google.com/).
-2. Habilita **Firestore Database** y **Authentication** (método: Google).
-3. Obtén las credenciales de tu aplicación web de Firebase.
-4. Abre el archivo `js/firebase-config.js` y reemplaza el objeto `firebaseConfig` con tus claves reales.
 
 ## 👩‍🏫 Enfoque Pedagógico
 

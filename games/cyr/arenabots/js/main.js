@@ -62,12 +62,6 @@ function initApp() {
 
 /**
  * Captura errores JavaScript no controlados y los registra.
- * En un entorno de producción con Firebase, aquí iría
- * la integración con Firebase Crashlytics o un servicio de logging.
- *
- * // TODO: FIREBASE INTEGRATION
- * //   import { logEvent } from 'firebase/analytics';
- * //   logEvent(analytics, 'js_error', { message: event.message, stack: event.error?.stack });
  */
 window.addEventListener('error', (event) => {
   console.error('[Arena de Bots] Error no controlado:', event.message, event.error);

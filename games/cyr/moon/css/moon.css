@@ -1514,7 +1514,7 @@ body::after {
 }
 
 /* =========================================
-   AUTENTICACIÓN FIREBASE
+   AUTENTICACIÓN
 ========================================= */
 .auth-overlay {
   position: fixed;

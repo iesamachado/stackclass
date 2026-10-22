@@ -1,4 +1,4 @@
-import { db, doc, getDoc, getDocs, collection, query, where, updateDoc, serverTimestamp } from './common/firebase-config.js';
+import { supabase } from './common/supabase-config.js';
 import { renderHeader, showToast } from './common/ui.js';
 import { requireAuth } from './common/auth.js';
 import { $, $$, escapeHtml, getUrlParams, TOPICS } from './common/utils.js';
@@ -28,11 +28,19 @@ async function init() {
 }
 
 async function loadExamen() {
-  const snap = await getDoc(doc(db, 'examenes_test', examenId));
-  if (!snap.exists()) return;
+  const { data: examData, error } = await supabase.from('exams').select('*').eq('id', examenId).maybeSingle();
+  if (error || !examData) return;
   
-  examen = snap.data();
-  examen.id = snap.id;
+  examen = {
+    ...examData,
+    id: examData.id,
+    titulo: examData.title,
+    tiempoMinutos: examData.duration_mins,
+    preguntas: examData.questions || [],
+    correcciones: examData.corrections || {},
+    estado: examData.active ? 'activo' : 'cerrado',
+    resultadosPublicados: examData.results_published
+  };
   
   $('#ex-title').textContent = examen.titulo;
   $('#ex-meta').textContent = `${examen.preguntas.length} preguntas · ${examen.tiempoMinutos} min`;
@@ -57,27 +65,34 @@ async function loadExamen() {
 }
 
 async function loadEntregas() {
-  const q = query(collection(db, 'respuestas_test'), where('examenId', '==', examenId));
-  const snaps = await getDocs(q);
+  const { data: entregasData } = await supabase.from('exam_results').select('*').eq('exam_id', examenId);
   
   entregas = [];
   const uids = new Set();
   
-  snaps.forEach(doc => {
-    const data = doc.data();
-    data.id = doc.id;
-    entregas.push(data);
-    uids.add(data.uid);
+  (entregasData || []).forEach(row => {
+    const mapped = {
+      ...row,
+      id: row.id,
+      uid: row.student_id,
+      examenId: row.exam_id,
+      respuestas: row.answers || {},
+      ordenPreguntas: row.question_order || [],
+      ordenOpciones: row.option_order || {},
+      nota: row.score,
+      entregadoEn: row.submitted_at ? { toDate: () => new Date(row.submitted_at) } : null,
+      puntosOtorgados: row.points_granted
+    };
+    entregas.push(mapped);
+    uids.add(row.student_id);
   });
   
   // Fetch user data
   if (uids.size > 0) {
-    for (let uid of uids) {
-      const uSnap = await getDoc(doc(db, 'users', uid));
-      if (uSnap.exists()) {
-        usersMap[uid] = uSnap.data();
-      }
-    }
+    const { data: usersData } = await supabase.from('users').select('id, display_name, display_name_anon, email').in('id', Array.from(uids));
+    (usersData || []).forEach(u => {
+      usersMap[u.id] = { ...u, nombre: u.display_name || u.display_name_anon || u.email?.split('@')[0] || 'Alumno' };
+    });
   }
   
   await processAndRenderEntregas();
@@ -111,9 +126,7 @@ async function processAndRenderEntregas() {
     // Auto-update if it hasn't been saved yet or changed
     if (!entrega.nota || Math.abs(entrega.nota - nota) > 0.01) {
       try {
-        await updateDoc(doc(db, 'respuestas_test', entrega.id), {
-          nota: nota
-        });
+        await supabase.from('exam_results').update({ score: nota }).eq('id', entrega.id);
         entrega.nota = nota;
       } catch (err) {
         console.error("Error updating score", err);
@@ -199,10 +212,11 @@ function generateAnalysis() {
 async function toggleExamenState() {
   const newState = examen.estado === 'activo' ? 'cerrado' : 'activo';
   try {
-    await updateDoc(doc(db, 'examenes_test', examenId), { estado: newState });
+    const updates = { active: newState === 'activo' };
     if (newState === 'activo') {
-      await updateDoc(doc(db, 'examenes_test', examenId), { activadoEn: serverTimestamp() });
+      updates.activated_at = new Date().toISOString();
     }
+    await supabase.from('exams').update(updates).eq('id', examenId);
     showToast(`Examen marcado como ${newState}`);
     await loadExamen();
   } catch (e) {
@@ -232,11 +246,11 @@ async function toggleResultados() {
   window._toggleResultadosReal = async () => {
   
   try {
-    await updateDoc(doc(db, 'examenes_test', examenId), { resultadosPublicados: true });
+    await supabase.from('exams').update({ results_published: true }).eq('id', examenId);
     
     for (let entrega of entregas) {
       if (entrega.puntosOtorgados) continue;
-      await updateDoc(doc(db, 'respuestas_test', entrega.id), { puntosOtorgados: true });
+      await supabase.from('exam_results').update({ points_granted: true }).eq('id', entrega.id);
     }
     
     showToast('Resultados publicados con éxito');

@@ -2,9 +2,9 @@
 //  CLASSHUB — dashboard_student.js
 // ═══════════════════════════════════════════════════════════════════════
 
-import { db, collection, query, where, getDocs } from "./common/firebase-config.js";
 import { requireAuth, currentUser, currentProfile } from './common/auth.js';
 import { getStudentClasses, joinClassByPin, getStudentResults, getClassAssignments } from './common/db.js';
+import { supabase } from './common/supabase-config.js';
 import { renderHeader, showToast, showLoading, hideLoading } from './common/ui.js';
 import { GAMES, TOPICS, $, $$, escapeHtml, formatDate, getUrlParams } from './common/utils.js';
 import { CLASSROOM_TASKS, OFFLINE_RUBRIC } from './common/tasks.js';
@@ -309,51 +309,29 @@ async function loadExams(user, classes) {
   if (!classes || classes.length === 0) return;
   
   try {
-    const { db, collection, query, where, getDocs } = await import('./common/firebase-config.js');
-    
     const classIds = classes.map(c => c.id);
-    const chunks = [];
-    for (let i = 0; i < classIds.length; i += 10) {
-      chunks.push(classIds.slice(i, i + 10));
-    }
     
-    let activeExams = [];
-    for (const chunk of chunks) {
-      const q = query(
-        collection(db, 'examenes_test'),
-        where('estado', '==', 'activo'),
-        where('claseId', 'in', chunk)
-      );
-      const snap = await getDocs(q);
-      snap.forEach(doc => {
-        activeExams.push({ id: doc.id, ...doc.data() });
-      });
-    }
+    // Get active exams for student's classes
+    const { data: activeExams } = await supabase.from('exams').select('*')
+      .eq('active', true).in('class_id', classIds);
     
-    if (activeExams.length === 0) return;
+    if (!activeExams || activeExams.length === 0) return;
     
-    const answersQ = query(
-      collection(db, 'respuestas_test'),
-      where('uid', '==', user.uid)
-    );
-    const answersSnap = await getDocs(answersQ);
-    const submittedExamIds = new Set();
-    answersSnap.forEach(doc => {
-      const data = doc.data();
-      if (data.examenId) submittedExamIds.add(data.examenId);
-      if (data.examId) submittedExamIds.add(data.examId);
-    });
+    // Check which exams the student has already submitted
+    const { data: submittedData } = await supabase.from('exam_results').select('exam_id')
+      .eq('student_id', user.uid).not('submitted_at', 'is', null);
+    const submittedExamIds = new Set((submittedData || []).map(r => r.exam_id));
     
     const pendingExams = activeExams.filter(e => !submittedExamIds.has(e.id));
     if (pendingExams.length === 0) return;
     
     section.style.display = 'block';
     list.innerHTML = pendingExams.map(ex => {
-      const cls = classes.find(c => c.id === ex.claseId);
+      const cls = classes.find(c => c.id === ex.class_id);
       const className = cls ? cls.name : 'Tu clase';
       return `
         <div class="card" style="padding:var(--space-4); border-left:4px solid var(--primary);">
-          <h3 style="margin-bottom:var(--space-1); font-size:1.1rem;">${escapeHtml(ex.titulo || 'Examen')}</h3>
+          <h3 style="margin-bottom:var(--space-1); font-size:1.1rem;">${escapeHtml(ex.title || 'Examen')}</h3>
           <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:var(--space-3);">Clase: ${escapeHtml(className)}</p>
           <a href="examen.html?id=${ex.id}" class="btn btn-primary btn--sm" style="width:100%; justify-content:center;">Comenzar Examen</a>
         </div>
@@ -412,14 +390,18 @@ function setupModals(user) {
 // ── Notas de Teoría ───────────────────────────────────────────────
 async function loadGrades(user) {
   try {
-    const q = query(collection(db, 'test_teoria_respuestas'), where('uid', '==', user.uid));
-    const snap = await getDocs(q);
+    const { data: testsData } = await supabase.from('topic_test_results').select('*')
+      .eq('student_id', user.uid);
     
-    let tests = [];
-    snap.forEach(d => {
-      let data = d.data();
-      tests.push(data);
-    });
+    let tests = (testsData || []).map(row => ({
+      ...row,
+      uid: row.student_id,
+      topicId: row.topic_id,
+      score: row.score,
+      fecha: row.created_at ? { toDate: () => new Date(row.created_at), toMillis: () => new Date(row.created_at).getTime() } : null,
+      timestamp: row.created_at,
+      created_at: row.created_at
+    }));
     
     const getMillis = (val) => {
       if (!val) return 0;
@@ -515,13 +497,15 @@ async function loadOfflineTasks(user) {
   
   for (const c of myClasses) {
     try {
-      const configSnap = await getDocs(query(collection(db, 'offline_tasks_config'), where('classId', '==', c.id), where('isActive', '==', true)));
-      if (configSnap.empty) continue;
+      const { data: configData } = await supabase.from('offline_tasks')
+        .select('*').eq('class_id', c.id).eq('is_active', true);
+      if (!configData || configData.length === 0) continue;
       
-      const gradesSnap = await getDocs(query(collection(db, 'offline_grades'), where('classId', '==', c.id), where('studentId', '==', user.uid)));
+      const { data: gradesData } = await supabase.from('offline_grades')
+        .select('*').eq('class_id', c.id).eq('student_id', user.uid);
       const gradesMap = {};
-      gradesSnap.forEach(g => {
-        gradesMap[g.data().taskId] = g.data();
+      (gradesData || []).forEach(g => {
+        gradesMap[g.task_id] = { ...g, taskId: g.task_id, finalGrade: g.score, teacherFeedback: g.feedback, rubricScores: g.rubric_scores };
       });
       
       let classHtml = `<div class="card" style="margin-bottom:var(--space-4);">
@@ -529,8 +513,17 @@ async function loadOfflineTasks(user) {
         <div class="accordion-list">`;
         
       // Ordenamos las configs por ID de tarea para mantener el mismo orden
-      const configs = [];
-      configSnap.forEach(d => configs.push(d.data()));
+      const configs = configData.map(d => ({
+        ...d,
+        taskId: d.task_id,
+        classId: d.class_id,
+        isActive: d.is_active,
+        rubricPublished: d.rubric_published,
+        gradesPublished: d.grades_published,
+        dueDate: d.due_date,
+        customTitle: d.custom_title,
+        customDescription: d.custom_description
+      }));
       configs.sort((a,b) => parseInt(a.taskId) - parseInt(b.taskId));
         
       configs.forEach(config => {

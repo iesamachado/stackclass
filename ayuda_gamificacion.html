@@ -119,17 +119,16 @@
   
   <script type="module">
     import { renderHeader } from './js/common/ui.js';
-    import { auth, getDoc, doc, db } from './js/common/firebase-config.js';
+    import { supabase } from './js/common/supabase-config.js';
+    import { getUserProfile } from './js/common/db.js';
 
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        const profile = snap.exists() ? snap.data() : { role: 'student' };
-        renderHeader(user, profile);
-      } else {
-        renderHeader(null, null);
-      }
-    });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const profile = await getUserProfile(session.user.id);
+      renderHeader(session.user, profile || { role: 'student' });
+    } else {
+      renderHeader(null, null);
+    }
   </script>
 </body>
 </html>

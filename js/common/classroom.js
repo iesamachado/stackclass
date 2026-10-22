@@ -92,6 +92,7 @@ export async function createClassroomAssignment(token, courseId, classId, {
   targetScore,
   dueDate = null,
   siteUrl = null,
+  skipDb = false,
   skipFirestore = false
 }) {
   const base = siteUrl || window.location.origin;
@@ -114,8 +115,8 @@ export async function createClassroomAssignment(token, courseId, classId, {
     body:   JSON.stringify(body)
   });
 
-  // Guardar en Firestore (solo si no es una publicación de tarea ya existente)
-  if (!skipFirestore) {
+  // Guardar en base de datos (solo si no es una publicación de tarea ya existente)
+  if (!skipDb && !skipFirestore) {
     await createAssignment(classId, {
       gameId,
       title,

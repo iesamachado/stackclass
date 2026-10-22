@@ -98,7 +98,7 @@ export class UIManager {
       // Taller de Robots
       'btn-taller', 'modal-taller', 'modal-taller-cerrar', 'btn-taller-aleatorio', 'btn-taller-guardar',
       'taller-preview-img', 'taller-basecolor', 'taller-face', 'taller-eyes', 'taller-mouth', 'taller-top', 'taller-sides', 'taller-texture', 'app-theme-selector',
-      // Firebase Auth y Mis Robots
+      // Auth y Mis Robots
       'app-content', 'dashboard-content', 'arena-content', 'btn-login', 'btn-logout', 'btn-mis-robots', 'player-badge',
       'modal-auth', 'modal-auth-cerrar', 'btn-auth-google', 'auth-error',
       'btn-gestionar-clases', 'modal-clases', 'modal-clases-cerrar', 'btn-sync-classroom', 'lista-clases',
@@ -162,7 +162,7 @@ export class UIManager {
   }
 
   // ════════════════════════════════════════════════════════════════
-  // FIREBASE: AUTH Y MIS ROBOTS
+  // AUTH Y MIS ROBOTS
   // ════════════════════════════════════════════════════════════════
   
   _onAuthStateChanged(user) {
@@ -787,7 +787,7 @@ export class UIManager {
     // Actualizar clasificación en UI
     this._renderLeaderboard();
 
-    // Actualizar stats de la partida global en Firebase
+    // Actualizar stats de la partida global en la base de datos
     const isWin = result.outcome === 'victoria';
     if (this.isRankedMatch) {
       if (DataService.currentBotId) {

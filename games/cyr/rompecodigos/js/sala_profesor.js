@@ -1,9 +1,14 @@
 import { requireAuth } from '../../../../../js/common/auth.js';
-import { db, doc, collection, setDoc, addDoc, updateDoc, getDoc, query, where, orderBy, limit, arrayUnion, serverTimestamp, onSnapshot } from '../../../../../js/common/firebase-config.js';
-import { writeBatch, increment } from '../../../../../js/common/firebase-config.js';
 import { saveGameResult } from '../../../../../js/common/db.js';
 import { renderHeader, showToast } from '../../../../../js/common/ui.js';
 import { generateRoomCode } from '../../../../../js/common/utils.js';
+import {
+  createSession,
+  getSession,
+  updateSessionConfig,
+  listenSession,
+  emitHint as dbEmitHint
+} from './RompeDb.js';
 
 function generateCipherMessage(textoOriginal, tipo, clave) {
   if (tipo === 'caesar') {
@@ -31,8 +36,7 @@ let dificultadSeleccionada = 'facil';
 let mensajesPool = [...MENSAJES_POOL];
 let mensajeCustomSeleccionado = null;
 let timerInterval = null;
-let unsubEquipos = null;
-let unsubIntentos = null;
+let unsubSession = null;
 let pistasRestantes = 2;
 let currentUserObj = null;
 
@@ -184,25 +188,10 @@ async function crearSesion() {
   btnCrear.innerHTML = `<span class="spinner"></span> Creando...`;
 
   try {
-    const sesionRef = doc(collection(db, 'live_sessions'), codigo);
-    await setDoc(sesionRef, {
-      codigo,
-      profesorUID:    currentUserObj.uid,
-      profesorNombre: currentUserObj.displayName || 'Profesor',
-      estado:         'espera',
-      rondaActual:    0,
-      totalRondas:    rondas,
-      duracionRonda:  tiempo,
-      dificultad:     dificultadSeleccionada,
-      pistasDisponibles: pistas,
-      creadaEn:       serverTimestamp()
-    });
-
-    const batch = writeBatch(db);
+    const rondasList = [];
     for (let i = 1; i <= rondas; i++) {
       const msg = mensajesFiltrados[(i - 1) % mensajesFiltrados.length];
-      const rondaRef = doc(db, 'live_sessions', codigo, 'rondas', i.toString());
-      batch.set(rondaRef, {
+      rondasList.push({
         numero:      i,
         textoCifrado: msg.textoCifrado,
         solucion:    msg.textoOriginal,
@@ -215,18 +204,38 @@ async function crearSesion() {
         iniciadaEn:  null
       });
     }
-    await batch.commit();
 
-    sesionActiva = { id: codigo, codigo, rondaActual: 0, totalRondas: rondas, duracionRonda: tiempo, pistasDisponibles: pistas };
+    const uid = currentUserObj.id || currentUserObj.uid;
+    await createSession({
+      codigo,
+      hostId: uid,
+      hostNombre: currentUserObj.displayName || 'Profesor',
+      totalRondas: rondas,
+      duracionRonda: tiempo,
+      dificultad: dificultadSeleccionada,
+      pistasDisponibles: pistas,
+      rondas: rondasList
+    });
+
+    sesionActiva = {
+      id: codigo,
+      codigo,
+      rondaActual: 0,
+      totalRondas: rondas,
+      duracionRonda: tiempo,
+      pistasDisponibles: pistas,
+      estado: 'espera'
+    };
     pistasRestantes = pistas;
 
     window.history.pushState({}, '', `?sesion=${codigo}`);
     showSesionView();
     updateSessionHeader();
-    listenEquipos(codigo);
+    listenSessionUpdates(codigo);
     showToast('Sesión creada', 'success');
 
   } catch (err) {
+    console.error(err);
     showToast('Error al crear sesión', 'error');
     btnCrear.disabled = false;
     btnCrear.innerHTML = 'Crear Sesión';
@@ -235,20 +244,19 @@ async function crearSesion() {
 
 async function loadExistingSession(sesionId) {
   try {
-    const snap = await getDoc(doc(db, 'live_sessions', sesionId));
-    if (!snap.exists()) return;
-    const data = snap.data();
-    if (data.profesorUID !== currentUserObj?.uid) {
+    const data = await getSession(sesionId);
+    if (!data) return;
+    const uid = currentUserObj?.id || currentUserObj?.uid;
+    if (data.profesorUID !== uid) {
       showToast('Esta sesión no es tuya', 'error');
       return;
     }
     sesionActiva = { id: sesionId, ...data };
-    pistasRestantes = data.pistasDisponibles || 0;
+    pistasRestantes = data.pistasDisponibles !== undefined ? data.pistasDisponibles : 0;
     showSesionView();
     updateSessionHeader();
-    listenEquipos(sesionId);
+    listenSessionUpdates(sesionId);
     if (data.rondaActual > 0 && data.estado === 'en_curso') {
-      listenIntentos(sesionId, data.rondaActual);
       loadMensajeActivo(sesionId, data.rondaActual);
       startTimer(data.tiempoRestante || data.duracionRonda);
     }
@@ -307,26 +315,28 @@ async function iniciarRonda() {
     return;
   }
   const nuevaRonda = s.rondaActual + 1;
-  const sesionRef  = doc(db, 'live_sessions', s.id);
-  const rondaRef   = doc(db, 'live_sessions', s.id, 'rondas', nuevaRonda.toString());
 
   try {
-    await updateDoc(sesionRef, {
-      estado:      'en_curso',
-      rondaActual: nuevaRonda,
-      tiempoRestante: s.duracionRonda
+    await updateSessionConfig(s.id, (cfg) => {
+      const rondas = cfg.rondas || {};
+      if (rondas[nuevaRonda.toString()]) {
+        rondas[nuevaRonda.toString()].estado = 'activa';
+        rondas[nuevaRonda.toString()].iniciadaEn = new Date().toISOString();
+      }
+      return {
+        estado: 'en_curso',
+        rondaActual: nuevaRonda,
+        tiempoRestante: s.duracionRonda,
+        rondas
+      };
     });
-    await updateDoc(rondaRef, {
-      estado:     'activa',
-      iniciadaEn: serverTimestamp()
-    });
+
     sesionActiva.rondaActual = nuevaRonda;
     sesionActiva.estado      = 'en_curso';
     pistasRestantes          = s.pistasDisponibles;
 
     updateSessionHeader();
     loadMensajeActivo(s.id, nuevaRonda);
-    listenIntentos(s.id, nuevaRonda);
     startTimer(s.duracionRonda);
 
     document.getElementById('btn-iniciar-ronda').disabled  = true;
@@ -345,17 +355,24 @@ async function finalizarRondaManual() {
 }
 
 async function finalizarRonda(sesionId, numRonda) {
-  const sesionRef = doc(db, 'live_sessions', sesionId);
-  const rondaRef  = doc(db, 'live_sessions', sesionId, 'rondas', numRonda.toString());
-
   try {
-    await updateDoc(rondaRef, { estado: 'finalizada' });
-    await updateDoc(sesionRef, { estado: 'espera' });
+    await updateSessionConfig(sesionId, (cfg) => {
+      const rondas = cfg.rondas || {};
+      if (rondas[numRonda.toString()]) {
+        rondas[numRonda.toString()].estado = 'finalizada';
+      }
+      return {
+        estado: 'espera',
+        rondas
+      };
+    });
+
     sesionActiva.estado = 'espera';
 
-    const rondaSnap = await getDoc(rondaRef);
-    if(rondaSnap.exists()) {
-      mostrarSolucionEnPanel(rondaSnap.data());
+    const ses = await getSession(sesionId);
+    const rondaData = ses?.rondas?.[numRonda.toString()];
+    if (rondaData) {
+      mostrarSolucionEnPanel(rondaData);
     }
 
     document.getElementById('btn-iniciar-ronda').disabled   = false;
@@ -385,7 +402,7 @@ function startTimer(seconds) {
       return;
     }
     if (remaining % 5 === 0) {
-      updateDoc(doc(db, 'live_sessions', sesionActiva.id), { tiempoRestante: remaining }).catch(() => {});
+      updateSessionConfig(sesionActiva.id, { tiempoRestante: remaining }).catch(() => {});
     }
     remaining--;
   };
@@ -400,14 +417,55 @@ function stopTimer() {
   }
 }
 
-function listenEquipos(sesionId) {
-  if (unsubEquipos) unsubEquipos();
-  unsubEquipos = onSnapshot(query(collection(db, 'live_sessions', sesionId, 'equipos'), orderBy('puntuacion', 'desc')), snap => {
-    const equipos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+function listenSessionUpdates(sesionId) {
+  if (unsubSession) unsubSession();
+
+  unsubSession = listenSession(sesionId, data => {
+    if (!data) return;
+    sesionActiva = { ...sesionActiva, ...data };
+
+    // Equipos
+    const equiposMap = data.equipos || {};
+    const equipos = Object.values(equiposMap);
+    equipos.sort((a, b) => (b.puntuacion || 0) - (a.puntuacion || 0));
+
     renderEquipos(equipos);
     renderMarcador(equipos);
     const eqEl = document.getElementById('session-equipos');
-    if(eqEl) eqEl.textContent = equipos.length;
+    if (eqEl) eqEl.textContent = equipos.length;
+
+    // Intentos recopilados de todos los equipos
+    const rondaActual = data.rondaActual;
+    let allIntentos = [];
+    equipos.forEach(eq => {
+      (eq.intentosList || []).forEach(it => {
+        if (!rondaActual || it.ronda === rondaActual) {
+          allIntentos.push({ equipo: eq.nombre, ...it });
+        }
+      });
+    });
+    allIntentos.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+    const countEl = document.getElementById('intentos-count');
+    if (countEl) countEl.textContent = allIntentos.length;
+    const list = document.getElementById('intentos-list');
+    if (list) {
+      if (!allIntentos.length) {
+        list.innerHTML = `<div class="empty-state">Esperando intentos...</div>`;
+      } else {
+        list.innerHTML = allIntentos.slice(0, 20).map(it => {
+          const hora = it.hora || '--:--';
+          return `
+            <div class="intento-item ${it.correcto ? 'correcto' : ''}">
+              <div class="intento-equipo">${it.equipo}</div>
+              <div class="intento-texto">${it.texto}</div>
+              ${it.correcto ? '<span class="badge badge-accent">✓</span>' : ''}
+              <div class="intento-tiempo">${hora}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
   });
 }
 
@@ -446,61 +504,11 @@ function renderMarcador(equipos) {
   `).join('');
 }
 
-function listenIntentos(sesionId, ronda) {
-  if (unsubIntentos) unsubIntentos();
-  const list = document.getElementById('intentos-list');
-  const countEl = document.getElementById('intentos-count');
-
-  unsubIntentos = onSnapshot(collection(db, 'live_sessions', sesionId, 'equipos'), async equipoSnap => {
-    let allIntentos = [];
-    
-    // Simplification for the migration. We should probably avoid nested onSnapshots.
-    // I'll fetch the attempts when teams change. Not fully real-time for nested attempts, 
-    // but the original code was also doing .get() inside a teams onSnapshot, which is inefficient.
-    // The previous code did:
-    // equipos.onSnapshot -> for each team, get intentos for that round. 
-    for (const equipoDoc of equipoSnap.docs) {
-       const intentosSnap = await getDocs(query(
-           collection(db, 'live_sessions', sesionId, 'equipos', equipoDoc.id, 'intentos'), 
-           where('ronda', '==', ronda), 
-           orderBy('timestamp', 'desc'), 
-           limit(10)
-       ));
-       intentosSnap.docs.forEach(d => {
-         allIntentos.push({
-           equipo: equipoDoc.data().nombre,
-           ...d.data()
-         });
-       });
-    }
-
-    allIntentos.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-    if (countEl) countEl.textContent = allIntentos.length;
-    if (!allIntentos.length && list) {
-      list.innerHTML = `<div class="empty-state">Esperando intentos...</div>`;
-      return;
-    }
-    if (list) {
-      list.innerHTML = allIntentos.slice(0, 20).map(it => {
-        const ts = it.timestamp?.toDate?.() ? new Date(it.timestamp.toDate()) : null;
-        const hora = ts ? ts.toLocaleTimeString('es-ES') : '--:--';
-        return `
-          <div class="intento-item ${it.correcto ? 'correcto' : ''}">
-            <div class="intento-equipo">${it.equipo}</div>
-            <div class="intento-texto">${it.texto}</div>
-            ${it.correcto ? '<span class="badge badge-accent">✓</span>' : ''}
-            <div class="intento-tiempo">${hora}</div>
-          </div>
-        `;
-      }).join('');
-    }
-  });
-}
-
 async function loadMensajeActivo(sesionId, numRonda) {
-  const rondaSnap = await getDoc(doc(db, 'live_sessions', sesionId, 'rondas', numRonda.toString()));
-  if (!rondaSnap.exists()) return;
-  mostrarSolucionEnPanel(rondaSnap.data(), false);
+  const ses = await getSession(sesionId);
+  const rondaData = ses?.rondas?.[numRonda.toString()];
+  if (!rondaData) return;
+  mostrarSolucionEnPanel(rondaData, false);
 }
 
 function mostrarSolucionEnPanel(data, revelarSolucion = true) {
@@ -530,10 +538,9 @@ function mostrarSolucionEnPanel(data, revelarSolucion = true) {
 
 async function emitirPista(tipo) {
   if (!sesionActiva || pistasRestantes <= 0) return;
-  const rondaRef = doc(db, 'live_sessions', sesionActiva.id, 'rondas', sesionActiva.rondaActual.toString());
-  const rondaSnap = await getDoc(rondaRef);
-  if(!rondaSnap.exists()) return;
-  const rondaData = rondaSnap.data();
+  const ses = await getSession(sesionActiva.id);
+  const rondaData = ses?.rondas?.[sesionActiva.rondaActual.toString()];
+  if (!rondaData) return;
 
   let pistaTxt = '';
   switch (tipo) {
@@ -548,13 +555,7 @@ async function emitirPista(tipo) {
   }
 
   try {
-    await updateDoc(rondaRef, {
-      pistas: arrayUnion({ tipo, texto: pistaTxt, timestamp: new Date().toISOString() })
-    });
-    await updateDoc(doc(db, 'live_sessions', sesionActiva.id), {
-      pistasDisponibles: increment(-1)
-    });
-
+    await dbEmitHint(sesionActiva.id, sesionActiva.rondaActual, tipo, pistaTxt);
     pistasRestantes--;
     const pEl = document.getElementById('pistas-count');
     if(pEl) pEl.textContent = pistasRestantes;

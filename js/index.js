@@ -12,8 +12,8 @@ initParticles("particles-canvas");
 // ── Comprobar mensajes de error en URL ─────────────────────────
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('error') === 'not_authorized') {
-  showError('⚠️ Tu cuenta no está autorizada. Si eres docente, debes ser invitado previamente por un administrador del centro. Si eres alumno, tu profesor debe darte de alta o facilitar el PIN de la clase.');
-  showToast('Acceso no autorizado', 'Tu cuenta no está en la lista de docentes autorizados.', 'error', 7000);
+  showError('⚠️ Tu cuenta no está registrada en ninguna clase de StackClass. Si eres alumno/a, tu profesor/a de Computación y Robótica o TIC debe darte de alta en su clase para poder acceder.');
+  showToast('Acceso no autorizado', 'Tu cuenta no está asignada a ninguna clase activa.', 'error', 7000);
 }
 
 // ── Si ya hay sesión activa, redirigir ─────────────────────────

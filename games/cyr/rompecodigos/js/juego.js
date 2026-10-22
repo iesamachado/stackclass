@@ -3,14 +3,20 @@
 // ============================================================
 
 import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
-import { db, doc, collection, getDoc, updateDoc, addDoc, onSnapshot, serverTimestamp, increment, query, orderBy } from '../../../../../js/common/firebase-config.js';
 import { renderHeader, showToast, initParticles } from '../../../../../js/common/ui.js';
+import {
+  listenSession,
+  getSession,
+  submitAttempt,
+  updateTeamSubstitution
+} from './RompeDb.js';
 
 // ─── Estado del Agente Analista ──────────────────────────────
 const state = {
   sesionId:       null,
   equipoId:       null,
   equipoNombre:   null,
+  currentUser:    null,
   rondaActual:    0,
   textoCifrado:   '',
   textoOriginal:  null, // revelado al finalizar ronda
@@ -20,8 +26,6 @@ const state = {
   frecChart:      null,
   selectedChar:   null,
   unsubSesion:    null,
-  unsubEquipos:   null,
-  unsubRonda:     null,
   timerInterval:  null
 };
 
@@ -54,6 +58,7 @@ async function initJuego(user) {
   state.sesionId     = sesionId;
   state.equipoId     = equipoId;
   state.equipoNombre = equipoNombre;
+  state.currentUser  = user;
 
   document.getElementById('hud-equipo').textContent = equipoNombre || 'Equipo';
 
@@ -63,84 +68,85 @@ async function initJuego(user) {
   initSubmitHandler();
   initVigenereKnownPlaintextJuego();
   listenSesion();
-  listenEquiposPuntuacion();
 }
 
 // ─── Escuchar sesión ──────────────────────────────────────────
 function listenSesion() {
   if (state.unsubSesion) state.unsubSesion();
 
-  state.unsubSesion = onSnapshot(doc(db, 'live_sessions', state.sesionId), snap => {
-      if (!snap.exists) return;
-      const data = snap.data();
+  state.unsubSesion = listenSession(state.sesionId, data => {
+    if (!data) return;
 
-      document.getElementById('hud-ronda').textContent =
-        `${data.rondaActual || 0}/${data.totalRondas || 0}`;
+    document.getElementById('hud-ronda').textContent =
+      `${data.rondaActual || 0}/${data.totalRondas || 0}`;
 
-      // Si cambia la ronda activa
-      if (data.estado === 'en_curso' && data.rondaActual !== state.rondaActual) {
-        state.rondaActual = data.rondaActual;
-        document.getElementById('ronda-overlay')?.classList.add('hidden');
-        loadRondaActiva(data.rondaActual, data.duracionRonda, data.tiempoRestante);
+    // Si cambia la ronda activa o hay actualización de ronda
+    if (data.estado === 'en_curso' && data.rondaActual > 0) {
+      const ronda = (data.rondas || {})[data.rondaActual.toString()];
+      if (ronda) {
+        handleRondaUpdate(data.rondaActual, ronda, data.duracionRonda, data.tiempoRestante);
       }
-
-      // Si la ronda finaliza
-      if (data.estado === 'espera' && state.rondaActual > 0) {
-        stopTimer();
-        // Mostrar overlay de espera entre rondas (a menos que ya esté visible)
-        const overlay = document.getElementById('ronda-overlay');
-        if (overlay && overlay.classList.contains('hidden')) {
-          showRondaOverlay(false, null, null);
-        }
-      }
-    });
-}
-
-// ─── Cargar ronda activa ──────────────────────────────────────
-async function loadRondaActiva(numRonda, duracion, tiempoRestante) {
-  if (state.unsubRonda) state.unsubRonda();
-
-  const rondaRef = doc(db, 'live_sessions', state.sesionId, 'rondas', numRonda.toString());
-
-  state.unsubRonda = onSnapshot(rondaRef, snap => {
-    if (!snap.exists) return;
-    const ronda = snap.data();
-
-    // Si la ronda acaba de iniciarse o cambia de estado
-    if (ronda.estado === 'activa' && ronda.textoCifrado !== state.textoCifrado) {
-      state.textoCifrado     = ronda.textoCifrado;
-      state.tablaSustitucion = {};
-      state.historial        = [];
-
-      renderTextoCifrado();
-      calcularYRenderFrecuencias();
-      updatePreviewDescifrado();
-      resetSustKeyboard();
-      renderHistorial();
-      actualizarCesarPreview();
-
-      // Pistas
-      renderPistas(ronda.pistas || []);
-
-      // Timer
-      startTimer(tiempoRestante || duracion || 300);
     }
 
-    // Actualizar pistas si se añaden nuevas
-    if (ronda.pistas?.length > 0) {
-      renderPistas(ronda.pistas);
-    }
-
-    // Ronda finalizada → revelar solución
-    if (ronda.estado === 'finalizada') {
+    // Si la ronda finaliza
+    if (data.estado === 'espera' && state.rondaActual > 0) {
       stopTimer();
-      showRondaOverlay(
-        ronda.ganadorEquipo === state.equipoNombre,
-        ronda.ganadorEquipo,
-        ronda.solucion
-      );
+      const overlay = document.getElementById('ronda-overlay');
+      if (overlay && overlay.classList.contains('hidden')) {
+        showRondaOverlay(false, null, null);
+      }
+    }
+
+    // Actualizar marcador y puntuación
+    const equipos = Object.values(data.equipos || {});
+    equipos.sort((a, b) => (b.puntuacion || 0) - (a.puntuacion || 0));
+    renderMarcadorLive(equipos);
+
+    const miEquipo = (data.equipos || {})[state.equipoId];
+    if (miEquipo) {
+      state.puntuacion = miEquipo.puntuacion || 0;
+      document.getElementById('hud-puntos').textContent = state.puntuacion;
     }
   });
+}
+
+function handleRondaUpdate(numRonda, ronda, duracion, tiempoRestante) {
+  // Si la ronda acaba de iniciarse o cambia de estado
+  if (numRonda !== state.rondaActual || (ronda.estado === 'activa' && ronda.textoCifrado !== state.textoCifrado)) {
+    state.rondaActual      = numRonda;
+    state.textoCifrado     = ronda.textoCifrado;
+    state.tablaSustitucion = {};
+    state.historial        = [];
+
+    document.getElementById('ronda-overlay')?.classList.add('hidden');
+    renderTextoCifrado();
+    calcularYRenderFrecuencias();
+    updatePreviewDescifrado();
+    resetSustKeyboard();
+    renderHistorial();
+    actualizarCesarPreview();
+
+    // Pistas
+    renderPistas(ronda.pistas || []);
+
+    // Timer
+    startTimer(tiempoRestante || duracion || 300);
+  }
+
+  // Actualizar pistas si se añaden nuevas
+  if (ronda.pistas?.length > 0) {
+    renderPistas(ronda.pistas);
+  }
+
+  // Ronda finalizada → revelar solución
+  if (ronda.estado === 'finalizada') {
+    stopTimer();
+    showRondaOverlay(
+      ronda.ganadorEquipo === state.equipoNombre,
+      ronda.ganadorEquipo,
+      ronda.solucion
+    );
+  }
 }
 
 // ─── Render texto cifrado ─────────────────────────────────────
@@ -313,7 +319,7 @@ function buildSustKeyboard() {
 
       updatePreviewDescifrado();
       renderTextoCifrado();
-      guardarSustitucionEnFirestore();
+      guardarSustitucionEnBD();
     });
 
     // Tab navigation
@@ -456,65 +462,30 @@ async function enviarSolucion() {
   btn.innerHTML = '<span class="spinner"></span> Verificando...';
 
   try {
-    // Obtener solución correcta de Firestore (campo `solucion`)
-    // NOTA: En producción, usar Cloud Functions para esta verificación
-    const rondaSnap = await getDoc(doc(db, 'live_sessions', state.sesionId, 'rondas', state.rondaActual.toString()));
+    const session = await getSession(state.sesionId);
+    const rondaData = (session?.rondas || {})[state.rondaActual.toString()] || {};
+    const solucion = rondaData.solucion || '';
 
-    const rondaData = rondaSnap.data();
-    const correcto  = verifySolution(propuesta, rondaData.solucion || '');
-
-    // Guardar intento
-    const intentoRef = await addDoc(collection(db, 'live_sessions', state.sesionId, 'equipos', state.equipoId, 'intentos'), {
-        texto:     propuesta,
-        ronda:     state.rondaActual,
-        correcto,
-        timestamp: serverTimestamp()
-      });
+    const uid = state.currentUser?.id || state.currentUser?.uid;
+    const res = await submitAttempt(state.sesionId, state.equipoId, state.equipoNombre, state.rondaActual, propuesta, solucion, uid);
 
     // Actualizar historial local
     state.historial.unshift({
       texto:    propuesta,
-      correcto,
+      correcto: res.correcto,
       hora:     new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
     });
     renderHistorial();
 
-    if (correcto) {
-      // Actualizar puntuación + marcar ganador
-      const timerEl = document.getElementById('hud-timer');
-      const tiempoActual = parseTiempoRestante(timerEl?.textContent);
-      const puntos = calcularPuntos(tiempoActual);
-
-      await updateDoc(doc(db, 'live_sessions', state.sesionId, 'equipos', state.equipoId), {
-          puntuacion: increment(puntos),
-          intentos:   increment(1)
-        });
-
-      await updateDoc(doc(db, 'live_sessions', state.sesionId, 'rondas', state.rondaActual.toString()), {
-          estado:         'finalizada',
-          ganadorEquipo:  state.equipoNombre
-        });
-
-      state.puntuacion += puntos;
-      document.getElementById('hud-puntos').textContent = state.puntuacion;
-
-      feedback.textContent  = `✅ ¡CORRECTO! +${puntos} puntos`;
+    if (res.correcto) {
+      feedback.textContent  = `✅ ¡CORRECTO! +${res.points} puntos`;
       feedback.className    = 'submit-feedback success';
       feedback.classList.remove('hidden');
 
       stopTimer();
-      showToast('¡CORRECTO! 🎉', `+${puntos} puntos`, 'success');
+      showToast('¡CORRECTO! 🎉', `+${res.points} puntos`, 'success');
 
     } else {
-      // Penalizar -5 pts por intento fallido
-      await updateDoc(doc(db, 'live_sessions', state.sesionId, 'equipos', state.equipoId), {
-          puntuacion: increment(-5),
-          intentos:   increment(1)
-        });
-
-      state.puntuacion = Math.max(0, state.puntuacion - 5);
-      document.getElementById('hud-puntos').textContent = state.puntuacion;
-
       feedback.textContent = '❌ Incorrecto. Sigue intentando (-5 pts)';
       feedback.className   = 'submit-feedback error';
       feedback.classList.remove('hidden');
@@ -563,35 +534,19 @@ function renderHistorial() {
   `).join('');
 }
 
-// ─── Guardar tabla sustitución en Firestore ───────────────────
+// ─── Guardar tabla sustitución en base de datos ───────────────────
 let saveTimeout = null;
-function guardarSustitucionEnFirestore() {
+function guardarSustitucionEnBD() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     try {
-      await updateDoc(doc(db, 'live_sessions', state.sesionId, 'equipos', state.equipoId), {
-          tablaSustitucion: state.tablaSustitucion
-        });
+      await updateTeamSubstitution(state.sesionId, state.equipoId, state.tablaSustitucion);
     } catch (_) { /* silencioso */ }
   }, 1000);
 }
 
-// ─── Escuchar equipos (marcador) ──────────────────────────────
 function listenEquiposPuntuacion() {
-  if (state.unsubEquipos) state.unsubEquipos();
-
-  state.unsubEquipos = onSnapshot(query(collection(db, 'live_sessions', state.sesionId, 'equipos'), orderBy('puntuacion', 'desc')), snap => {
-      const equipos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      // Actualizar puntuación propia
-      const miEquipo = equipos.find(e => e.id === state.equipoId);
-      if (miEquipo) {
-        state.puntuacion = miEquipo.puntuacion || 0;
-        document.getElementById('hud-puntos').textContent = state.puntuacion;
-      }
-
-      renderMarcadorLive(equipos);
-    });
+  // Gestionado unificadamente en listenSesion()
 }
 
 function renderMarcadorLive(equipos) {
@@ -752,7 +707,7 @@ function renderPalabrasCortasJuego() {
       }
       updatePreviewDescifrado();
       renderTextoCifrado();
-      guardarSustitucionEnFirestore();
+      guardarSustitucionEnBD();
     });
   });
 }
@@ -795,7 +750,7 @@ function initVigenereKnownPlaintextJuego() {
         updatePreviewDescifrado();
         renderTextoCifrado();
         showToast(`Clave "${frag}" aplicada como Vigenère`, 'info');
-        guardarSustitucionEnFirestore();
+        guardarSustitucionEnBD();
       });
     });
   });

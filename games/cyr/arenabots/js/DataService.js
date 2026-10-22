@@ -1,5 +1,5 @@
-import { db, doc, collection, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, serverTimestamp } from '../../../../../js/common/firebase-config.js';
-import { currentUser, currentProfile } from '../../../../../js/common/auth.js';
+import { supabase } from '../../../../../js/common/supabase-config.js';
+import { currentUser, currentProfile, updateUserProfileData } from '../../../../../js/common/auth.js';
 import { saveGameResult } from '../../../../../js/common/db.js';
 
 const DataService = {
@@ -50,19 +50,74 @@ const DataService = {
     localStorage.setItem('arenabots_player_avatar', JSON.stringify(config));
   },
 
-  // public_bots
+  _packCode(script, color, avatar) {
+    const meta = { color: color || 'cyan', avatar: avatar || {} };
+    return `// __META__=${JSON.stringify(meta)}\n` + (script || '');
+  },
+
+  _unpackBot(rawBot) {
+    if (!rawBot) return null;
+    let rawCode = rawBot.code || rawBot.script || '';
+    let color = 'cyan';
+    let avatar = { seed: 'bot', face: 'round01' };
+
+    const metaMatch = rawCode.match(/^\/\/\s*__META__=(.*)$/m);
+    if (metaMatch) {
+      try {
+        const meta = JSON.parse(metaMatch[1]);
+        if (meta.color) color = meta.color;
+        if (meta.avatar) avatar = meta.avatar;
+      } catch (_) {}
+    }
+    const cleanScript = rawCode.replace(/^\/\/\s*__META__=.*\n?/m, '');
+
+    const wins = rawBot.wins || 0;
+    const losses = rawBot.losses || 0;
+    const matches = wins + losses;
+    const winRate = matches > 0 ? Math.round((wins / matches) * 100) : 0;
+    const level = this.calculateLevel(wins, matches);
+
+    return {
+      id: rawBot.id,
+      name: rawBot.name,
+      ownerId: rawBot.owner_id || rawBot.ownerId,
+      ownerName: rawBot.users?.display_name || rawBot.ownerName || 'Piloto',
+      code: cleanScript,
+      script: cleanScript,
+      color,
+      avatar,
+      wins,
+      losses,
+      matches,
+      winRate,
+      level,
+      public: rawBot.public ?? true,
+      createdAt: rawBot.created_at || rawBot.createdAt,
+      updatedAt: rawBot.updated_at || rawBot.updatedAt
+    };
+  },
+
+  // Guardar bot en Supabase table 'arena_bots'
   async saveBot(botData) {
-    if (!currentUser) return { success: false, error: 'No user' };
-    botData.ownerId = currentUser.uid;
-    botData.ownerEmail = currentUser.email;
-    botData.wins = 0;
-    botData.matches = 0;
-    botData.winRate = 0;
-    botData.level = 1;
-    botData.createdAt = serverTimestamp();
+    const user = currentUser;
+    if (!user) return { success: false, error: 'No user authenticated' };
+    const uid = user.id || user.uid;
+    const code = this._packCode(botData.script || botData.code, botData.color, botData.avatar);
     try {
-      const ref = await addDoc(collection(db, 'public_bots'), botData);
-      return { success: true, id: ref.id };
+      const { data, error } = await supabase
+        .from('arena_bots')
+        .insert({
+          owner_id: uid,
+          name: botData.name,
+          code: code,
+          wins: 0,
+          losses: 0,
+          public: true
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, id: data.id };
     } catch (e) {
       return { success: false, error: e.message };
     }
@@ -70,12 +125,17 @@ const DataService = {
 
   async updateBot(botId, botData) {
     try {
-      botData.updatedAt = serverTimestamp();
-      botData.wins = 0; // resets level
-      botData.matches = 0;
-      botData.winRate = 0;
-      botData.level = 1;
-      await updateDoc(doc(db, 'public_bots', botId), botData);
+      const code = this._packCode(botData.script || botData.code, botData.color, botData.avatar);
+      const { error } = await supabase
+        .from('arena_bots')
+        .update({
+          name: botData.name,
+          code: code,
+          wins: 0,
+          losses: 0
+        })
+        .eq('id', botId);
+      if (error) throw error;
       return { success: true };
     } catch (e) {
       return { success: false, error: e.message };
@@ -83,21 +143,33 @@ const DataService = {
   },
 
   async getSavedBots() {
-    if (!currentUser) return [];
+    const user = currentUser;
+    if (!user) return [];
+    const uid = user.id || user.uid;
     try {
-      const q = query(collection(db, 'public_bots'), where('ownerId', '==', currentUser.uid));
-      const snap = await getDocs(q);
-      const bots = [];
-      snap.forEach(d => bots.push({ id: d.id, ...d.data() }));
-      return bots;
-    } catch { return []; }
+      const { data, error } = await supabase
+        .from('arena_bots')
+        .select('*')
+        .eq('owner_id', uid)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []).map(b => this._unpackBot(b));
+    } catch {
+      return [];
+    }
   },
 
   async deleteBot(botId) {
     try {
-      await deleteDoc(doc(db, 'public_bots', botId));
+      const { error } = await supabase
+        .from('arena_bots')
+        .delete()
+        .eq('id', botId);
+      if (error) throw error;
       return { success: true };
-    } catch (e) { return { success: false, error: e.message }; }
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
   },
 
   calculateLevel(wins = 0, matches = 0) {
@@ -106,18 +178,17 @@ const DataService = {
   },
 
   async getRandomOpponent(targetLevel, excludeBotId, targetClassId) {
-    // simplified for brevity
     try {
-      const snap = await getDocs(collection(db, 'public_bots'));
-      const candidates = [];
-      snap.forEach(doc => {
-        const d = doc.data();
-        if (d.ownerId !== currentUser?.uid && doc.id !== excludeBotId && (d.level || 1) === targetLevel) {
-          candidates.push({ id: doc.id, ...d });
-        }
-      });
-      if (candidates.length === 0) return this.getFallbackSystemBot(targetLevel);
-      return candidates[Math.floor(Math.random() * candidates.length)];
+      const uid = currentUser?.id || currentUser?.uid;
+      let q = supabase.from('arena_bots').select('*, users(display_name)').eq('public', true);
+      if (uid) q = q.neq('owner_id', uid);
+      if (excludeBotId) q = q.neq('id', excludeBotId);
+      const { data, error } = await q.limit(50);
+      if (error || !data || data.length === 0) return this.getFallbackSystemBot(targetLevel);
+      const bots = data.map(b => this._unpackBot(b));
+      const matching = bots.filter(b => b.level === targetLevel);
+      const pool = matching.length > 0 ? matching : bots;
+      return pool[Math.floor(Math.random() * pool.length)];
     } catch {
       return this.getFallbackSystemBot(targetLevel);
     }
@@ -135,111 +206,149 @@ const DataService = {
   async updateBotStats(botId, isWin) {
     if (!botId || botId === 'SYSTEM_BOT') return;
     try {
-      const botRef = doc(db, 'public_bots', botId);
-      const snap = await getDoc(botRef);
-      if (snap.exists()) {
-        const d = snap.data();
-        const m = (d.matches || 0) + 1;
-        const w = (d.wins || 0) + (isWin ? 1 : 0);
-        await updateDoc(botRef, {
-          wins: w, matches: m, winRate: Math.round((w/m)*100), level: this.calculateLevel(w, m)
-        });
-      }
-    } catch (e) { console.error(e); }
+      const { data: bot, error } = await supabase
+        .from('arena_bots')
+        .select('wins, losses')
+        .eq('id', botId)
+        .maybeSingle();
+      if (error || !bot) return;
+      const newWins = (bot.wins || 0) + (isWin ? 1 : 0);
+      const newLosses = (bot.losses || 0) + (isWin ? 0 : 1);
+      await supabase
+        .from('arena_bots')
+        .update({ wins: newWins, losses: newLosses })
+        .eq('id', botId);
+    } catch (e) {
+      console.error(e);
+    }
   },
 
   async getLeaderboard(limitCount = 20) {
     try {
-      const snap = await getDocs(collection(db, 'public_bots'));
-      const bots = [];
-      snap.forEach(d => {
-        const data = d.data();
-        if (data.matches > 0) bots.push({ id: d.id, ...data });
-      });
-      bots.sort((a,b) => {
+      const { data, error } = await supabase
+        .from('arena_bots')
+        .select('*, users(display_name)')
+        .eq('public', true);
+      if (error || !data) return [];
+      const bots = data.map(b => this._unpackBot(b)).filter(b => b.matches > 0);
+      bots.sort((a, b) => {
         if (b.winRate !== a.winRate) return b.winRate - a.winRate;
-        return (b.wins||0) - (a.wins||0);
+        return (b.wins || 0) - (a.wins || 0);
       });
       return bots.slice(0, limitCount);
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   },
 
   async saveMatchResult(res) {
     const isWin = res.outcome === 'victoria';
     await this.updateBotStats(this.currentBotId, isWin);
-    // Use common db saveGameResult
-    await saveGameResult('arenabots', currentUser?.uid, null, isWin ? 10 : 0, {
-      duration: res.duration || 0, turns: res.turnsPlayed || 0, outcome: res.outcome
+    const uid = currentUser?.id || currentUser?.uid;
+    await saveGameResult('arenabots', uid, null, isWin ? 10 : 0, {
+      duration: res.duration || 0,
+      turns: res.turnsPlayed || 0,
+      outcome: res.outcome
     });
   }
 };
 
 export default DataService;
-// Export auth stuff so UIManager can use it
-Object.defineProperty(DataService, 'currentUser', { get: () => currentUser });
+
+// Ensure currentUser has .uid property for backward compatibility
+Object.defineProperty(DataService, 'currentUser', {
+  get: () => {
+    if (!currentUser) return null;
+    if (!currentUser.uid && currentUser.id) currentUser.uid = currentUser.id;
+    return currentUser;
+  }
+});
 Object.defineProperty(DataService, 'userProfile', { get: () => currentProfile });
 
-// Shims for removed features
+// Auth stubs & helpers
 DataService.loginWithGoogle = async () => { return { success: true }; };
-DataService.logout = async () => {};
-DataService.getMyClassId = async () => null; // Use classId from auth if needed, but keeping simple
-DataService.updateUserProfile = async () => {};
-DataService.getTournament = async () => null;
-DataService.enrollTournament = async () => ({ success: false, error: 'Not implemented' });
-DataService.connectClassroom = async () => ({ success: false, error: 'Not implemented' });
-DataService.getTeacherClasses = async () => [];
-DataService.createTournament = async () => ({ success: false, error: 'Not implemented' });
-DataService.updateTournament = async () => ({ success: false, error: 'Not implemented' });
+DataService.logout = async () => { await supabase.auth.signOut(); };
+DataService.updateUserProfile = async (updates) => {
+  try {
+    await updateUserProfileData(updates);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+};
 
-// Tournament and class methods using v10 modular
-DataService.getMyClassId = async () => currentProfile?.classId || null;
+// Tournament and class methods
+DataService.getMyClassId = async () => currentProfile?.classId || currentProfile?.class_id || null;
 
 DataService.getTournament = async (classId) => {
   if (!classId) return null;
   try {
-    const snap = await getDoc(doc(db, 'tournaments', classId));
-    return snap.exists() ? snap.data() : null;
-  } catch { return null; }
+    const { data } = await supabase.from('classes').select('config').eq('id', classId).maybeSingle();
+    return data?.config?.tournament || null;
+  } catch {
+    return null;
+  }
 };
 
 DataService.enrollTournament = async (classId, bot) => {
   try {
-    const snap = await getDoc(doc(db, 'tournaments', classId));
-    if (!snap.exists()) return { success: false, error: 'No tournament' };
-    const data = snap.data();
-    if (data.participants?.find(p => p.userId === currentUser.uid)) {
-       return { success: false, error: 'Already enrolled' };
+    const uid = currentUser?.id || currentUser?.uid;
+    const { data: cls } = await supabase.from('classes').select('config').eq('id', classId).maybeSingle();
+    if (!cls) return { success: false, error: 'No tournament found' };
+    const config = cls.config || {};
+    const tourney = config.tournament;
+    if (!tourney) return { success: false, error: 'No tournament found' };
+    if (tourney.participants?.find(p => p.userId === uid)) {
+      return { success: false, error: 'Already enrolled' };
     }
-    const p = { userId: currentUser.uid, botId: bot.id, snapshotData: bot };
-    await updateDoc(doc(db, 'tournaments', classId), {
-       participants: [...(data.participants||[]), p]
-    });
+    const p = { userId: uid, botId: bot.id, snapshotData: bot };
+    tourney.participants = [...(tourney.participants || []), p];
+    const { error } = await supabase.from('classes').update({ config }).eq('id', classId);
+    if (error) throw error;
     return { success: true };
-  } catch (e) { return { success: false, error: e.message }; }
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 };
 
 DataService.createTournament = async (classId, name) => {
   try {
-     await setDoc(doc(db, 'tournaments', classId), {
-        classId, name, status: 'inscription', participants: [], bracket: []
-     });
-     return { success: true };
-  } catch(e) { return { success: false, error: e.message }; }
+    const { data: cls } = await supabase.from('classes').select('config').eq('id', classId).maybeSingle();
+    const config = cls?.config || {};
+    config.tournament = {
+      classId,
+      name,
+      status: 'inscription',
+      participants: [],
+      bracket: []
+    };
+    const { error } = await supabase.from('classes').update({ config }).eq('id', classId);
+    if (error) throw error;
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 };
 
 DataService.updateTournament = async (classId, data) => {
   try {
-     await updateDoc(doc(db, 'tournaments', classId), data);
-     return { success: true };
-  } catch(e) { return { success: false, error: e.message }; }
+    const { data: cls } = await supabase.from('classes').select('config').eq('id', classId).maybeSingle();
+    const config = cls?.config || {};
+    config.tournament = { ...(config.tournament || {}), ...data };
+    const { error } = await supabase.from('classes').update({ config }).eq('id', classId);
+    if (error) throw error;
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 };
 
 DataService.getTeacherClasses = async () => {
   try {
-     const snap = await getDocs(query(collection(db, 'classes'), where('teacherId', '==', currentUser?.uid)));
-     const classes = [];
-     snap.forEach(d => classes.push({ id: d.id, ...d.data() }));
-     return classes;
-  } catch { return []; }
+    const uid = currentUser?.id || currentUser?.uid;
+    const { data } = await supabase.from('classes').select('*').eq('teacher_id', uid);
+    return data || [];
+  } catch {
+    return [];
+  }
 };
-

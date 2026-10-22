@@ -4,13 +4,15 @@ import {
   getClass, updateClass, getClassMembers, getClassAssignments,
   toggleGameInClass, toggleTopicInClass, createAssignment, updateAssignment, deleteAssignment,
   getClassRanking, addStudentsToClass, removeStudentFromClass, getStudentResultsInClass,
-  getStudentBestScore, getUserProfile
+  getStudentBestScore, getUserProfile, getLegacyStudentIds,
+  listenToExamsByClass, updateExam, deleteExam,
+  getOfflineTasksConfig, upsertOfflineTaskConfig, getClassOfflineGrades,
+  saveOfflineGradeRubric, getStudentOfflineGrade, deleteStudentTopicResults
 } from './common/db.js';
 import { createClassroomAssignment, syncClassroomGrades } from './common/classroom.js';
 import { renderHeader, showToast, showLoading, hideLoading, renderPodium, renderRankingTable } from './common/ui.js';
 import { GAMES, TOPICS, COURSES, $, $$, escapeHtml, formatDate, getUrlParams, copyToClipboard } from './common/utils.js';
 import { getGuildsForSubject, getMedalsForSubject, loadGuilds, initGamification, MEDAL_XP, getLeague } from './common/gamification.js';
-import { collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp, db } from './common/firebase-config.js';
 import {
   getCurriculumCriteria,
   getCurriculumActivities,
@@ -500,19 +502,21 @@ async function showStudentHistory(studentId, studentName) {
     
     let studentIds = [studentId];
     try {
-      const { getLegacyStudentIds } = await import('./common/db.js');
       const leg = await getLegacyStudentIds(studentId);
       if (leg && leg.length > 0) studentIds.push(...leg);
     } catch (_) {}
 
     // 1. Juegos (globales para calcular XP correcta, pero luego marcamos si es de la clase)
-    const snapGames = await getDocs(query(collection(db, 'game_results'), where('studentId', 'in', studentIds)));
-    const games = snapGames.docs.map(d => ({ id: d.id, ...d.data() }));
-    games.sort((a, b) => {
-      const ta = a.timestamp?.seconds || (a.createdAt ? new Date(a.createdAt).getTime() / 1000 : 0);
-      const tb = b.timestamp?.seconds || (b.createdAt ? new Date(b.createdAt).getTime() / 1000 : 0);
-      return ta - tb;
-    });
+    const { data: gamesData } = await supabase.from('game_results').select('*')
+      .in('student_id', studentIds).eq('forced_fail', false).order('created_at', { ascending: true });
+    const games = (gamesData || []).map(r => ({
+      id: r.id,
+      ...r,
+      studentId: r.student_id,
+      gameId: r.game_id,
+      classId: r.class_id,
+      createdAt: r.created_at
+    }));
     
     const userGamesCount = {};
     const userMaxScores = {};
@@ -547,18 +551,19 @@ async function showStudentHistory(studentId, studentName) {
         scoreInfo: `Puntos: ${r.score}`,
         metadata: r.metadata,
         xp: xp,
-        timestamp: r.timestamp?.toDate ? r.timestamp.toDate() : (r.createdAt ? new Date(r.createdAt) : new Date(0))
+        timestamp: r.createdAt ? new Date(r.createdAt) : new Date(0)
       });
     });
 
     // 2. Tests de Repaso
-    const snapTests = await getDocs(query(collection(db, 'test_teoria_respuestas'), where('uid', 'in', studentIds)));
-    const tests = snapTests.docs.map(d => d.data());
-    tests.sort((a, b) => {
-      const ta = a.fecha?.seconds || (a.createdAt ? new Date(a.createdAt).getTime() / 1000 : 0);
-      const tb = b.fecha?.seconds || (b.createdAt ? new Date(b.createdAt).getTime() / 1000 : 0);
-      return ta - tb;
-    });
+    const { data: testsData } = await supabase.from('topic_test_results').select('*')
+      .in('student_id', studentIds).order('created_at', { ascending: true });
+    const tests = (testsData || []).map(r => ({
+      ...r,
+      uid: r.student_id,
+      topicId: r.topic_id,
+      createdAt: r.created_at
+    }));
     
     const userTestsState = {};
     tests.forEach(r => {
@@ -591,69 +596,86 @@ async function showStudentHistory(studentId, studentName) {
         scoreInfo: `Nota: ${score}/10`,
         metadata: null,
         xp: xp,
-        timestamp: r.fecha?.toDate ? r.fecha.toDate() : (r.createdAt ? new Date(r.createdAt) : new Date(0))
+        timestamp: r.createdAt ? new Date(r.createdAt) : new Date(0)
       });
     });
     
     // 3. Exámenes
-    const snapExams = await getDocs(query(collection(db, 'respuestas_test'), where('uid', 'in', studentIds)));
-    snapExams.forEach(d => {
-      const r = d.data();
-      if (!r.calculado || r.calculado.nota === undefined) return;
-      const nota = r.calculado.nota;
+    const { data: examsData } = await supabase.from('exam_results').select('*')
+      .in('student_id', studentIds).order('created_at', { ascending: true });
+    (examsData || []).forEach(r => {
+      const nota = r.score;
+      if (nota === null || nota === undefined) return;
       let xp = 5 + (nota >= 5 ? 5 : 0) + (nota > 9 ? 5 : 0);
       
       timeline.push({
         type: 'exam',
-        classId: r.classId || null,
+        classId: r.class_id || null,
         title: `📄 Examen`,
-        scoreInfo: `Nota: ${nota.toFixed(2)}/10`,
+        scoreInfo: `Nota: ${Number(nota).toFixed(2)}/10`,
         metadata: null,
         xp: xp,
-        timestamp: r.fecha?.toDate ? r.fecha.toDate() : (r.createdAt ? new Date(r.createdAt) : new Date(0))
+        timestamp: r.created_at ? new Date(r.created_at) : new Date(0)
       });
     });
     
     // 4. Tareas Offline
-    const snapOffline = await getDocs(query(collection(db, 'offline_grades'), where('studentId', 'in', studentIds)));
-    snapOffline.forEach(d => {
-      const r = d.data();
-      if (r.finalGrade === undefined) return;
-      let xp = Math.round(r.finalGrade * 15);
+    const { data: offlineData } = await supabase.from('offline_grades').select('*')
+      .in('student_id', studentIds).order('updated_at', { ascending: true });
+    (offlineData || []).forEach(r => {
+      if (r.score === null || r.score === undefined) return;
+      let xp = Math.round(r.score * 15);
       
-      const taskObj = CLASSROOM_TASKS.find(t => t.id === r.taskId);
-      const taskName = taskObj ? taskObj.title : r.taskId;
+      const taskObj = CLASSROOM_TASKS.find(t => t.id === r.task_id);
+      const taskName = taskObj ? taskObj.title : r.task_id;
       
       timeline.push({
         type: 'offline',
-        classId: r.classId,
+        classId: r.class_id,
         title: `📁 Tarea: ${taskName}`,
-        scoreInfo: `Nota: ${r.finalGrade}/10`,
+        scoreInfo: `Nota: ${r.score}/10`,
         metadata: null,
         xp: xp,
-        timestamp: r.updatedAt?.toDate ? r.updatedAt.toDate() : (r.updated_at ? new Date(r.updated_at) : new Date(0))
+        timestamp: r.updated_at ? new Date(r.updated_at) : (r.created_at ? new Date(r.created_at) : new Date(0))
       });
     });
 
     // 5. Medallas Obtenidas
-    const userSnap = await getDoc(doc(db, 'users', studentId));
-    const userData = userSnap.data() || {};
-    const userLogros = userData.logros || userData.medals || [];
+    const { data: userData } = await supabase.from('users').select('*').eq('id', studentId).maybeSingle();
+    const userLogros = userData?.logros || userData?.medals || [];
     const subjectMedals = getMedalsForSubject(classData?.subject_id) || [];
     
     userLogros.forEach(medal => {
         const medalId = typeof medal === 'string' ? medal : (medal.id || medal.medal_id);
-        const meta = (typeof medal === 'object' && medal.name) ? medal : (subjectMedals.find(m => m.id === medalId) || { name: medalId, icon: '🏅', desc: '' });
-        const extraXP = medal.xp_value || MEDAL_XP[medalId] || meta.xp || 0;
+        const meta = (typeof medal === 'object' && medal.name) ? medal : subjectMedals.find(m => m.id === medalId);
+        if (!meta && subjectMedals.length > 0) return; // Omitir medallas de otras asignaturas
+        const extraXP = medal.xp_value || MEDAL_XP[medalId] || meta?.xp || 0;
         timeline.push({
             type: 'medal',
-            title: `🏅 Medalla: ${meta.icon || '🏅'} ${meta.name || medalId}`,
-            scoreInfo: meta.desc || medal.desc || '',
+            title: `🏅 Medalla: ${meta?.icon || '🏅'} ${meta?.name || medalId}`,
+            scoreInfo: meta?.desc || medal.desc || '',
             metadata: null,
             xp: extraXP,
             timestamp: medal.fecha ? new Date(medal.fecha) : new Date(0)
         });
     });
+
+    // 6. Saldo base histórico (si el usuario tenía puntos consolidados de Firebase previos)
+    const currentProfileXP = userData?.xp ?? userData?.puntosTotal ?? 0;
+    const activitiesSum = timeline.reduce((acc, r) => acc + (r.xp || 0), 0);
+    const baseDiff = currentProfileXP - activitiesSum;
+    if (baseDiff > 0) {
+      timeline.push({
+        type: 'base',
+        classId: classData.id,
+        title: '📥 Saldo Inicial (Histórico Firebase / Evaluación previa)',
+        scoreInfo: 'Puntos consolidados de evaluaciones anteriores',
+        metadata: null,
+        xp: baseDiff,
+        timestamp: userData?.created_at ? new Date(userData.created_at) : new Date(1725148800000)
+      });
+    }
+
     timeline.sort((a, b) => b.timestamp - a.timestamp);
 
   } catch(e) {
@@ -662,10 +684,17 @@ async function showStudentHistory(studentId, studentName) {
     return;
   }
 
+  const totalCalculatedXP = timeline.reduce((acc, r) => acc + (r.xp || 0), 0);
+
   const rows = timeline.length === 0
-    ? '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px;">Sin actividad registrada.</td></tr>'
+    ? '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;">Sin actividad registrada.</td></tr>'
     : timeline.map(r => {
-        const dateStr = r.timestamp.getTime() > 0 ? r.timestamp.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+        let dateStr = '—';
+        if (r.timestamp.getTime() > 0) {
+          dateStr = r.timestamp.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        } else if (r.type === 'medal') {
+          dateStr = '<span style="font-size:0.75rem; color:var(--text-muted); background:var(--surface-3); padding:2px 6px; border-radius:4px;">Logro obtenido</span>';
+        }
         
         let detail = r.scoreInfo;
         if (r.type === 'game' && r.metadata) {
@@ -673,18 +702,19 @@ async function showStudentHistory(studentId, studentName) {
           const acc = r.metadata.accuracy != null ? r.metadata.accuracy + '%' : '—';
           if (wpm !== '—') detail += ` <small style="color:var(--text-muted)">(${wpm} PPM / ${acc})</small>`;
         }
-        
 
         let xpBadge = '';
         if (r.type === 'medal') {
-            xpBadge = `<span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:bold; background:var(--warning-light); color:var(--warning); border: 1px solid var(--warning);">+${r.xp} XP</span>`;
+          xpBadge = `<span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:bold; background:var(--warning-light); color:var(--warning); border: 1px solid var(--warning);">+${r.xp} XP</span>`;
+        } else if (r.type === 'base') {
+          xpBadge = `<span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:bold; background:rgba(2,132,199,0.15); color:#0284c7; border: 1px solid #0284c7;">+${r.xp} XP</span>`;
         } else {
-            xpBadge = `<span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:bold; background:var(--primary-light); color:var(--primary);">+${r.xp} XP</span>`;
+          xpBadge = `<span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:bold; background:var(--primary-light); color:var(--primary);">+${r.xp} XP</span>`;
         }
         if (r.xp === 0) xpBadge = `<span style="color:var(--text-muted); font-size:0.85rem;">0 XP</span>`;
 
         // Si es de otra clase, lo ponemos un poco transparente
-        const isCurrentClass = (r.type === 'test' || r.classId === classData.id);
+        const isCurrentClass = (r.type === 'test' || r.type === 'base' || r.type === 'medal' || r.classId === classData.id);
         const opacity = isCurrentClass ? '1' : '0.6';
         const classNote = !isCurrentClass ? `<br><small style="color:var(--text-muted); font-size:0.7rem;">Otra clase</small>` : '';
 
@@ -707,6 +737,13 @@ async function showStudentHistory(studentId, studentName) {
         </tr>
       </thead>
       <tbody>${rows}</tbody>
+      <tfoot>
+        <tr style="border-top:2px solid var(--border); background:var(--surface-2); font-weight:bold;">
+          <td colspan="2" style="padding:12px; text-align:left;">🏆 Total Puntos Acumulados</td>
+          <td style="padding:12px; text-align:center; color:var(--primary); font-size:1.05rem;">+${totalCalculatedXP} XP</td>
+          <td style="padding:12px; font-size:0.8rem; color:var(--text-muted);">(Coincide con el ranking)</td>
+        </tr>
+      </tfoot>
     </table>`;
 }
 // ══════════════════════════════════════════════════════════════
@@ -919,9 +956,9 @@ async function loadAssignmentsTab() {
           gameId, title, targetScore: parseInt(target),
           dueDate: due || null,
           siteUrl: settings.siteUrl,
-          skipFirestore: true
+          skipDb: true
         });
-        // Actualizar el documento existente en Firestore con el ID de Classroom
+        // Actualizar la tarea existente en la base de datos con el ID de Classroom
         await updateAssignment(classData.id, assignmentId, {
           classroomCourseId: classData.classroomCourseId,
           classroomCourseWorkId: result.id
@@ -1010,8 +1047,7 @@ async function renderResults(showLoader = true) {
     const podium = document.getElementById('results-podium');
     if (podium) {
         podium.innerHTML = `<div class="empty-state" style="color:var(--error); padding: 20px; text-align: center;">
-            ⚠️ Firebase aún está construyendo el índice de rendimiento.<br>
-            Este proceso suele tardar de <strong>3 a 5 minutos</strong>.<br><br>
+            ⚠️ No se pudieron cargar los resultados del juego.<br>
             <small style="color:var(--text-muted)">Detalle técnico: ${err.message}</small>
         </div>`;
     }
@@ -1187,31 +1223,22 @@ async function loadExamsTab() {
     members = await getClassMembers(classData.id);
   }
 
-  const examsRef = query(collection(db, 'examenes_test'), where('claseId', '==', classData.id));
-
   if (unsubscribeExams) unsubscribeExams();
-  unsubscribeExams = onSnapshot(examsRef, (snap) => {
-    const exams = [];
-    const docs = snap?.docs || (Array.isArray(snap) ? snap : []);
-    if (typeof snap?.forEach === 'function') {
-      snap.forEach(d => exams.push({ id: d.id, ...d.data() }));
-    } else {
-      docs.forEach(d => exams.push({ id: d.id, ...(typeof d.data === 'function' ? d.data() : d) }));
-    }
-    
+  unsubscribeExams = listenToExamsByClass(classData.id, (exams) => {
     const list = $('examenes-test-list');
-    if (!exams.length) {
+    if (!list) return;
+    if (!exams || !exams.length) {
       list.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay exámenes generados.</td></tr>';
     } else {
       list.innerHTML = exams.map(ex => {
-        const title = ex.titulo || ex.title || 'Examen';
-        const numQ = ex.numPreguntas !== undefined ? ex.numPreguntas : (ex.questionIds ? ex.questionIds.length : (ex.question_ids ? ex.question_ids.length : 0));
-        const duration = ex.tiempoMinutos || ex.durationMins || 45;
-        const isActive = ex.activo !== undefined ? ex.activo : (ex.active !== undefined ? ex.active : false);
-        const dateStr = ex.creadoEn?.toDate ? ex.creadoEn.toDate().toLocaleDateString() : (ex.createdAt ? new Date(ex.createdAt).toLocaleDateString() : '');
+        const title = ex.title || ex.titulo || 'Examen';
+        const numQ = ex.question_ids ? ex.question_ids.length : (ex.questions ? ex.questions.length : (ex.numPreguntas || 0));
+        const duration = ex.duration_mins || ex.tiempoMinutos || 45;
+        const isActive = ex.active ?? ex.activo ?? false;
+        const dateStr = ex.created_at ? new Date(ex.created_at).toLocaleDateString() : '';
         return `
         <tr>
-          <td><strong>${escapeHtml(title)}</strong></td>
+          <td><a href="examen_resultados.html?id=${ex.id}" style="color:var(--text-primary); font-weight:bold; text-decoration:none;" title="Ver entregas y notas">${escapeHtml(title)}</a></td>
           <td>${numQ} preg.</td>
           <td>${duration} min</td>
           <td>
@@ -1221,6 +1248,7 @@ async function loadExamsTab() {
           </td>
           <td>${dateStr}</td>
           <td>
+            <a href="examen_resultados.html?id=${ex.id}" class="btn btn-ghost btn--sm" title="Ver entregas y corregir">📊</a>
             ${isActive 
               ? `<button class="btn btn-ghost btn--sm" onclick="window._cerrarExamenTest('${ex.id}')" title="Cerrar examen">🔒</button>`
               : `<button class="btn btn-ghost btn--sm" onclick="window._activarExamenTest('${ex.id}')" title="Abrir examen">🔓</button>`}
@@ -1241,23 +1269,22 @@ async function loadExamsTab() {
       return;
     }
     
-    // Firebase 'in' max is 10, so we just fetch recent ones or we split chunks. For simplicity in CyR we can just get docs.
-    // Assuming class size < 30, we can fetch all or just chunk them.
-    // Instead of complex chunks, we can just get ALL from the collection and filter by class. (Since we are teacher).
-    getDocs(collection(db, 'test_teoria_respuestas')).then(snap => {
-      let results = [];
-      const docs = snap?.docs || (Array.isArray(snap) ? snap : []);
-      const cb = d => {
-        let data = typeof d.data === 'function' ? d.data() : d;
-        if (studentIds.includes(data.uid)) {
-          results.push(data);
-        }
-      };
-      if (typeof snap?.forEach === 'function') snap.forEach(cb);
-      else docs.forEach(cb);
+    try {
+      const { data: rawTests } = await supabase.from('topic_test_results')
+        .select('*').in('student_id', studentIds).order('created_at', { ascending: false });
       
+      const results = (rawTests || []).map(r => ({
+        ...r,
+        id: r.id,
+        uid: r.student_id,
+        topicId: r.topic_id,
+        topicName: r.topic_name,
+        score: r.score,
+        fecha: r.created_at ? { toDate: () => new Date(r.created_at), toMillis: () => new Date(r.created_at).getTime() } : null,
+        created_at: r.created_at
+      }));
+
       // Filtrar para quedarse solo con el último intento de cada alumno en cada bloque
-      // Agrupamos por uid_topicId y nos quedamos con la fecha más reciente
       let latestResults = {};
       results.forEach(r => {
         const key = `${r.uid}_${r.topicId}`;
@@ -1287,32 +1314,32 @@ async function loadExamsTab() {
             <td>${escapeHtml(r.topicName || r.topicId)}</td>
             <td>
               <span class="badge ${r.score >= 5 ? 'badge--success' : 'badge--error'}" style="font-size:1.1rem;">
-                ${r.score.toFixed(1)} / 10
+                ${Number(r.score).toFixed(1)} / 10
               </span>
             </td>
-            <td class="text-muted">${r.fecha?.toDate ? r.fecha.toDate().toLocaleString() : 'Reciente'}</td>
+            <td class="text-muted">${r.fecha?.toDate ? r.fecha.toDate().toLocaleString('es-ES') : 'Reciente'}</td>
             <td>
               <button class="btn btn-ghost btn--sm" onclick="window._deleteStudentTests('${r.uid}', '${r.topicId}', '${escapeHtml(studentName)}')" title="Borrar todos los intentos de este tema" style="color:var(--error)">🗑️</button>
             </td>
           </tr>`;
         }).join('');
       }
-    }).catch(e => {
+    } catch(e) {
       console.error(e);
       teoriaList.innerHTML = '<tr><td colspan="5" class="text-center text-error">Error al cargar resultados.</td></tr>';
-    });
+    }
   }
 }
 
 window._activarExamenTest = async (id) => {
-  await updateDoc(doc(db, 'examenes_test', id), { activo: true });
+  await updateExam(id, { active: true, activated_at: new Date().toISOString() });
 };
 window._cerrarExamenTest = async (id) => {
-  await updateDoc(doc(db, 'examenes_test', id), { activo: false });
+  await updateExam(id, { active: false });
 };
 window._deleteExamenTest = async (id) => {
   if (confirm('¿Seguro que deseas eliminar este examen?')) {
-    await deleteDoc(doc(db, 'examenes_test', id));
+    await deleteExam(id);
   }
 };
 
@@ -1427,14 +1454,44 @@ function setupModals(user) {
     
     try {
       showLoading('Generando...');
-      await addDoc(collection(db, 'classes', classData.id, 'examenes_test'), {
-        titulo,
-        tiempoMinutos: tiempo,
-        numPreguntas: num,
-        topicFilter: topic || null,
-        activo: false,
-        creadoEn: serverTimestamp()
-      });
+      let q = supabase.from('topic_questions').select('*').eq('active', true);
+      if (topic) {
+        q = q.eq('topic_id', topic);
+      } else if (classData?.subject_id) {
+        q = q.eq('subject_id', classData.subject_id);
+      }
+
+      const { data: qData, error: qErr } = await q;
+      if (qErr) throw qErr;
+
+      let available = qData || [];
+      if (available.length === 0) {
+        const { data: allQ } = await supabase.from('topic_questions').select('*').eq('active', true);
+        available = allQ || [];
+      }
+
+      if (available.length === 0) {
+        throw new Error('No hay preguntas disponibles en el banco de preguntas.');
+      }
+
+      // Mezclar aleatoriamente y seleccionar hasta `num` preguntas
+      const shuffled = [...available].sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, Math.min(num, shuffled.length));
+
+      const newExam = {
+        class_id: classData.id,
+        created_by: currentUser()?.uid || currentUser()?.id || currentProfile?.id,
+        title: titulo,
+        duration_mins: tiempo,
+        question_ids: selected.map(q => q.id),
+        questions: selected,
+        active: false,
+        created_at: new Date().toISOString()
+      };
+
+      const { error: insErr } = await supabase.from('exams').insert(newExam);
+      if (insErr) throw insErr;
+
       $('modal-new-exam').classList.remove('modal-backdrop--visible');
       showToast('Examen generado', 'Ya puedes activarlo', 'success');
       $('gen-titulo').value = '';
@@ -1537,7 +1594,7 @@ function setupModals(user) {
         classroomCourseWorkId = result.id;
         showToast('Tarea publicada en Classroom', title, 'success');
       } else {
-        // Solo guardar en Firestore
+        // Solo guardar en la base de datos
         await createAssignment(classData.id, {
           gameId, title, targetScore: target,
           dueDate: due || null,
@@ -1635,17 +1692,16 @@ $('btn-view-criteria')?.addEventListener('click', async () => {
   container.innerHTML = '<div style="text-align:center; padding:40px;"><div class="spinner"></div> Calculando notas...</div>';
   
   try {
-    // Obtenemos todas las respuestas de exámenes (el profesor tiene acceso a todas)
-    const snap = await getDocs(collection(db, 'test_teoria_respuestas'));
-    const allTests = [];
-    snap.forEach(d => allTests.push(d.data()));
+    const studentIds = members.map(m => m.uid || m.id || m.student_id);
+    const { data: rawTests } = await supabase.from('topic_test_results')
+      .select('*').in('student_id', studentIds).order('created_at', { ascending: true });
     
-    // Ordenar por fecha cronológicamente
-    allTests.sort((a, b) => {
-      const ta = a.fecha ? a.fecha.toMillis() : 0;
-      const tb = b.fecha ? b.fecha.toMillis() : 0;
-      return ta - tb;
-    });
+    const allTests = (rawTests || []).map(r => ({
+      ...r,
+      uid: r.student_id,
+      topicId: r.topic_id,
+      fecha: r.created_at ? { toMillis: () => new Date(r.created_at).getTime() } : null
+    }));
 
     // Quedarse SÓLO con el ÚLTIMO test de cada bloque para cada alumno
     const validTestsMap = {};
@@ -1767,22 +1823,9 @@ window._deleteStudentTests = async (uid, topicId, studentName) => {
   if (confirm(`¿Seguro que deseas eliminar TODOS los intentos del test "${topicId}" para el alumno ${studentName}?`)) {
     try {
       showLoading('Eliminando exámenes...');
-      const snap = await getDocs(query(collection(db, 'test_teoria_respuestas'), where('uid', '==', uid)));
-      
-      const deletePromises = [];
-      snap.forEach(d => {
-        if (d.data().topicId === topicId) {
-          deletePromises.push(deleteDoc(doc(db, 'test_teoria_respuestas', d.id)));
-        }
-      });
-      
-      await Promise.all(deletePromises);
-      showToast('Eliminados', `Se han borrado ${deletePromises.length} intentos de teoría.`, 'success');
-      
-      // Reload tab to update view
-      const activeTab = document.querySelector('.tab-btn.active').dataset.target;
-      if (activeTab === 'tab-tests') loadTestsTab();
-      
+      await deleteStudentTopicResults(uid, topicId);
+      showToast('Eliminados', `Se han borrado los intentos de teoría.`, 'success');
+      loadExamsTab();
     } catch (e) {
       console.error(e);
       showToast('Error', e.message, 'error');
@@ -1807,24 +1850,18 @@ async function loadOfflineTasksTab() {
   }
 
   // Cargar configuración de tareas
-  const configSnap = await getDocs(query(collection(db, 'offline_tasks_config'), where('classId', '==', classData.id)));
+  const configList = await getOfflineTasksConfig(classData.id);
   offlineTasksConfig = {};
-  const iterateSnap = (s, cb) => {
-    if (s && typeof s.forEach === 'function') s.forEach(cb);
-    else if (s && Array.isArray(s.docs)) s.docs.forEach(cb);
-  };
-  iterateSnap(configSnap, d => {
-    const data = typeof d.data === 'function' ? d.data() : d;
-    offlineTasksConfig[data.taskId] = { id: d.id, ...data };
+  configList.forEach(data => {
+    offlineTasksConfig[data.taskId] = data;
   });
 
   // Cargar notas offline
-  const gradesSnap = await getDocs(query(collection(db, 'offline_grades'), where('classId', '==', classData.id)));
+  const gradesList = await getClassOfflineGrades(classData.id);
   const offlineGrades = {};
-  iterateSnap(gradesSnap, d => {
-    const data = typeof d.data === 'function' ? d.data() : d;
+  gradesList.forEach(data => {
     if (!offlineGrades[data.taskId]) offlineGrades[data.taskId] = {};
-    offlineGrades[data.taskId][data.studentId] = { id: d.id, ...data };
+    offlineGrades[data.taskId][data.studentId] = data;
   });
 
   let html = `<div class="accordion-list">`;
@@ -1929,16 +1966,8 @@ async function loadOfflineTasksTab() {
       const value = e.target.checked;
       
       try {
-        let docId;
-        if (offlineTasksConfig[taskId]) {
-          docId = offlineTasksConfig[taskId].id;
-          await updateDoc(doc(db, 'offline_tasks_config', docId), { [field]: value });
-          offlineTasksConfig[taskId][field] = value;
-        } else {
-          const newDoc = { classId: classData.id, taskId, isActive: false, rubricPublished: false, gradesPublished: false, dueDate: '', [field]: value };
-          const ref = await addDoc(collection(db, 'offline_tasks_config'), newDoc);
-          offlineTasksConfig[taskId] = { id: ref.id, ...newDoc };
-        }
+        const res = await upsertOfflineTaskConfig(classData.id, taskId, { [field]: value });
+        offlineTasksConfig[taskId] = { ...(offlineTasksConfig[taskId] || {}), ...res, [field]: value };
         showToast('Guardado', 'Configuración actualizada', 'success', 1500);
       } catch(err) {
         e.target.checked = !value;
@@ -1954,16 +1983,8 @@ async function loadOfflineTasksTab() {
       const value = e.target.value;
       
       try {
-        let docId;
-        if (offlineTasksConfig[taskId]) {
-          docId = offlineTasksConfig[taskId].id;
-          await updateDoc(doc(db, 'offline_tasks_config', docId), { dueDate: value });
-          offlineTasksConfig[taskId].dueDate = value;
-        } else {
-          const newDoc = { classId: classData.id, taskId, isActive: false, rubricPublished: false, gradesPublished: false, dueDate: value };
-          const ref = await addDoc(collection(db, 'offline_tasks_config'), newDoc);
-          offlineTasksConfig[taskId] = { id: ref.id, ...newDoc };
-        }
+        const res = await upsertOfflineTaskConfig(classData.id, taskId, { dueDate: value });
+        offlineTasksConfig[taskId] = { ...(offlineTasksConfig[taskId] || {}), ...res, dueDate: value };
         showToast('Guardado', 'Fecha de entrega actualizada', 'success', 1500);
       } catch(err) {
         showToast('Error', err.message, 'error');
@@ -2035,10 +2056,7 @@ async function renderInlineRubric(taskId, uid, container) {
   
   let gradeData = null;
   try {
-    const snap = await getDocs(query(collection(db, 'offline_grades'), where('classId', '==', classData.id), where('taskId', '==', taskId), where('studentId', '==', uid)));
-    if (!snap.empty) {
-      gradeData = { id: snap.docs[0].id, ...snap.docs[0].data() };
-    }
+    gradeData = await getStudentOfflineGrade(classData.id, taskId, uid);
   } catch(e) {
     console.error(e);
   }
@@ -2136,24 +2154,9 @@ async function renderInlineRubric(taskId, uid, container) {
     const finalGrade = sum;
     const fb = form.querySelector('.rubric-feedback-input').value.trim();
     
-    const docData = {
-      classId: classData.id,
-      taskId: taskId,
-      studentId: uid,
-      rubricScores: newScores,
-      finalGrade: finalGrade,
-      teacherFeedback: fb,
-      updatedAt: serverTimestamp()
-    };
-    
     try {
-      const gradeId = form.dataset.gradeid;
-      if (gradeId) {
-        await updateDoc(doc(db, 'offline_grades', gradeId), docData);
-      } else {
-        const ref = await addDoc(collection(db, 'offline_grades'), docData);
-        form.dataset.gradeid = ref.id;
-      }
+      const savedId = await saveOfflineGradeRubric(classData.id, taskId, uid, newScores, finalGrade, fb);
+      form.dataset.gradeid = savedId;
       showToast('Guardado', 'Calificación guardada', 'success');
       
       // Update header UI
@@ -2223,15 +2226,8 @@ if ($('btn-close-edit-task')) {
     if (!taskId) return;
     
     try {
-      if (offlineTasksConfig[taskId]) {
-        await updateDoc(doc(db, 'offline_tasks_config', offlineTasksConfig[taskId].id), { customTitle, customDescription });
-        offlineTasksConfig[taskId].customTitle = customTitle;
-        offlineTasksConfig[taskId].customDescription = customDescription;
-      } else {
-        const newDoc = { classId: classData.id, taskId, isActive: false, rubricPublished: false, gradesPublished: false, dueDate: '', customTitle, customDescription };
-        const ref = await addDoc(collection(db, 'offline_tasks_config'), newDoc);
-        offlineTasksConfig[taskId] = { id: ref.id, ...newDoc };
-      }
+      const res = await upsertOfflineTaskConfig(classData.id, taskId, { customTitle, customDescription });
+      offlineTasksConfig[taskId] = { ...(offlineTasksConfig[taskId] || {}), ...res, customTitle, customDescription };
       $('modal-edit-task').setAttribute('aria-hidden', 'true');
       showToast('Guardado', 'Tarea actualizada', 'success', 1500);
       
@@ -2685,25 +2681,20 @@ async function loadGradebookTab() {
     } catch (_) {}
 
     // Cargar en paralelo: calificaciones offline, tests de repaso, partidas de juegos y assignments
-    const [gradesSnap, topicTestsRes, gamesRes, assignments] = await Promise.all([
-      getDocs(query(collection(db, 'offline_grades'), where('classId', '==', classData.id))),
+    const [offlineGradesList, topicTestsRes, gamesRes, assignments] = await Promise.all([
+      getClassOfflineGrades(classData.id).catch(() => []),
       supabase.from('topic_test_results').select('*').in('student_id', studentIds).order('created_at', { ascending: false }),
       supabase.from('game_results').select('*').in('student_id', studentIds).order('created_at', { ascending: false }),
       getClassAssignments(classData.id).catch(() => [])
     ]);
 
     const offlineGrades = {};
-    const iterateSnap = (s, cb) => {
-      if (s && typeof s.forEach === 'function') s.forEach(cb);
-      else if (s && Array.isArray(s.docs)) s.docs.forEach(cb);
-    };
-    iterateSnap(gradesSnap, d => {
-      const data = typeof d.data === 'function' ? d.data() : d;
+    (offlineGradesList || []).forEach(data => {
       const tid = data.taskId || data.task_id;
       const sid = data.studentId || data.student_id;
       if (tid && sid) {
         if (!offlineGrades[tid]) offlineGrades[tid] = {};
-        offlineGrades[tid][sid] = { id: d.id, ...data };
+        offlineGrades[tid][sid] = data;
       }
     });
 

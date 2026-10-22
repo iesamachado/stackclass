@@ -1,15 +1,14 @@
 // ============================================================
-// alumno.js — Agente Analista Lobby Logic
+// alumno.js — Agente Analista Lobby Logic (Supabase)
 // ============================================================
 
 import { requireAuth } from '../../../../../js/common/auth.js';
-import { db, doc, collection, addDoc, updateDoc, getDocs, query, where, limit, arrayUnion, onSnapshot } from '../../../../../js/common/firebase-config.js';
 import { renderHeader, showToast } from '../../../../../js/common/ui.js';
+import { getSession, joinSession, listenSession } from './RompeDb.js';
 
 let sesionEncontrada = null;
 let equipoId = null;
 let unsubSesion = null;
-let unsubEquipos = null;
 let currentUserObj = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,8 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initAlumno(user) {
-  // initParticles/renderNavUser were old methods, replaced by renderHeader
-  initCodeInput();
   initCodeInput();
   initJoinBtn();
 }
@@ -37,8 +34,7 @@ function initCodeInput() {
 
   input.addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    // Ocultar resultado anterior si modifica
-    document.getElementById('sala-encontrada').classList.add('hidden');
+    document.getElementById('sala-encontrada')?.classList.add('hidden');
     sesionEncontrada = null;
   });
 
@@ -64,30 +60,21 @@ async function buscarSala() {
   btn.innerHTML = '<span class="spinner"></span>';
 
   try {
-    const snap = await getDocs(query(
-      collection(db, 'live_sessions'),
-      where('codigo', '==', codigo),
-      where('estado', 'in', ['espera', 'en_curso']),
-      limit(1)
-    ));
+    const session = await getSession(codigo);
 
-    if (snap.empty) {
+    if (!session || session.status === 'finished') {
       showToast('Sala no encontrada', 'Verifica el código o que la sesión esté activa', 'error');
       btn.disabled = false;
       btn.textContent = 'Buscar';
       return;
     }
 
-    const sesionDoc = snap.docs[0];
-    sesionEncontrada = { id: sesionDoc.id, ...sesionDoc.data() };
+    sesionEncontrada = session;
+    const numEquipos = Object.keys(session.equipos || {}).length;
 
-    // Contar equipos
-    const equiposSnap = await getDocs(collection(db, 'live_sessions', sesionDoc.id, 'equipos'));
-
-    // Mostrar info
     document.getElementById('sala-profesor').textContent   = sesionEncontrada.profesorNombre || 'Desconocido';
     document.getElementById('sala-dificultad').textContent = capitalize(sesionEncontrada.dificultad || '—');
-    document.getElementById('sala-equipos').textContent    = equiposSnap.size + ' equipos';
+    document.getElementById('sala-equipos').textContent    = numEquipos + ' equipos';
     document.getElementById('sala-encontrada').classList.remove('hidden');
 
     showToast('¡Sala encontrada!', `Creada por ${sesionEncontrada.profesorNombre}`, 'success');
@@ -125,51 +112,17 @@ async function unirseASala() {
   btn.innerHTML = '<span class="spinner"></span> Uniéndome...';
 
   try {
-    // Verificar si ya existe un equipo con ese nombre
-    const equiposSnap = await getDocs(query(
-      collection(db, 'live_sessions', sesionEncontrada.id, 'equipos'),
-      where('nombre', '==', nombreEquipo)
-    ));
-
-    let equipoRef;
-
-    if (!equiposSnap.empty) {
-      // Unirse al equipo existente
-      equipoRef = equiposSnap.docs[0].ref;
-      await updateDoc(equipoRef, {
-        miembros: arrayUnion({
-          uid:    user.uid,
-          nombre: user.displayName || 'Alumno',
-          foto:   user.photoURL || null
-        })
-      });
-    } else {
-      // Crear nuevo equipo
-      equipoRef = await addDoc(collection(db, 'live_sessions', sesionEncontrada.id, 'equipos'), {
-          nombre:    nombreEquipo,
-          liderUID:  user.uid,
-          miembros: [{
-            uid:    user.uid,
-            nombre: user.displayName || 'Alumno',
-            foto:   user.photoURL || null
-          }],
-          puntuacion:       0,
-          intentos:         0,
-          tablaSustitucion: {}
-        });
-    }
-
-    equipoId = equipoRef.id;
+    const res = await joinSession(sesionEncontrada.codigo, nombreEquipo, user);
+    equipoId = res.equipoId;
 
     // Guardar en localStorage para recuperar en juego.html
-    localStorage.setItem('rompehielos_sesion',  sesionEncontrada.id);
+    localStorage.setItem('rompehielos_sesion',  sesionEncontrada.codigo);
     localStorage.setItem('rompehielos_equipo',  equipoId);
     localStorage.setItem('rompehielos_codigo',  sesionEncontrada.codigo);
     localStorage.setItem('rompehielos_equipo_nombre', nombreEquipo);
 
     showWaitingRoom(nombreEquipo);
-    listenSesionStatus(sesionEncontrada.id);
-    listenEquiposWaiting(sesionEncontrada.id, nombreEquipo);
+    listenSesionUpdates(sesionEncontrada.codigo, nombreEquipo);
 
   } catch (err) {
     showToast('Error', err.message, 'error');
@@ -188,48 +141,41 @@ function showWaitingRoom(equipoNombre) {
   document.getElementById('waiting-codigo').textContent      = sesionEncontrada.codigo;
 }
 
-// ─── Escuchar cambios de estado de sesión ─────────────────────
-function listenSesionStatus(sesionId) {
+// ─── Escuchar estado de sesión y equipos ──────────────────────
+function listenSesionUpdates(sesionId, miEquipo) {
   if (unsubSesion) unsubSesion();
 
-  unsubSesion = onSnapshot(doc(db, 'live_sessions', sesionId), snap => {
-      if (!snap.exists) return;
-      const data = snap.data();
+  unsubSesion = listenSession(sesionId, data => {
+    if (!data) return;
 
-      // Si la sesión pasa a en_curso, redirigir al juego
-      if (data.estado === 'en_curso' && data.rondaActual > 0) {
-        showToast('¡La misión comienza!', 'Redirigiendo...', 'success');
-        setTimeout(() => {
-          window.location.href = `juego.html`;
-        }, 1500);
-      }
-    });
-}
+    // Si la sesión pasa a en_curso, redirigir al juego
+    if (data.estado === 'en_curso' && data.rondaActual > 0) {
+      showToast('¡La misión comienza!', 'Redirigiendo...', 'success');
+      setTimeout(() => {
+        window.location.href = 'juego.html';
+      }, 1500);
+    }
 
-// ─── Escuchar equipos en sala de espera ───────────────────────
-function listenEquiposWaiting(sesionId, miEquipo) {
-  if (unsubEquipos) unsubEquipos();
+    // Equipos en sala de espera
+    const equipos = Object.values(data.equipos || {});
+    const list = document.getElementById('equipos-waiting-list');
+    if (!list) return;
 
-  unsubEquipos = onSnapshot(collection(db, 'live_sessions', sesionId, 'equipos'), snap => {
-      const equipos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const list = document.getElementById('equipos-waiting-list');
-      if (!list) return;
+    if (!equipos.length) {
+      list.innerHTML = '<div class="text-muted" style="text-align:center; padding: 1rem; font-size:0.85rem">Sois el primer equipo</div>';
+      return;
+    }
 
-      if (!equipos.length) {
-        list.innerHTML = '<div class="text-muted" style="text-align:center; padding: 1rem; font-size:0.85rem">Sois el primer equipo</div>';
-        return;
-      }
-
-      list.innerHTML = equipos.map(eq => `
-        <div class="equipo-waiting-item ${eq.nombre === miEquipo ? 'my-team' : ''}">
-          <span class="status-dot online"></span>
-          <span class="equipo-waiting-nombre">${eq.nombre}</span>
-          <span class="equipo-waiting-badge">
-            ${eq.nombre === miEquipo ? '<span class="badge badge-secondary">Tu equipo</span>' : `<span class="text-muted" style="font-size:0.78rem">${(eq.miembros||[]).length} miembro(s)</span>`}
-          </span>
-        </div>
-      `).join('');
-    });
+    list.innerHTML = equipos.map(eq => `
+      <div class="equipo-waiting-item ${eq.nombre === miEquipo ? 'my-team' : ''}">
+        <span class="status-dot online"></span>
+        <span class="equipo-waiting-nombre">${eq.nombre}</span>
+        <span class="equipo-waiting-badge">
+          ${eq.nombre === miEquipo ? '<span class="badge badge-secondary">Tu equipo</span>' : `<span class="text-muted" style="font-size:0.78rem">${(eq.miembros||[]).length} miembro(s)</span>`}
+        </span>
+      </div>
+    `).join('');
+  });
 }
 
 // ─── Utils ───────────────────────────────────────────────────

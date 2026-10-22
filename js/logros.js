@@ -3,7 +3,6 @@ import { renderHeader, showToast, renderPodium, renderRankingTable } from './com
 import { $, escapeHtml, getUrlParams } from './common/utils.js';
 import { getLeague, LEAGUES, getGuildsForSubject, getMedalsForSubject, MEDAL_XP, initGamificationRealtime, initGamification } from './common/gamification.js';
 import { getStudentClasses, getClassMembers, getClassRanking, updateUserProfile } from './common/db.js';
-import { db, doc, updateDoc, deleteField } from './common/firebase-config.js';
 
 let myClasses = [];
 let activeClass = null;
@@ -82,7 +81,7 @@ requireAuth({
       
       try {
         const { computeGameXP } = await import('./common/gamification.js');
-        const { getDocs, getDoc, doc, query, collection, where } = await import('./common/firebase-config.js');
+        const { supabase } = await import('./common/supabase-config.js');
         const { CLASSROOM_TASKS } = await import('./common/tasks.js');
         const { GAMES } = await import('./common/utils.js');
         const GAME_NAMES = Object.fromEntries(Object.values(GAMES).map(g => [g.id, `${g.icon} ${g.name}`]));
@@ -91,15 +90,15 @@ requireAuth({
         let timeline = [];
         
         // 1. Juegos
-        const snapGames = await getDocs(query(collection(db, 'game_results'), where('studentId', '==', studentId)));
-        const games = snapGames.docs.map(d => ({ id: d.id, ...d.data() }));
-        games.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+        const { data: gamesData } = await supabase.from('game_results').select('*')
+          .eq('student_id', studentId).eq('forced_fail', false).order('created_at');
+        const games = gamesData || [];
         
         const userGamesCount = {};
         const userMaxScores = {};
         const userTotalXP = {};
         games.forEach(r => {
-          const gid = r.gameId;
+          const gid = r.game_id;
           if (!userGamesCount[gid]) {
             userGamesCount[gid] = 0;
             userMaxScores[gid] = 0;
@@ -127,18 +126,18 @@ requireAuth({
             scoreInfo: `Puntos: ${r.score}`,
             metadata: r.metadata,
             xp: xp,
-            timestamp: r.timestamp?.toDate ? r.timestamp.toDate() : new Date(0)
+            timestamp: r.created_at ? new Date(r.created_at) : new Date(0)
           });
         });
         
         // 2. Tests de Repaso
-        const snapTests = await getDocs(query(collection(db, 'test_teoria_respuestas'), where('uid', '==', studentId)));
-        const tests = snapTests.docs.map(d => d.data());
-        tests.sort((a, b) => (a.fecha?.seconds || 0) - (b.fecha?.seconds || 0));
+        const { data: testsData } = await supabase.from('topic_test_results').select('*')
+          .eq('student_id', studentId).order('created_at');
+        const tests = testsData || [];
         
         const userTestsState = {};
         tests.forEach(r => {
-          const topicId = r.topicId;
+          const topicId = r.topic_id;
           const score = r.score;
           if (!userTestsState[topicId]) userTestsState[topicId] = { passed: false, outstanding: false, count: 0 };
           const state = userTestsState[topicId];
@@ -162,51 +161,52 @@ requireAuth({
             scoreInfo: `Nota: ${score}/10`,
             metadata: null,
             xp: xp,
-            timestamp: r.fecha?.toDate ? r.fecha.toDate() : new Date(0)
+            timestamp: r.created_at ? new Date(r.created_at) : new Date(0)
           });
         });
         
         // 3. Exámenes
-        const snapExams = await getDocs(query(collection(db, 'respuestas_test'), where('uid', '==', studentId)));
-        snapExams.forEach(d => {
-          const r = d.data();
-          if (!r.calculado || r.calculado.nota === undefined) return;
-          const nota = r.calculado.nota;
+        const { data: examsData } = await supabase.from('exam_results').select('*')
+          .eq('student_id', studentId);
+        (examsData || []).forEach(r => {
+          const nota = r.score;
+          if (nota === null || nota === undefined) return;
           let xp = 5 + (nota >= 5 ? 5 : 0) + (nota > 9 ? 5 : 0);
           
           timeline.push({
             type: 'exam',
             title: `📄 Examen Final`,
-            scoreInfo: `Nota: ${nota.toFixed(2)}/10`,
+            scoreInfo: `Nota: ${Number(nota).toFixed(2)}/10`,
             metadata: null,
             xp: xp,
-            timestamp: r.fecha?.toDate ? r.fecha.toDate() : new Date(0)
+            timestamp: r.created_at ? new Date(r.created_at) : new Date(0)
           });
         });
         
         // 4. Tareas Offline
-        const snapOffline = await getDocs(query(collection(db, 'offline_grades'), where('studentId', '==', studentId)));
-        snapOffline.forEach(d => {
-          const r = d.data();
-          if (r.finalGrade === undefined) return;
-          let xp = Math.round(r.finalGrade * 15);
-          const taskObj = CLASSROOM_TASKS.find(t => t.id === r.taskId);
-          const taskName = taskObj ? taskObj.title : r.taskId;
+        const { data: offlineData } = await supabase.from('offline_grades').select('*')
+          .eq('student_id', studentId);
+        (offlineData || []).forEach(r => {
+          const finalGrade = r.score;
+          if (finalGrade === null || finalGrade === undefined) return;
+          let xp = Math.round(finalGrade * 15);
+          const taskObj = CLASSROOM_TASKS.find(t => t.id === r.task_id);
+          const taskName = taskObj ? taskObj.title : r.task_id;
           
           timeline.push({
             type: 'offline',
             title: `📁 Tarea: ${taskName}`,
-            scoreInfo: `Nota: ${r.finalGrade}/10`,
+            scoreInfo: `Nota: ${finalGrade}/10`,
             metadata: null,
             xp: xp,
-            timestamp: r.updatedAt?.toDate ? r.updatedAt.toDate() : new Date(0)
+            timestamp: r.updated_at ? new Date(r.updated_at) : new Date(0)
           });
         });
         
 
         // 5. Medallas Obtenidas
-        const userSnap = await getDoc(doc(db, 'users', studentId));
-        const userLogros = userSnap.data()?.logros || [];
+        const { data: userData } = await supabase.from('users').select('logros').eq('id', studentId).maybeSingle();
+        const userLogros = userData?.logros || [];
         
         userLogros.forEach(medal => {
             const extraXP = medal.xp_value || MEDAL_XP[medal.id] || 0;

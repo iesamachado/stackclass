@@ -1,4 +1,4 @@
-import { db, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, where } from './common/firebase-config.js';
+import { getAllTopicQuestions, createTopicQuestion, updateTopicQuestion, deleteTopicQuestion } from './common/db.js';
 import { renderHeader, showToast, showModal, showLoading, hideLoading } from './common/ui.js';
 import { requireAuth } from './common/auth.js';
 import { TOPICS, $, escapeHtml, CYR_EVALUATION_DATA } from './common/utils.js';
@@ -129,26 +129,17 @@ async function loadPreguntas() {
     const listEl = $('preguntas-list');
     listEl.innerHTML = '<div style="padding:var(--space-6); text-align:center; color:var(--text-muted);">Cargando preguntas...</div>';
     
-    const querySnapshot = await getDocs(collection(db, 'preguntas'));
-    preguntas = [];
-    
-    const iterateDocs = (snap, cb) => {
-      if (snap && typeof snap.forEach === 'function') {
-        snap.forEach(cb);
-      } else if (snap && Array.isArray(snap.docs)) {
-        snap.docs.forEach(cb);
-      } else if (Array.isArray(snap)) {
-        snap.forEach(cb);
-      }
-    };
-
-    iterateDocs(querySnapshot, docSnap => {
-      const data = typeof docSnap.data === 'function' ? docSnap.data() : docSnap;
-      preguntas.push({
-        id: docSnap.id || data.id,
-        ...data
-      });
-    });
+    const rows = await getAllTopicQuestions();
+    preguntas = rows.map(row => ({
+      id: row.id,
+      block: row.topic_id,
+      topicId: row.topic_id,
+      ce: row.ce,
+      criterio: row.criterio,
+      dificultad: row.dificultad,
+      enunciado: row.enunciado,
+      opciones: row.opciones
+    }));
     
     // Sort by block, then CE
     preguntas.sort((a, b) => {
@@ -291,7 +282,7 @@ async function savePregunta() {
     
     if (id) {
       // Update
-      await updateDoc(doc(db, 'preguntas', id), data);
+      await updateTopicQuestion(id, data);
       showToast('Pregunta actualizada con éxito', 'success');
       
       // Update in memory
@@ -301,12 +292,11 @@ async function savePregunta() {
       }
     } else {
       // Create
-      data.creadaEn = serverTimestamp();
-      const docRef = await addDoc(collection(db, 'preguntas'), data);
+      const newRow = await createTopicQuestion(data);
       showToast('Pregunta creada con éxito', 'success');
       
       // Add to memory
-      preguntas.push({ id: docRef.id, ...data });
+      preguntas.push({ id: newRow.id, block: newRow.topic_id, topicId: newRow.topic_id, ...data });
     }
     
     $('modal-pregunta').classList.remove('modal-backdrop--visible');
@@ -354,7 +344,7 @@ window.deletePregunta = (id) => {
     dangerous: true,
     onConfirm: async () => {
       try {
-        await deleteDoc(doc(db, 'preguntas', id));
+        await deleteTopicQuestion(id);
         preguntas = preguntas.filter(p => p.id !== id);
         selectedIds.delete(id);
         renderPreguntas();
@@ -384,7 +374,7 @@ async function deleteSelected() {
       try {
         let deletedCount = 0;
         for (const id of selectedIds) {
-          await deleteDoc(doc(db, 'preguntas', id));
+          await deleteTopicQuestion(id);
           deletedCount++;
         }
         
@@ -423,7 +413,6 @@ async function importJson(e) {
           let count = 0;
           
           try {
-            // Importación secuencial para respetar Firebase rate limits
             for (const item of data) {
               if (!item.enunciado || !item.opciones || item.opciones.length < 2) continue;
               
@@ -436,12 +425,11 @@ async function importJson(e) {
                 opciones: item.opciones.map(o => ({
                   texto: o.texto || '',
                   correcta: !!o.correcta
-                })),
-                creadaEn: serverTimestamp()
+                }))
               };
               
-              const docRef = await addDoc(collection(db, 'preguntas'), cleanData);
-              preguntas.push({ id: docRef.id, ...cleanData });
+              const newRow = await createTopicQuestion(cleanData);
+              preguntas.push({ id: newRow.id, block: newRow.topic_id, topicId: newRow.topic_id, ...cleanData });
               count++;
             }
             

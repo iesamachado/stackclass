@@ -106,6 +106,23 @@ async function ensureProfile(user) {
   const isSuperAdmin = !!(profile?.is_superadmin || teacher?.isSuperAdmin || teacher?.is_superadmin);
   const legacyUser = await getUserByEmail(email);
 
+  // 4. Si no es docente ni superadmin, verificar obligatoriamente que es un alumno autorizado
+  if (!teacher && !isSuperAdmin) {
+    const isStudAuthorized = await isStudentInAnyClass(email, user.id);
+    if (!isStudAuthorized) {
+      console.warn(`[AUTH] Acceso denegado: ${email} no está en ninguna clase ni en la lista de alumnos.`);
+      try {
+        // Si el trigger de Postgres creó una fila huérfana vacía en users, eliminarla
+        const { data: mems } = await supabase.from('class_members').select('class_id').eq('student_id', user.id).limit(1);
+        if (!mems || mems.length === 0) {
+          await supabase.from('users').delete().eq('id', user.id);
+        }
+      } catch (_) {}
+      await supabase.auth.signOut();
+      throw new Error('NOT_AUTHORIZED');
+    }
+  }
+
   if (profile) {
     if (legacyUser && legacyUser.id !== user.id) {
       // Combinar datos históricos de Firebase con el nuevo UUID
@@ -157,21 +174,29 @@ async function ensureProfile(user) {
     }
   } else {
     // Si no existía perfil con user.id
-    if (legacyUser) {
+    const role = teacher ? 'teacher' : 'student';
+    const isStud = role === 'student' ? await isStudentInAnyClass(email) : false;
+
+    if (role === 'student' && !isStud && !isSuperAdmin) {
+      await supabase.auth.signOut();
+      throw new Error('NOT_AUTHORIZED');
+    }
+
+    if (legacyUser && legacyUser.id !== user.id) {
       profile = {
         ...legacyUser,
         id: user.id,
         email,
         display_name: legacyUser.display_name || user.user_metadata?.full_name || email.split('@')[0],
         display_name_anon: legacyUser.display_name_anon || anonymizeName(user.user_metadata?.full_name || email),
-        role: legacyUser.role || (teacher ? 'teacher' : 'student'),
+        role: legacyUser.role || role,
         avatar: legacyUser.avatar || user.user_metadata?.avatar_url || (teacher ? generateTeacherAvatar(email) : generateAvatar(email)),
         is_superadmin: !!(legacyUser.is_superadmin || isSuperAdmin)
       };
 
       try {
         // Evitar colisión temporal de email único en users
-        await supabase.from('users').update({ email: `migrated_${legacyUser.id}_${email}` }).eq('id', legacyUser.id);
+        await supabase.from('users').update({ email: `legacy_${legacyUser.id}_${email}` }).eq('id', legacyUser.id);
         await upsertUserProfile(user.id, profile);
 
         // Migrar class_members
@@ -193,15 +218,12 @@ async function ensureProfile(user) {
           await upsertUserProfile(user.id, profile);
         } catch (_) {}
       }
-    } else {
-      const role = teacher ? 'teacher' : 'student';
-      const isStud = role === 'student' ? await isStudentInAnyClass(email) : false;
 
-      if (role === 'student' && !isStud && !isSuperAdmin) {
-        await supabase.auth.signOut();
-        throw new Error('NOT_AUTHORIZED');
+      // Resolver membresías y autorización
+      if (role === 'student') {
+        await resolvePendingStudent(user.id, email);
       }
-
+    } else {
       const newProfile = {
         id:                user.id,
         email,
@@ -226,7 +248,6 @@ async function ensureProfile(user) {
       if (role === 'student') {
         await resolvePendingStudent(user.id, email);
       }
-      return profile;
     }
   }
 

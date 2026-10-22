@@ -132,10 +132,12 @@ export async function upsertUserProfile(uid, data) {
 }
 
 export async function getUserByEmail(email) {
+  if (!email) return null;
+  const clean = email.toLowerCase().trim();
   const { data, error } = await supabase
-    .from('users').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
-  if (error) throw error;
-  return data || null;
+    .from('users').select('*').eq('email', clean).limit(1);
+  if (error || !data || data.length === 0) return null;
+  return data[0];
 }
 
 export async function getAllStudents() {
@@ -258,51 +260,52 @@ export async function isTeacherAuthorized(email) {
   return null;
 }
 
-export async function isStudentInAnyClass(email) {
+export async function isStudentInAnyClass(email, currentUserId = null) {
   if (!email) return false;
   const clean = email.toLowerCase().trim();
 
-  // 1. Comprobar en allowed_students
+  // 1. Comprobar si está en allowed_students como autorizado
   try {
     const { data, error } = await supabase
       .from('allowed_students').select('allowed').eq('email', clean).maybeSingle();
     if (!error && data?.allowed === true) return true;
   } catch (_) {}
 
-  // 2. Comprobar si ya existe en users con rol student
+  // 2. Comprobar si ya existe en users como alumno preexistente
+  // (p. ej. importado de Firebase o dado de alta por el profesor con ID legacy o datos académicos)
+  let userRow = null;
   try {
     const { data: u, error: uErr } = await supabase
-      .from('users').select('id, role').eq('email', clean).maybeSingle();
+      .from('users').select('id, role, subject_id, guild_id, xp').eq('email', clean).maybeSingle();
     if (!uErr && u && (u.role === 'student' || u.role === 'alumn' || !u.role)) {
-      try {
-        await supabase.from('allowed_students').upsert({ email: clean, allowed: true }, { onConflict: 'email' });
-      } catch (_) {}
-      return true;
-    }
-  } catch (_) {}
-
-  // 3. Comprobar si pertenece a alguna clase en class_members
-  try {
-    const { data: u } = await supabase.from('users').select('id').eq('email', clean).maybeSingle();
-    if (u?.id) {
-      const { data: mems } = await supabase.from('class_members').select('class_id').eq('student_id', u.id).limit(1);
-      if (mems && mems.length > 0) {
-        try {
-          await supabase.from('allowed_students').upsert({ email: clean, allowed: true }, { onConflict: 'email' });
-        } catch (_) {}
+      userRow = u;
+      // Si el id es distinto al de Google Auth actual, es un alumno legacy esperando vinculación
+      if (currentUserId && u.id !== currentUserId) {
+        return true;
+      }
+      // Si tiene asignatura, gremio o XP previo, es un alumno preexistente
+      if (u.subject_id || u.guild_id || (u.xp && u.xp > 0)) {
         return true;
       }
     }
   } catch (_) {}
 
-  // 4. Comprobar cuenta del dominio institucional (@iesamachado.org)
-  if (clean.endsWith('@iesamachado.org')) {
-    try {
-      await supabase.from('allowed_students').upsert({ email: clean, allowed: true }, { onConflict: 'email' });
-    } catch (_) {}
-    return true;
-  }
+  // 3. Comprobar si pertenece a alguna clase en class_members
+  try {
+    const idsToCheck = [currentUserId, userRow?.id].filter(Boolean);
+    if (idsToCheck.length > 0) {
+      const { data: mems } = await supabase
+        .from('class_members')
+        .select('class_id')
+        .in('student_id', idsToCheck)
+        .limit(1);
+      if (mems && mems.length > 0) {
+        return true;
+      }
+    }
+  } catch (_) {}
 
+  // No permitir acceso a cuentas no dadas de alta, aunque pertenezcan al dominio @iesamachado.org
   return false;
 }
 
@@ -558,9 +561,11 @@ export async function getLegacyStudentIds(studentId) {
   if (!studentId) return [];
   try {
     const { data: userRow } = await supabase.from('users').select('email').eq('id', studentId).maybeSingle();
-    const email = userRow?.email || (await supabase.auth.getUser()).data?.user?.email;
+    let email = userRow?.email || (await supabase.auth.getUser()).data?.user?.email;
     if (!email) return [];
-    const { data: legacyUsers } = await supabase.from('users').select('id').eq('email', email.toLowerCase());
+    email = email.toLowerCase().trim();
+    const { data: legacyUsers } = await supabase.from('users').select('id')
+      .or(`email.eq.${email},email.like.migrated_%_${email},email.like.legacy_%_${email}`);
     return (legacyUsers || []).map(u => u.id).filter(id => id !== studentId);
   } catch (err) {
     console.warn('Error finding legacy student ids:', err);
@@ -1553,3 +1558,241 @@ export async function getStudentGrades(studentId, classId = null) {
 export async function getSiteSettings() {
   return { siteUrl: window.location.origin };
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  BANCO DE PREGUNTAS (TOPIC QUESTIONS CRUD)
+// ══════════════════════════════════════════════════════════════════
+
+export async function getAllTopicQuestions() {
+  const { data, error } = await supabase.from('topic_questions').select('*').order('topic_id').order('ce');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createTopicQuestion(data) {
+  const { data: row, error } = await supabase.from('topic_questions').insert({
+    topic_id: data.block || data.topic_id || data.topicId,
+    ce: data.ce,
+    criterio: data.criterio,
+    dificultad: data.dificultad || 'media',
+    enunciado: data.enunciado,
+    opciones: data.opciones
+  }).select().single();
+  if (error) throw error;
+  return row;
+}
+
+export async function updateTopicQuestion(id, data) {
+  const updates = {};
+  if (data.block !== undefined || data.topic_id !== undefined) updates.topic_id = data.block || data.topic_id;
+  if (data.ce !== undefined) updates.ce = data.ce;
+  if (data.criterio !== undefined) updates.criterio = data.criterio;
+  if (data.dificultad !== undefined) updates.dificultad = data.dificultad;
+  if (data.enunciado !== undefined) updates.enunciado = data.enunciado;
+  if (data.opciones !== undefined) updates.opciones = data.opciones;
+  const { error } = await supabase.from('topic_questions').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteTopicQuestion(id) {
+  const { error } = await supabase.from('topic_questions').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  EXÁMENES OFICIALES (CRUD Y REALTIME)
+// ══════════════════════════════════════════════════════════════════
+
+export async function getExam(examId) {
+  const { data, error } = await supabase.from('exams').select('*').eq('id', examId).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+export async function updateExam(examId, updates) {
+  const { error } = await supabase.from('exams').update(updates).eq('id', examId);
+  if (error) throw error;
+}
+
+export async function deleteExam(examId) {
+  const { error } = await supabase.from('exams').delete().eq('id', examId);
+  if (error) throw error;
+}
+
+export async function getExamsByClass(classId) {
+  const { data, error } = await supabase.from('exams').select('*').eq('class_id', classId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+/** Returns a Supabase realtime channel that fires callback(exams[]) on any change to the class exams */
+export function listenToExamsByClass(classId, callback) {
+  const fetchAndNotify = async () => {
+    const exams = await getExamsByClass(classId);
+    callback(exams);
+  };
+  // Initial load
+  fetchAndNotify();
+  const channel = supabase.channel(`exams_class_${classId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'exams', filter: `class_id=eq.${classId}` },
+      () => fetchAndNotify())
+    .subscribe();
+  // Return unsubscribe function
+  return () => supabase.removeChannel(channel);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  RESULTADOS DE EXÁMENES (exam_results)
+// ══════════════════════════════════════════════════════════════════
+
+export async function getExamResult(examId, studentId) {
+  const { data, error } = await supabase
+    .from('exam_results').select('*').eq('exam_id', examId).eq('student_id', studentId).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+export async function upsertExamResult(examId, studentId, data) {
+  const { data: row, error } = await supabase.from('exam_results')
+    .upsert({ exam_id: examId, student_id: studentId, ...data }, { onConflict: 'exam_id,student_id' })
+    .select().single();
+  if (error) throw error;
+  return row;
+}
+
+export async function updateExamResult(resultId, updates) {
+  const { error } = await supabase.from('exam_results').update(updates).eq('id', resultId);
+  if (error) throw error;
+}
+
+export async function getExamResultsByExam(examId) {
+  const { data, error } = await supabase.from('exam_results').select('*').eq('exam_id', examId);
+  if (error) throw error;
+  return data || [];
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TAREAS OFFLINE CONFIG (offline_tasks como tabla de config)
+// ══════════════════════════════════════════════════════════════════
+
+export async function getOfflineTasksConfig(classId) {
+  const { data, error } = await supabase.from('offline_tasks').select('*').eq('class_id', classId);
+  if (error) throw error;
+  return (data || []).map(d => ({
+    ...d,
+    taskId: d.task_id,
+    classId: d.class_id,
+    isActive: d.is_active,
+    rubricPublished: d.rubric_published,
+    gradesPublished: d.grades_published,
+    dueDate: d.due_date,
+    customTitle: d.custom_title,
+    customDescription: d.custom_description
+  }));
+}
+
+export async function upsertOfflineTaskConfig(classId, taskId, updates) {
+  // offline_tasks table uses (class_id, task_id) as unique constraint
+  const dbUpdates = {};
+  if ('isActive' in updates) dbUpdates.is_active = updates.isActive;
+  if ('rubricPublished' in updates) dbUpdates.rubric_published = updates.rubricPublished;
+  if ('gradesPublished' in updates) dbUpdates.grades_published = updates.gradesPublished;
+  if ('dueDate' in updates) dbUpdates.due_date = updates.dueDate;
+  if ('customTitle' in updates) dbUpdates.custom_title = updates.customTitle;
+  if ('customDescription' in updates) dbUpdates.custom_description = updates.customDescription;
+
+  const { data: existing } = await supabase.from('offline_tasks')
+    .select('id').eq('class_id', classId).eq('task_id', taskId).maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase.from('offline_tasks').update(dbUpdates).eq('id', existing.id);
+    if (error) throw error;
+    return { id: existing.id, taskId, classId, ...updates };
+  } else {
+    const insertData = {
+      class_id: classId,
+      task_id: taskId,
+      is_active: false,
+      rubric_published: false,
+      grades_published: false,
+      due_date: '',
+      ...dbUpdates
+    };
+    const { data: row, error } = await supabase.from('offline_tasks').insert(insertData).select().single();
+    if (error) throw error;
+    return { id: row.id, taskId, classId, isActive: row.is_active, rubricPublished: row.rubric_published, gradesPublished: row.grades_published, dueDate: row.due_date, customTitle: row.custom_title, customDescription: row.custom_description };
+  }
+}
+
+export async function getClassOfflineGrades(classId) {
+  const { data, error } = await supabase.from('offline_grades').select('*').eq('class_id', classId);
+  if (error) throw error;
+  return (data || []).map(d => ({
+    ...d,
+    id: d.id,
+    taskId: d.task_id,
+    studentId: d.student_id,
+    classId: d.class_id,
+    finalGrade: d.score,
+    teacherFeedback: d.feedback,
+    rubricScores: d.rubric_scores
+  }));
+}
+
+export async function saveOfflineGradeRubric(classId, taskId, studentId, rubricScores, finalGrade, teacherFeedback) {
+  const { data: existing } = await supabase.from('offline_grades')
+    .select('id').eq('class_id', classId).eq('task_id', taskId).eq('student_id', studentId).maybeSingle();
+
+  const record = {
+    class_id: classId,
+    task_id: taskId,
+    student_id: studentId,
+    score: finalGrade,
+    feedback: teacherFeedback,
+    rubric_scores: rubricScores
+  };
+
+  if (existing) {
+    const { error } = await supabase.from('offline_grades').update(record).eq('id', existing.id);
+    if (error) throw error;
+    return existing.id;
+  } else {
+    const { data: row, error } = await supabase.from('offline_grades').insert(record).select('id').single();
+    if (error) throw error;
+    return row.id;
+  }
+}
+
+export async function getStudentOfflineGrade(classId, taskId, studentId) {
+  const { data, error } = await supabase.from('offline_grades')
+    .select('*').eq('class_id', classId).eq('task_id', taskId).eq('student_id', studentId).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    ...data,
+    taskId: data.task_id,
+    studentId: data.student_id,
+    classId: data.class_id,
+    finalGrade: data.score,
+    teacherFeedback: data.feedback,
+    rubricScores: data.rubric_scores
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TESTS DE TEORÍA (topic_test_results)
+// ══════════════════════════════════════════════════════════════════
+
+export async function getAllTopicTestResults() {
+  const { data, error } = await supabase.from('topic_test_results').select('*').order('created_at');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function deleteStudentTopicResults(studentId, topicId) {
+  let q = supabase.from('topic_test_results').delete().eq('student_id', studentId);
+  if (topicId) q = q.eq('topic_id', topicId);
+  const { error } = await q;
+  if (error) throw error;
+}
+

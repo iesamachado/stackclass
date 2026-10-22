@@ -383,21 +383,29 @@ BEGIN
   END IF;
 
   -- 4. Usuario completamente nuevo
-  INSERT INTO users (
-    id, email, display_name, display_name_anon, role, avatar, is_superadmin, created_at
-  ) VALUES (
-    v_uid,
-    v_email,
-    v_name,
-    'Alumno ' || UPPER(SUBSTRING(v_name FROM 1 FOR 1)),
-    v_target_role,
-    v_avatar,
-    v_is_superadmin,
-    NOW()
-  );
+  -- Solo insertar si es docente autorizado o si el alumno está autorizado / en una clase
+  IF v_target_role = 'teacher'
+     OR EXISTS (SELECT 1 FROM allowed_students WHERE LOWER(email) = v_email AND allowed = true)
+     OR EXISTS (SELECT 1 FROM class_members cm JOIN users u ON u.id = cm.student_id WHERE LOWER(u.email) = v_email)
+  THEN
+    INSERT INTO users (
+      id, email, display_name, display_name_anon, role, avatar, is_superadmin, created_at
+    ) VALUES (
+      v_uid,
+      v_email,
+      v_name,
+      'Alumno ' || UPPER(SUBSTRING(v_name FROM 1 FOR 1)),
+      v_target_role,
+      v_avatar,
+      v_is_superadmin,
+      NOW()
+    );
 
-  SELECT * INTO v_profile FROM users WHERE id = v_uid;
-  RETURN to_jsonb(v_profile);
+    SELECT * INTO v_profile FROM users WHERE id = v_uid;
+    RETURN to_jsonb(v_profile);
+  ELSE
+    RETURN NULL;
+  END IF;
 END;
 $$;
 
@@ -474,21 +482,27 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  INSERT INTO users (
-    id, email, display_name, display_name_anon, role, avatar, is_superadmin, created_at
-  ) VALUES (
-    NEW.id::text,
-    v_email,
-    v_name,
-    'Alumno ' || UPPER(SUBSTRING(v_name FROM 1 FOR 1)),
-    v_target_role,
-    v_avatar,
-    v_is_superadmin,
-    NOW()
-  ) ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    role = EXCLUDED.role,
-    is_superadmin = (users.is_superadmin = true OR EXCLUDED.is_superadmin = true);
+  -- 4. Alumno nuevo: solo insertar si es docente autorizado o alumno con clase / en allowed_students
+  IF v_target_role = 'teacher'
+     OR EXISTS (SELECT 1 FROM allowed_students WHERE LOWER(email) = v_email AND allowed = true)
+     OR EXISTS (SELECT 1 FROM class_members cm JOIN users u ON u.id = cm.student_id WHERE LOWER(u.email) = v_email)
+  THEN
+    INSERT INTO users (
+      id, email, display_name, display_name_anon, role, avatar, is_superadmin, created_at
+    ) VALUES (
+      NEW.id::text,
+      v_email,
+      v_name,
+      'Alumno ' || UPPER(SUBSTRING(v_name FROM 1 FOR 1)),
+      v_target_role,
+      v_avatar,
+      v_is_superadmin,
+      NOW()
+    ) ON CONFLICT (id) DO UPDATE SET
+      email = EXCLUDED.email,
+      role = EXCLUDED.role,
+      is_superadmin = (users.is_superadmin = true OR EXCLUDED.is_superadmin = true);
+  END IF;
 
   RETURN NEW;
 END;

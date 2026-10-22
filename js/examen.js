@@ -1,4 +1,4 @@
-import { db, doc, getDoc, setDoc, updateDoc, serverTimestamp, onSnapshot } from './common/firebase-config.js';
+import { supabase } from './common/supabase-config.js';
 import { requireAuth } from './common/auth.js';
 import { renderHeader, showToast, showLoading, hideLoading } from './common/ui.js';
 import { $, $$, escapeHtml, getUrlParams } from './common/utils.js';
@@ -7,7 +7,6 @@ let user;
 let currentProfile = null;
 let examen = null;
 let respuestaDoc = null;
-let respuestaRef = null;
 let currentQIndex = 0;
 let timerInterval = null;
 let warnings = 0;
@@ -28,18 +27,43 @@ async function init() {
       
       $('#ex-student').textContent = `${profile.nombre || 'Alumno'}`;
       
-      onSnapshot(doc(db, 'examenes_test', exId), (snap) => {
-        if (!snap.exists()) {
-          showFinished('El examen no existe.');
-          return;
-        }
-        
-        examen = snap.data();
-        examen.id = snap.id;
-        $('#ex-title').textContent = examen.titulo || 'Examen Test';
-        
-        checkExamenStatus();
-      });
+      // Load exam data and set up realtime subscription
+      const { data: examData, error: examErr } = await supabase.from('exams').select('*').eq('id', exId).maybeSingle();
+      if (examErr || !examData) {
+        showFinished('El examen no existe.');
+        return;
+      }
+      
+      examen = {
+        ...examData,
+        id: examData.id,
+        titulo: examData.title,
+        tiempoMinutos: examData.duration_mins,
+        claseId: examData.class_id,
+        activo: examData.active,
+        estado: examData.active ? 'activo' : 'cerrado',
+        activadoEn: examData.activated_at ? { toDate: () => new Date(examData.activated_at) } : null,
+        resultadosPublicados: examData.results_published,
+        correcciones: examData.corrections || {},
+        preguntas: examData.questions || []
+      };
+      $('#ex-title').textContent = examen.titulo || 'Examen Test';
+      
+      await checkExamenStatus();
+
+      supabase.channel(`exam_${exId}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'exams', filter: `id=eq.${exId}` },
+          async (payload) => {
+            const updated = payload.new;
+            examen.activo = updated.active;
+            examen.estado = updated.active ? 'activo' : 'cerrado';
+            examen.resultadosPublicados = updated.results_published;
+            if (updated.activated_at) {
+              examen.activadoEn = { toDate: () => new Date(updated.activated_at) };
+            }
+            checkExamenStatus();
+          })
+        .subscribe();
     }
   });
 
@@ -49,11 +73,23 @@ async function init() {
 }
 
 async function checkExamenStatus() {
-  respuestaRef = doc(db, 'respuestas_test', `${exId}_${user.uid}`);
-  const rSnap = await getDoc(respuestaRef);
+  const { data: rData } = await supabase.from('exam_results').select('*')
+    .eq('exam_id', exId).eq('student_id', user.uid).maybeSingle();
   
-  if (rSnap.exists()) {
-    respuestaDoc = rSnap.data();
+  if (rData) {
+    respuestaDoc = {
+      ...rData,
+      id: rData.id,
+      examenId: rData.exam_id,
+      uid: rData.student_id,
+      respuestas: rData.answers || {},
+      ordenPreguntas: rData.question_order || [],
+      ordenOpciones: rData.option_order || {},
+      empezadoEn: rData.started_at ? { toDate: () => new Date(rData.started_at) } : null,
+      entregadoEn: rData.submitted_at ? { toDate: () => new Date(rData.submitted_at) } : null,
+      anuladoPorTrampas: rData.annulled || false,
+      nota: rData.score
+    };
   }
   
   if (respuestaDoc && respuestaDoc.entregadoEn) {
@@ -97,12 +133,26 @@ async function initStudentState() {
     ordenPreguntas: qIndices,
     ordenOpciones: oIndicesMap,
     respuestas: {},
-    empezadoEn: serverTimestamp(),
+    empezadoEn: { toDate: () => new Date() },
     entregadoEn: null,
     anuladoPorTrampas: false
   };
   
-  await setDoc(respuestaRef, respuestaDoc);
+  const { data: insertedResult } = await supabase.from('exam_results').upsert({
+    exam_id: exId,
+    student_id: user.uid,
+    class_id: examen.claseId,
+    question_order: qIndices,
+    option_order: oIndicesMap,
+    answers: {},
+    started_at: new Date().toISOString(),
+    submitted_at: null,
+    annulled: false
+  }, { onConflict: 'exam_id,student_id' }).select().single();
+  
+  if (insertedResult) {
+    respuestaDoc.id = insertedResult.id;
+  }
   
   startTimer();
   renderNav();
@@ -240,9 +290,14 @@ async function selectOption(qId, optOrigIdx, renderIdx) {
   
   // Save in background
   try {
-    await updateDoc(respuestaRef, {
-      [`respuestas.${qId}`]: isSelected ? null : optOrigIdx
-    });
+    const newAnswers = { ...(respuestaDoc.respuestas || {}) };
+    if (isSelected) {
+      delete newAnswers[qId];
+    } else {
+      newAnswers[qId] = optOrigIdx;
+    }
+    await supabase.from('exam_results').update({ answers: newAnswers })
+      .eq('exam_id', exId).eq('student_id', user.uid);
   } catch (err) {
     console.error(err);
     showToast('Error al guardar respuesta', 'error');
@@ -292,12 +347,12 @@ async function entregarExamen() {
     window.removeEventListener('blur', handleFocusLost);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     
-    await updateDoc(respuestaRef, {
-      entregadoEn: serverTimestamp()
-    });
+    const nowIso = new Date().toISOString();
+    await supabase.from('exam_results').update({
+      submitted_at: nowIso
+    }).eq('exam_id', exId).eq('student_id', user.uid);
     
-    const rSnap = await getDoc(respuestaRef);
-    respuestaDoc = rSnap.data();
+    respuestaDoc.entregadoEn = { toDate: () => new Date(nowIso) };
     
     hideLoading();
     stopExamAndShowResults();
@@ -420,10 +475,11 @@ function handleFocusLost() {
     showToast('⚠️ ADVERTENCIA', 'Has salido de la pestaña del examen. Si vuelves a salir, se entregará automáticamente.', 'warning');
   } else {
     showToast('❌ ADVERTENCIA', 'Has salido repetidamente. El examen será anulado y entregado.', 'error');
-    updateDoc(respuestaRef, {
-      entregadoEn: serverTimestamp(),
-      anuladoPorTrampas: true
-    }).then(() => {
+    const nowIso = new Date().toISOString();
+    supabase.from('exam_results').update({
+      submitted_at: nowIso,
+      annulled: true
+    }).eq('exam_id', exId).eq('student_id', user.uid).then(() => {
       window.location.reload();
     });
   }

@@ -40,7 +40,7 @@ const taskTemplates = [
   { title: "Interfaz CSS", desc: "Maquetar la página principal." },
   { title: "API REST", desc: "Crear endpoints para usuarios." },
   { title: "Testing", desc: "Escribir pruebas unitarias." },
-  { title: "Despliegue", desc: "Subir la web a Firebase Hosting." },
+  { title: "Despliegue", desc: "Subir la web a producción." },
   { title: "Bug Fix #42", desc: "El botón no funciona en móviles." },
   { title: "Optimización", desc: "Reducir tamaño de las imágenes." },
   { title: "Doc. Usuario", desc: "Escribir manual de ayuda." },
