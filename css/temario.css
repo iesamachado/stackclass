@@ -179,9 +179,12 @@ code {
 }
 .s-events { background-color: #FFBF00; border-color: #FFBF00; }
 .s-motion { background-color: #4C97FF; border-color: #4C97FF; }
-.s-var { background-color: #FF8C1A; border-color: #FF8C1A; }
+.s-looks { background-color: #9966FF; border-color: #9966FF; }
+.s-sound { background-color: #D65CD6; border-color: #D65CD6; }
 .s-control { background-color: #FFAB19; border-color: #FFAB19; }
 .s-sensing { background-color: #5CB1D6; border-color: #5CB1D6; }
+.s-operators { background-color: #59C059; border-color: #59C059; }
+.s-var { background-color: #FF8C1A; border-color: #FF8C1A; }
 .s-input {
   background: white;
   color: #333;
@@ -193,12 +196,22 @@ code {
 }
 .s-hex {
   background: white;
-  color: #5CB1D6;
+  color: #0284c7;
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: bold;
   display: inline-block;
   margin: 0 4px;
+}
+.s-hex.s-operators {
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+}
+.s-hex.s-sensing {
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
 }
 
 @media (max-width: 768px) {
