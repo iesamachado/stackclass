@@ -1,6 +1,6 @@
-import { requireGameAccess } from '../../../../../js/common/auth.js';
-import { getClassAssignments } from '../../../../../js/common/db.js';
-import { renderHeader } from '../../../../../js/common/ui.js';
+import { requireGameAccess } from '../../../../js/common/auth.js';
+import { getClassAssignments } from '../../../../js/common/db.js';
+import { renderHeader } from '../../../../js/common/ui.js';
 
 const $ = id => document.getElementById(id);
 

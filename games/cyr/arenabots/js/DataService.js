@@ -1,6 +1,6 @@
-import { supabase } from '../../../../../js/common/supabase-config.js';
-import { currentUser, currentProfile, updateUserProfileData } from '../../../../../js/common/auth.js';
-import { saveGameResult } from '../../../../../js/common/db.js';
+import { supabase } from '../../../../js/common/supabase-config.js';
+import { currentUser, currentProfile, updateUserProfileData } from '../../../../js/common/auth.js';
+import { saveGameResult } from '../../../../js/common/db.js';
 
 const DataService = {
   currentBotId: null,

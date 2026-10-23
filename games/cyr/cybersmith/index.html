@@ -45,9 +45,9 @@
   </footer>
 
   <script type="module">
-    import { requireAuth, currentUser, currentProfile } from '../../../../js/common/auth.js';
-    import { renderHeader } from '../../../../js/common/ui.js';
-    import { getUrlParams } from '../../../../js/common/utils.js';
+    import { requireAuth, currentUser, currentProfile } from '../../../js/common/auth.js';
+    import { renderHeader } from '../../../js/common/ui.js';
+    import { getUrlParams } from '../../../js/common/utils.js';
     
     requireAuth({
       allowedRoles: ['student', 'teacher'],

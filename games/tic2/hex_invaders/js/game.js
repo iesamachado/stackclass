@@ -1,6 +1,6 @@
-import { requireAuth, incrementDigitalWellbeing } from "../../../../../js/common/auth.js";
-import { showToast } from '../../../../../js/common/ui.js';
-import { saveGameResult } from "../../../../../js/common/db.js";
+import { requireAuth, incrementDigitalWellbeing } from "../../../../js/common/auth.js";
+import { showToast } from '../../../../js/common/ui.js';
+import { saveGameResult } from "../../../../js/common/db.js";
 
 const GAME_ID = 'hex_invaders';
 let currentUser = null;

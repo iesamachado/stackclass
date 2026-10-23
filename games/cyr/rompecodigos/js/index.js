@@ -1,6 +1,6 @@
-import { requireAuth, currentUser, currentProfile, isAdmin } from '../../../../../js/common/auth.js';
-import { renderHeader, showToast, initParticles } from '../../../../../js/common/ui.js';
-import { $ } from '../../../../../js/common/utils.js';
+import { requireAuth, currentUser, currentProfile, isAdmin } from '../../../../js/common/auth.js';
+import { renderHeader, showToast, initParticles } from '../../../../js/common/ui.js';
+import { $ } from '../../../../js/common/utils.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     initParticles('particles-canvas', '#00e5ff', '#ff3366');

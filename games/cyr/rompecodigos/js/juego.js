@@ -2,8 +2,8 @@
 // juego.js — Agente Analista: Game Logic
 // ============================================================
 
-import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
-import { renderHeader, showToast, initParticles } from '../../../../../js/common/ui.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../js/common/auth.js';
+import { renderHeader, showToast, initParticles } from '../../../../js/common/ui.js';
 import {
   listenSession,
   getSession,

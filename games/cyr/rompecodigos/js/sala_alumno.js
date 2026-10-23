@@ -2,8 +2,8 @@
 // alumno.js — Agente Analista Lobby Logic (Supabase)
 // ============================================================
 
-import { requireAuth } from '../../../../../js/common/auth.js';
-import { renderHeader, showToast } from '../../../../../js/common/ui.js';
+import { requireAuth } from '../../../../js/common/auth.js';
+import { renderHeader, showToast } from '../../../../js/common/ui.js';
 import { getSession, joinSession, listenSession } from './RompeDb.js';
 
 let sesionEncontrada = null;

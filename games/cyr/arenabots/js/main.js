@@ -13,7 +13,7 @@
  */
 
 import { UIManager } from './UIManager.js';
-import { requireGameAccess } from '../../../../../js/common/auth.js';
+import { requireGameAccess } from '../../../../js/common/auth.js';
 
 // ─────────────────────────────────────────────────────────────────
 // FUNCIÓN PRINCIPAL DE INICIALIZACIÓN

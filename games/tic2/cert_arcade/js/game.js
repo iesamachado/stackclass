@@ -1,6 +1,6 @@
-import { requireAuth, incrementDigitalWellbeing } from "../../../../../js/common/auth.js";
-import { showToast } from '../../../../../js/common/ui.js';
-import { saveGameResult } from "../../../../../js/common/db.js";
+import { requireAuth, incrementDigitalWellbeing } from "../../../../js/common/auth.js";
+import { showToast } from '../../../../js/common/ui.js';
+import { saveGameResult } from "../../../../js/common/db.js";
 
 
 // Utilidad: Validar DNI Español

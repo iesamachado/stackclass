@@ -2,10 +2,10 @@
 // index.js — Portal de Modos de Juego MecanoClass
 // ============================================================
 
-import { requireAuth, isAdmin } from '../../../../../js/common/auth.js';
-import { renderHeader, showToast } from '../../../../../js/common/ui.js';
-import { $, getUrlParams } from '../../../../../js/common/utils.js';
-import { getHostLiveSessions, getLiveParticipants, getUserProfile } from '../../../../../js/common/db.js';
+import { requireAuth, isAdmin } from '../../../../js/common/auth.js';
+import { renderHeader, showToast } from '../../../../js/common/ui.js';
+import { $, getUrlParams } from '../../../../js/common/utils.js';
+import { getHostLiveSessions, getLiveParticipants, getUserProfile } from '../../../../js/common/db.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     requireAuth({

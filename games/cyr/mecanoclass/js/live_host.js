@@ -1,6 +1,6 @@
-import { requireAuth, currentUser, currentProfile } from '../../../../../js/common/auth.js';
-import { createLiveSession, updateLiveSession, listenToLiveSession, listenToLiveParticipants, getUserProfile } from '../../../../../js/common/db.js';
-import { renderHeader, showToast } from '../../../../../js/common/ui.js';
+import { requireAuth, currentUser, currentProfile } from '../../../../js/common/auth.js';
+import { createLiveSession, updateLiveSession, listenToLiveSession, listenToLiveParticipants, getUserProfile } from '../../../../js/common/db.js';
+import { renderHeader, showToast } from '../../../../js/common/ui.js';
 
 let gamePin = null;
 let participants = [];

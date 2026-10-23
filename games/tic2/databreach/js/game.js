@@ -1,8 +1,8 @@
 import { LEVELS } from './levels.js';
-import { showToast } from '../../../../../js/common/ui.js';
-import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
-import { saveGameResult } from '../../../../../js/common/db.js';
-import { escapeHtml, getUrlParams } from '../../../../../js/common/utils.js';
+import { showToast } from '../../../../js/common/ui.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../js/common/auth.js';
+import { saveGameResult } from '../../../../js/common/db.js';
+import { escapeHtml, getUrlParams } from '../../../../js/common/utils.js';
 
 let currentUser = null;
 let classId = null;

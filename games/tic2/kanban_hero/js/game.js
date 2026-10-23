@@ -1,7 +1,7 @@
-import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
-import { showToast } from '../../../../../js/common/ui.js';
-import { $, getUrlParams } from '../../../../../js/common/utils.js';
-import { saveGameResult } from '../../../../../js/common/db.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../js/common/auth.js';
+import { showToast } from '../../../../js/common/ui.js';
+import { $, getUrlParams } from '../../../../js/common/utils.js';
+import { saveGameResult } from '../../../../js/common/db.js';
 
 let currentUser = null;
 let currentProfile = null;

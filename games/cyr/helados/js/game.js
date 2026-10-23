@@ -1,6 +1,6 @@
-import { requireGameAccess } from '../../../../../js/common/auth.js';
-import { saveGameResult } from '../../../../../js/common/db.js';
-import { renderHeader, showToast } from '../../../../../js/common/ui.js';
+import { requireGameAccess } from '../../../../js/common/auth.js';
+import { saveGameResult } from '../../../../js/common/db.js';
+import { renderHeader, showToast } from '../../../../js/common/ui.js';
 
 let currentUser = null;
 let currentHighScore = 0;

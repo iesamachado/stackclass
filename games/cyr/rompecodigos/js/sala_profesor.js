@@ -1,7 +1,7 @@
-import { requireAuth } from '../../../../../js/common/auth.js';
-import { saveGameResult } from '../../../../../js/common/db.js';
-import { renderHeader, showToast } from '../../../../../js/common/ui.js';
-import { generateRoomCode } from '../../../../../js/common/utils.js';
+import { requireAuth } from '../../../../js/common/auth.js';
+import { saveGameResult } from '../../../../js/common/db.js';
+import { renderHeader, showToast } from '../../../../js/common/ui.js';
+import { generateRoomCode } from '../../../../js/common/utils.js';
 import {
   createSession,
   getSession,

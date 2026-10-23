@@ -2,9 +2,9 @@
 // practica.js — Laboratorio Criptográfico y Modo Práctica RompeCódigos
 // ============================================================
 
-import { requireAuth, currentProfile, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
-import { renderHeader, showToast, initParticles } from '../../../../../js/common/ui.js';
-import { saveGameResult } from '../../../../../js/common/db.js';
+import { requireAuth, currentProfile, incrementDigitalWellbeing } from '../../../../js/common/auth.js';
+import { renderHeader, showToast, initParticles } from '../../../../js/common/ui.js';
+import { saveGameResult } from '../../../../js/common/db.js';
 
 // ─── Misiones de Práctica ────────────────────────────────────
 const MISIONES = [

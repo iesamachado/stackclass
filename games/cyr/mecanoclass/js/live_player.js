@@ -1,7 +1,7 @@
-import { requireAuth } from '../../../../../js/common/auth.js';
-import { joinLiveSession, updateLiveParticipant, listenToLiveSession, saveGameResult } from '../../../../../js/common/db.js';
-import { renderHeader, showToast } from '../../../../../js/common/ui.js';
-import { getUrlParams } from '../../../../../js/common/utils.js';
+import { requireAuth } from '../../../../js/common/auth.js';
+import { joinLiveSession, updateLiveParticipant, listenToLiveSession, saveGameResult } from '../../../../js/common/db.js';
+import { renderHeader, showToast } from '../../../../js/common/ui.js';
+import { getUrlParams } from '../../../../js/common/utils.js';
 
 let currentUser = null;
 let currentProfile = null;

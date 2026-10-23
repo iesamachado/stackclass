@@ -28,7 +28,7 @@
     </div>
   </footer>
   <script type="module">
-    import { requireGameAccess } from '../../../../js/common/auth.js';
+    import { requireGameAccess } from '../../../js/common/auth.js';
     requireGameAccess('moon', {
       onGranted: (user, profile, classId) => {
         window.location.href = `game.html?classId=${classId}`;

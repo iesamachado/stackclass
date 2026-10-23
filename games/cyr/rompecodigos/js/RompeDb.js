@@ -3,8 +3,8 @@
 //  Gestiona sesiones multijugador, rondas, equipos e intentos en tiempo real.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { supabase } from '../../../../../js/common/supabase-config.js';
-import { saveGameResult } from '../../../../../js/common/db.js';
+import { supabase } from '../../../../js/common/supabase-config.js';
+import { saveGameResult } from '../../../../js/common/db.js';
 
 export function formatSession(row) {
   if (!row) return null;

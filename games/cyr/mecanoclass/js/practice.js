@@ -1,7 +1,7 @@
-import { requireGameAccess, currentUser, isAdmin } from '../../../../../js/common/auth.js';
-import { saveGameResult, getRandomMecanoText, getClass } from '../../../../../js/common/db.js';
-import { renderHeader, showToast } from '../../../../../js/common/ui.js';
-import { getUrlParams } from '../../../../../js/common/utils.js';
+import { requireGameAccess, currentUser, isAdmin } from '../../../../js/common/auth.js';
+import { saveGameResult, getRandomMecanoText, getClass } from '../../../../js/common/db.js';
+import { renderHeader, showToast } from '../../../../js/common/ui.js';
+import { getUrlParams } from '../../../../js/common/utils.js';
 
 let engine;
 let currentClassId = null;

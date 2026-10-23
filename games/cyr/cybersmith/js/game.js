@@ -1,6 +1,6 @@
-import { requireAuth, incrementDigitalWellbeing } from '../../../../../js/common/auth.js';
-import { getUrlParams } from '../../../../../js/common/utils.js';
-import { saveGameResult } from '../../../../../js/common/db.js';
+import { requireAuth, incrementDigitalWellbeing } from '../../../../js/common/auth.js';
+import { getUrlParams } from '../../../../js/common/utils.js';
+import { saveGameResult } from '../../../../js/common/db.js';
 
 let currentUserInfo = null;
 const urlParams = getUrlParams();
