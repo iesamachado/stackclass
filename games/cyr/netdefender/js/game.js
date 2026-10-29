@@ -20,8 +20,10 @@ let currentGuideTab = 'firewall';
 let statsBlocked = {
   firewall: 0,
   antivirus: 0,
-  spam: 0
+  spam: 0,
+  stealth: 0
 };
+let hasAnnouncedStealth = false;
 
 // Catálogo Educativo de Amenazas Cibernéticas (Curriculo 1º ESO - Ciberseguridad)
 const THREAT_CATALOG = {
@@ -293,10 +295,18 @@ function initGame() {
   renderGuideThreats('firewall');
 }
 
+function getStealthProbability(currentScore) {
+  if (currentScore < 5) return 0;       // Fase 1: Entrenamiento inicial con colores de ayuda (0% sigilo)
+  if (currentScore < 10) return 0.45;   // Fase 2: Comienzan ataques camuflados (~45%)
+  if (currentScore < 16) return 0.75;   // Fase 3: Mayoría camuflados (~75%)
+  return 1.0;                          // Fase 4: Modo Experto (100% camuflados, sin pistas de color)
+}
+
 function startGame() {
   score = 0;
   lives = 3;
-  statsBlocked = { firewall: 0, antivirus: 0, spam: 0 };
+  statsBlocked = { firewall: 0, antivirus: 0, spam: 0, stealth: 0 };
+  hasAnnouncedStealth = false;
   isGameOver = false;
   isIntroOpen = false;
   isGuideOpen = false;
@@ -326,8 +336,11 @@ function spawnThreat() {
   const threatsInCategory = THREAT_CATALOG[category];
   const threatData = threatsInCategory[Math.floor(Math.random() * threatsInCategory.length)];
 
+  // A partir de 5 puntos, los atacantes comienzan a camuflar sus firmas (modo sigilo sin color)
+  const isStealth = Math.random() < getStealthProbability(score);
+
   const el = document.createElement('div');
-  el.className = `threat threat-${category}`;
+  el.className = isStealth ? 'threat threat-stealth' : `threat threat-${category}`;
   el.innerHTML = `
     <div class="threat-main">
       <span class="threat-icon">${threatData.icon}</span>
@@ -349,6 +362,7 @@ function spawnThreat() {
     el: el,
     type: category,
     threat: threatData,
+    isStealth: isStealth,
     spawnTime: Date.now()
   });
 }
@@ -381,14 +395,25 @@ function handleDefense(defType) {
 
     score++;
     statsBlocked[defType]++;
+    if (intercepted.isStealth) {
+      statsBlocked.stealth++;
+    }
     updateUI();
 
     // Mensaje educativo en consola SOC
-    updateSoc('INTERCEPTADO', intercepted.threat.blockedMsg, 'success');
+    if (score === 5 && !hasAnnouncedStealth) {
+      hasAnnouncedStealth = true;
+      updateSoc('⚠️ ALERTA SIGILO', '¡Los atacantes camuflan sus firmas! Lee la amenaza para deducir la defensa.', 'alert');
+    } else if (score === 15) {
+      updateSoc('🔥 MODO EXPERTO', '¡Infiltración total! A partir de ahora todos los vectores llegan en sigilo.', 'alert');
+    } else {
+      const tagPrefix = intercepted.isStealth ? '🕵️ NEUTRALIZADO' : 'INTERCEPTADO';
+      updateSoc(tagPrefix, intercepted.threat.blockedMsg, 'success');
+    }
   } else {
     // Si pulsa una defensa que no tiene amenazas en pantalla
     const defNames = { firewall: 'Firewall (Red)', antivirus: 'Antivirus (Malware)', spam: 'Filtro Spam (Correo)' };
-    updateSoc('SIN AMENAZA', `Ningún ataque de tipo ${defNames[defType]} en curso. ¡Observa los vectores!`, 'default');
+    updateSoc('DEFENSA INEFICAZ', `Ningún vector activo corresponde a ${defNames[defType]}. ¡Analiza la amenaza!`, 'alert');
   }
 }
 
@@ -409,6 +434,7 @@ function gameLoop() {
         area.removeChild(t.el);
       }
       const breachThreat = t.threat;
+      const breachIsStealth = t.isStealth;
       activeThreats.splice(i, 1);
       lives--;
       updateUI();
@@ -420,7 +446,8 @@ function gameLoop() {
       }, 250);
 
       // Explicación pedagógica de la brecha de seguridad
-      updateSoc('BRECHA', breachThreat.hitMsg, 'alert');
+      const breachTag = breachIsStealth ? 'BRECHA [SIGILO]' : 'BRECHA';
+      updateSoc(breachTag, breachThreat.hitMsg, 'alert');
 
       if (lives <= 0) {
         endGame();
@@ -512,9 +539,11 @@ async function endGame() {
   const repF = document.getElementById('rep-firewall');
   const repA = document.getElementById('rep-antivirus');
   const repS = document.getElementById('rep-spam');
+  const repStealth = document.getElementById('rep-stealth');
   if (repF) repF.innerText = statsBlocked.firewall;
   if (repA) repA.innerText = statsBlocked.antivirus;
   if (repS) repS.innerText = statsBlocked.spam;
+  if (repStealth) repStealth.innerText = statsBlocked.stealth;
 
   // Consejo aleatorio de ciberseguridad
   const randomTip = CYBER_TIPS[Math.floor(Math.random() * CYBER_TIPS.length)];

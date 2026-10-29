@@ -231,6 +231,19 @@ CREATE TABLE IF NOT EXISTS offline_grades (
   UNIQUE (task_id, student_id)
 );
 
+-- 19. PARTIDAS DE ENTRENAMIENTO ROMPECODIGOS
+CREATE TABLE IF NOT EXISTS rompecodigos_partidas (
+  id SERIAL PRIMARY KEY,
+  numero INTEGER NOT NULL UNIQUE,
+  nombre TEXT NOT NULL,
+  descripcion TEXT,
+  clave_vigenere_1 TEXT NOT NULL,
+  clave_vigenere_2 TEXT NOT NULL,
+  misiones JSONB NOT NULL,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- ÍNDICES
 CREATE INDEX IF NOT EXISTS idx_class_members_student  ON class_members(student_id);
 CREATE INDEX IF NOT EXISTS idx_class_members_class    ON class_members(class_id);
@@ -538,6 +551,7 @@ ALTER TABLE guilds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leagues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_xp_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rompecodigos_partidas ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "subjects_read"  ON subjects FOR SELECT USING (true);
 CREATE POLICY "subjects_write" ON subjects FOR ALL    USING (is_admin());
@@ -608,6 +622,9 @@ CREATE POLICY "offline_tasks_read"   ON offline_tasks  FOR SELECT USING (auth.ui
 CREATE POLICY "offline_tasks_write"  ON offline_tasks  FOR ALL    USING (is_teacher());
 CREATE POLICY "offline_grades_read"  ON offline_grades FOR SELECT USING (student_id = auth.uid()::text OR is_teacher());
 CREATE POLICY "offline_grades_write" ON offline_grades FOR ALL    USING (is_teacher());
+
+CREATE POLICY "rompe_partidas_read"  ON rompecodigos_partidas FOR SELECT USING (true);
+CREATE POLICY "rompe_partidas_write" ON rompecodigos_partidas FOR ALL    USING (is_teacher() OR is_admin());
 
 -- VISTAS
 CREATE OR REPLACE VIEW class_ranking AS

@@ -43,7 +43,26 @@
         
         <div id="radar">
           <div class="target-label">OBJETIVO CSS:</div>
-          <div id="target-hex">#FFFFFF</div>
+          <div class="hex-grid-container">
+            <!-- Fila 1: Dígitos Hexadecimales -->
+            <div class="hex-cell hex-cell-hash">#</div>
+            <div class="hex-cell hex-cell-r" id="hex-digits-r">FF</div>
+            <div class="hex-cell hex-cell-g" id="hex-digits-g">FF</div>
+            <div class="hex-cell hex-cell-b" id="hex-digits-b">FF</div>
+
+            <!-- Fila 2: Barras de color debajo de cada canal -->
+            <div class="rgb-bar-cell"></div>
+            <div class="rgb-bar-cell"><div class="rgb-bar bar-r"></div></div>
+            <div class="rgb-bar-cell"><div class="rgb-bar bar-g"></div></div>
+            <div class="rgb-bar-cell"><div class="rgb-bar bar-b"></div></div>
+
+            <!-- Fila 3: Bloques con las letras R - G - B -->
+            <div class="rgb-badge-cell"></div>
+            <div class="rgb-badge-cell"><span class="rgb-badge badge-r">R</span></div>
+            <div class="rgb-badge-cell"><span class="rgb-badge badge-g">G</span></div>
+            <div class="rgb-badge-cell"><span class="rgb-badge badge-b">B</span></div>
+          </div>
+          <div id="target-hex" class="hidden">#FFFFFF</div>
         </div>
 
         <div id="alien-zone">

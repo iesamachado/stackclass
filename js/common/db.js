@@ -7,7 +7,7 @@
 //    exam_questions, exams, exam_results, game_results
 //    live_sessions, live_participants, mecanoclass_texts
 //    arena_bots, offline_tasks, offline_grades
-//    allowed_teachers, allowed_students
+//    allowed_teachers, allowed_students, rompecodigos_partidas
 // ═══════════════════════════════════════════════════════════════════════
 
 import { supabase } from './supabase-config.js';
@@ -1794,5 +1794,37 @@ export async function deleteStudentTopicResults(studentId, topicId) {
   if (topicId) q = q.eq('topic_id', topicId);
   const { error } = await q;
   if (error) throw error;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ROMPECODIGOS — PARTIDAS DE ENTRENAMIENTO
+// ══════════════════════════════════════════════════════════════════
+
+export async function getRompePartidas() {
+  try {
+    const { data, error } = await supabase
+      .from('rompecodigos_partidas')
+      .select('*')
+      .eq('active', true)
+      .order('numero', { ascending: true });
+    if (error) {
+      console.warn('[DB] Error al obtener rompecodigos_partidas de Supabase:', error.message);
+      return null;
+    }
+    return data && data.length > 0 ? data : null;
+  } catch (err) {
+    console.warn('[DB] Fallo de conexión al cargar rompecodigos_partidas:', err);
+    return null;
+  }
+}
+
+export async function upsertRompePartida(partida) {
+  const { data, error } = await supabase
+    .from('rompecodigos_partidas')
+    .upsert(partida, { onConflict: 'numero' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 

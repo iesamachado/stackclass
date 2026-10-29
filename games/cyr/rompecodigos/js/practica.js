@@ -4,91 +4,11 @@
 
 import { requireAuth, currentProfile, incrementDigitalWellbeing } from '../../../../js/common/auth.js';
 import { renderHeader, showToast, initParticles } from '../../../../js/common/ui.js';
-import { saveGameResult } from '../../../../js/common/db.js';
+import { saveGameResult, getRompePartidas } from '../../../../js/common/db.js';
 
-// ─── Misiones de Práctica ────────────────────────────────────
-const MISIONES = [
-  {
-    id: 1,
-    titulo: 'Misión 1: Cifrado César Básico',
-    tipo: 'caesar',
-    tipoBadge: 'César',
-    demoTab: 'demo-cesar',
-    descripcion: 'El mensaje ha sido desplazado un número fijo de posiciones en el alfabeto. Analiza las frecuencias y usa las herramientas César para descubrirlo.',
-    textoOriginal: 'EL CODIGO SECRETO HA SIDO DESCIFRADO CON EXITO',
-    shift: 3,
-    pistas: [
-      'Fíjate en el gráfico de frecuencias: una letra destaca claramente sobre todas las demás. En español, esa letra suele ser la E o la A.',
-      'Observa el bloque azul más alto del gráfico. Compara su posición en el alfabeto con la de la E (5ª letra). La diferencia te dará el desplazamiento.',
-      'Prueba los desplazamientos sugeridos en el panel azul debajo del slider. Uno de ellos debería producir texto legible.'
-    ]
-  },
-  {
-    id: 2,
-    titulo: 'Misión 2: Interceptación Espacial',
-    tipo: 'caesar',
-    tipoBadge: 'César',
-    demoTab: 'demo-cesar',
-    descripcion: 'Un mensaje interceptado de la base lunar. Las frecuencias del texto te revelarán el desplazamiento exacto si sabes interpretarlas.',
-    textoOriginal: 'LA BASE LUNAR NECESITA SUMINISTROS DE ENERGIA DE INMEDIATO',
-    shift: 7,
-    pistas: [
-      'En el texto cifrado aparecen varios grupos de dos letras iguales. En español, palabras como "DE" o "LA" son muy comunes. Busca palabras cortas repetidas.',
-      'La tabla de fuerza bruta (botón ⚡) muestra los 25 posibles descifrados. Busca la fila que contiene palabras con sentido completo.',
-      'El desplazamiento que buscas está entre el 5 y el 10. Comprueba cada uno en la tabla de fuerza bruta y busca el que produce una frase sobre recursos o energía.'
-    ]
-  },
-  {
-    id: 3,
-    titulo: 'Misión 3: Criptoanálisis de Sustitución',
-    tipo: 'substitution',
-    tipoBadge: 'Sustitución',
-    demoTab: 'demo-frecuencias',
-    descripcion: 'Cifrado monoalfabético: cada letra ha sido reemplazada por otra diferente. El análisis de frecuencias y las palabras cortas son tu mejor arma.',
-    textoOriginal: 'LA CRIPTOGRAFIA PROTEGE LA INFORMACION MEDIANTE ALGORITMOS MATEMATICOS',
-    substMap: {
-      'A': 'X', 'B': 'Y', 'C': 'Z', 'D': 'A', 'E': 'B', 'F': 'C', 'G': 'D', 'H': 'E',
-      'I': 'F', 'J': 'G', 'K': 'H', 'L': 'I', 'M': 'J', 'N': 'K', 'O': 'L', 'P': 'M',
-      'Q': 'N', 'R': 'O', 'S': 'P', 'T': 'Q', 'U': 'R', 'V': 'S', 'W': 'T', 'X': 'U',
-      'Y': 'V', 'Z': 'W'
-    },
-    pistas: [
-      'Las palabras cortas son la clave. Fíjate en las palabras de 2 letras que se repiten en el texto cifrado — en español casi siempre son LA, DE, EL, EN o AL.',
-      'Pulsa "✨ Sugerir Sustitución" para obtener un punto de partida basado en frecuencias. No será perfecto, pero te dará las vocales principales.',
-      'Una vez tengas las vocales colocadas, las consonantes se deducen solas: si ves _N_ORMACION ya sabes que esas letras son I y F. Usa el panel de palabras cortas.'
-    ]
-  },
-  {
-    id: 4,
-    titulo: 'Misión 4: Cifrado Polialfabético',
-    tipo: 'vigenere',
-    tipoBadge: 'Vigenère',
-    demoTab: 'demo-vigenere',
-    descripcion: 'Un cifrado más sofisticado usa una palabra como clave para variar el desplazamiento en cada posición. El análisis de frecuencias ya no funciona directamente.',
-    textoOriginal: 'LA CLAVE SECRETA ABRE TODAS LAS PUERTAS DEL SISTEMA CENTRAL',
-    key: 'ROBOT',
-    pistas: [
-      'Este cifrado usa el Índice de Coincidencia: si el texto parece tener frecuencias uniformes (las barras del gráfico están muy igualadas), es polialfabético. La clave tiene una longitud relacionada con la tecnología que estudias en clase.',
-      'Prueba palabras cortas del vocabulario del tema: los robots siguen instrucciones, los ordenadores ejecutan programas, las máquinas tienen motores...',
-      'La clave tiene 5 letras y es el nombre de una máquina que sigue órdenes automáticamente. Introdúcela en el campo de Vigenère y pulsa Aplicar.'
-    ]
-  },
-  {
-    id: 5,
-    titulo: 'Misión 5: Reto Final — ROT13',
-    tipo: 'caesar',
-    tipoBadge: 'ROT13',
-    demoTab: 'demo-cesar',
-    descripcion: 'Misión final. Este cifrado tiene una propiedad matemática especial: cifrarlo dos veces produce el mensaje original. ¿Cuántos pasos hay en la mitad exacta del alfabeto?',
-    textoOriginal: 'FELICIDADES AGENTE HAS DEMOSTRADO UN GRAN DOMINIO DE LA CRIPTOGRAFIA',
-    shift: 13,
-    pistas: [
-      'El alfabeto tiene 26 letras. Este cifrado divide el alfabeto exactamente por la mitad, creando una simetría perfecta: A↔N, B↔O, C↔P...',
-      'Si hay 26 letras y el desplazamiento es exactamente la mitad, ¿qué número es la mitad de 26? Ese es el desplazamiento que necesitas.',
-      'El slider del desplazamiento César tiene un valor máximo de 25. El desplazamiento correcto es el número 13. Colócalo ahí.'
-    ]
-  }
-];
+// ─── Partida y Misiones Activas (Cargadas exclusivamente desde Supabase) ──────
+let PARTIDAS_DATA = [];
+let MISIONES = [];
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -97,6 +17,7 @@ const state = {
   user: null,
   profile: null,
   mode: 'misiones', // 'misiones' | 'sandbox'
+  partidaIndex: 0,
   misionIndex: 0,
   difficulty: 'recluta',
   textoCifrado: '',
@@ -108,6 +29,7 @@ const state = {
   pistasUsadas: 0,
   frecChart: null,
   misionesCompletadas: new Set(),
+  partidasCompletadas: new Set(),
   historialIntentos: []
 };
 
@@ -125,12 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
       state.user = user;
       state.profile = profile;
       renderHeader(user, profile);
-      initApp();
+      await initApp();
     }
   });
 });
 
-function initApp() {
+async function initApp() {
   buildSustKeyboard();
   initCesarSlider();
   initVigenereHandler();
@@ -139,12 +61,168 @@ function initApp() {
   initDemosModal();
   initModeSwitcher();
   initSandboxHandlers();
-  renderMisionesNav();
-  cargarMision(0);
+  
+  await cargarPartidasDesdeSupabase();
+
+  const initialPartidaIdx = initPartidasSelector() || 0;
+  cargarPartida(initialPartidaIdx);
 
   document.getElementById('difficulty-select')?.addEventListener('change', () => {
     cargarMision(state.misionIndex);
   });
+}
+
+async function cargarPartidasDesdeSupabase() {
+  const select = document.getElementById('partida-select');
+  if (select) {
+    select.innerHTML = '<option>Cargando operaciones desde Supabase...</option>';
+    select.disabled = true;
+  }
+
+  try {
+    const dbPartidas = await getRompePartidas();
+    if (dbPartidas && Array.isArray(dbPartidas) && dbPartidas.length > 0) {
+      PARTIDAS_DATA = dbPartidas.map(p => ({
+        id: p.numero,
+        nombre: p.nombre,
+        descripcion: p.descripcion,
+        clave_vigenere_1: p.clave_vigenere_1,
+        clave_vigenere_2: p.clave_vigenere_2,
+        misiones: Array.isArray(p.misiones) ? p.misiones : JSON.parse(p.misiones || '[]')
+      }));
+      console.log(`[RompeCódigos] ${PARTIDAS_DATA.length} operaciones cargadas exclusivamente desde Supabase.`);
+    } else {
+      PARTIDAS_DATA = [];
+      showToast('No se encontraron partidas en la base de datos Supabase', 'error');
+      console.error('[RompeCódigos] Error: La base de datos no devolvió partidas de rompecodigos_partidas.');
+    }
+  } catch (err) {
+    PARTIDAS_DATA = [];
+    showToast('Error al conectar con la base de datos Supabase', 'error');
+    console.error('[RompeCódigos] Error cargando partidas desde Supabase:', err);
+  } finally {
+    if (select) select.disabled = false;
+  }
+}
+
+// ─── Gestión de Partidas / Operaciones ────────────────────────
+function initPartidasSelector() {
+  const select = document.getElementById('partida-select');
+  if (!select) return 0;
+
+  // Cargar partidas completadas guardadas
+  try {
+    const compStored = localStorage.getItem('rompecodigos_partidas_completadas');
+    if (compStored) {
+      const arr = JSON.parse(compStored);
+      if (Array.isArray(arr)) {
+        arr.forEach(id => state.partidasCompletadas.add(id));
+      }
+    }
+  } catch (e) {}
+
+  renderPartidasSelectOptions();
+
+  if (!PARTIDAS_DATA || PARTIDAS_DATA.length === 0) {
+    select.disabled = true;
+    return 0;
+  }
+  select.disabled = false;
+
+  // Cargar índice de partida guardado
+  let savedIdx = 0;
+  try {
+    const stored = localStorage.getItem('rompecodigos_partida_idx');
+    if (stored !== null) savedIdx = parseInt(stored, 10) || 0;
+  } catch (e) {}
+  if (savedIdx < 0 || savedIdx >= PARTIDAS_DATA.length) savedIdx = 0;
+  select.value = savedIdx.toString();
+
+  select.addEventListener('change', e => {
+    const newIdx = parseInt(e.target.value, 10);
+    cargarPartida(newIdx);
+  });
+
+  const btnRandom = document.getElementById('btn-partida-aleatoria');
+  btnRandom?.addEventListener('click', () => {
+    if (!PARTIDAS_DATA || PARTIDAS_DATA.length === 0) return;
+    const available = [];
+    for (let i = 0; i < PARTIDAS_DATA.length; i++) {
+      if (i !== state.partidaIndex) available.push(i);
+    }
+    const randomIdx = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : 0;
+    select.value = randomIdx.toString();
+    cargarPartida(randomIdx);
+    showToast(`🎲 ¡Cargada ${PARTIDAS_DATA[randomIdx]?.nombre}!`, 'info');
+  });
+
+  const btnNextPartida = document.getElementById('btn-siguiente-partida');
+  btnNextPartida?.addEventListener('click', () => {
+    if (!PARTIDAS_DATA || PARTIDAS_DATA.length === 0) return;
+    const modalFinal = document.getElementById('modal-resumen-final');
+    if (modalFinal) modalFinal.classList.add('hidden');
+    const nextIdx = (state.partidaIndex + 1) % PARTIDAS_DATA.length;
+    select.value = nextIdx.toString();
+    cargarPartida(nextIdx);
+    showToast(`▶ Iniciando ${PARTIDAS_DATA[nextIdx]?.nombre}`, 'success');
+  });
+
+  return savedIdx;
+}
+
+function renderPartidasSelectOptions() {
+  const select = document.getElementById('partida-select');
+  if (!select) return;
+  if (!PARTIDAS_DATA || PARTIDAS_DATA.length === 0) {
+    select.innerHTML = '<option value="">⚠️ Sin partidas en Supabase</option>';
+    return;
+  }
+  select.innerHTML = PARTIDAS_DATA.map((p, idx) => {
+    const done = state.partidasCompletadas.has(idx);
+    return `<option value="${idx}">${done ? '✓ ' : ''}${idx + 1}. ${p.nombre}</option>`;
+  }).join('');
+}
+
+function actualizarHeaderPartida() {
+  const partida = PARTIDAS_DATA[state.partidaIndex];
+  const tag = document.getElementById('partida-active-tag');
+  const desc = document.getElementById('partida-desc-small');
+  const select = document.getElementById('partida-select');
+
+  if (!partida) {
+    if (tag) tag.textContent = 'Sin Operación';
+    if (desc) desc.textContent = 'No hay partidas cargadas desde Supabase';
+    return;
+  }
+  if (tag) tag.textContent = `Operación ${partida.id}`;
+  if (desc) desc.textContent = partida.descripcion;
+  if (select && select.value !== state.partidaIndex.toString()) {
+    select.value = state.partidaIndex.toString();
+  }
+}
+
+function cargarPartida(idx) {
+  if (!PARTIDAS_DATA || PARTIDAS_DATA.length === 0) {
+    actualizarHeaderPartida();
+    renderMisionesNav();
+    const tituloEl = document.getElementById('mision-title');
+    const descEl = document.getElementById('mision-desc');
+    if (tituloEl) tituloEl.textContent = 'Sin operaciones disponibles';
+    if (descEl) descEl.textContent = 'No se han podido cargar las partidas desde la base de datos de Supabase. Asegúrate de ejecutar el script seed_rompecodigos_partidas.sql en el SQL Editor de Supabase.';
+    return;
+  }
+  if (idx < 0 || idx >= PARTIDAS_DATA.length) idx = 0;
+  state.partidaIndex = idx;
+  MISIONES = PARTIDAS_DATA[idx]?.misiones || [];
+  state.misionesCompletadas.clear();
+  try {
+    localStorage.setItem('rompecodigos_partida_idx', idx.toString());
+  } catch (e) {}
+  actualizarHeaderPartida();
+  renderMisionesNav();
+  if (MISIONES.length > 0) {
+    cargarMision(0);
+  }
 }
 
 // ─── Selector de Modo (Misiones vs Sandbox) ───────────────────
@@ -479,6 +557,11 @@ function renderMisionesNav() {
   if (!container) return;
   container.innerHTML = '';
 
+  if (!MISIONES || MISIONES.length === 0) {
+    container.innerHTML = '<span style="font-size:0.8rem; color:var(--text-dim); padding:4px 8px;">Sin misiones disponibles</span>';
+    return;
+  }
+
   MISIONES.forEach((m, idx) => {
     const btn = document.createElement('button');
     btn.className = `mission-pill ${idx === state.misionIndex ? 'active' : ''} ${state.misionesCompletadas.has(idx) ? 'completed' : ''}`;
@@ -492,6 +575,9 @@ function renderMisionesNav() {
 
 // ─── Cargar Misión ───────────────────────────────────────────
 function cargarMision(idx) {
+  if (!MISIONES || MISIONES.length === 0 || !MISIONES[idx]) {
+    return;
+  }
   state.misionIndex = idx;
   const mision = MISIONES[idx];
   state.textoOriginal = mision.textoOriginal;
@@ -532,6 +618,29 @@ function cargarMision(idx) {
     cesarSlider.value = 0;
     updateCesarValue(0);
   }
+  const vigenereKeyInput = document.getElementById('vigenere-key-input');
+  if (vigenereKeyInput) vigenereKeyInput.value = '';
+  const vigenereKnownWord = document.getElementById('vigenere-known-word');
+  if (vigenereKnownWord) vigenereKnownWord.value = '';
+  const vigenereKnownResult = document.getElementById('vigenere-known-result');
+  if (vigenereKnownResult) vigenereKnownResult.innerHTML = '';
+
+  // Dossier de pistas previas para misiones Vigenère
+  const vigenereDossier = document.getElementById('vigenere-intel-dossier');
+  const vigenereClues = document.getElementById('vigenere-intel-clues');
+  if (mision.tipo === 'vigenere' && mision.pistasPrevias && mision.pistasPrevias.length > 0) {
+    if (vigenereClues) {
+      vigenereClues.innerHTML = mision.pistasPrevias.map(p => `
+        <div style="padding:4px 8px; background:rgba(0,0,0,0.25); border-radius:4px; border-left:3px solid var(--accent); margin-bottom:2px;">
+          ${p}
+        </div>
+      `).join('');
+    }
+    if (vigenereDossier) vigenereDossier.classList.remove('hidden');
+  } else {
+    if (vigenereDossier) vigenereDossier.classList.add('hidden');
+  }
+
   resetSustInputs();
 
   // Renderizar vistas
@@ -645,6 +754,9 @@ function buildSustKeyboard() {
       resetSustInputs();
       renderTextoCifrado();
       renderTextoDescifrado();
+      if (MISIONES[state.misionIndex]?.tipo === 'substitution') {
+        renderPalabrasCortas();
+      }
       showToast('Sustituciones limpiadas', 'info');
     });
   }
@@ -668,6 +780,9 @@ function buildSustKeyboard() {
 
       renderTextoCifrado();
       renderTextoDescifrado();
+      if (MISIONES[state.misionIndex]?.tipo === 'substitution') {
+        renderPalabrasCortas();
+      }
       showToast('Sugerencia de frecuencias aplicada', 'success');
     });
   }
@@ -1057,6 +1172,17 @@ function mostrarModalVictoria(puntos, segundos) {
   const estrellasEl = document.getElementById('modal-estrellas');
   if (estrellasEl) estrellasEl.textContent = estrellas;
 
+  // Mostrar pista de inteligencia desbloqueada para misiones posteriores
+  const misionActual = MISIONES[state.misionIndex];
+  const clueWrap = document.getElementById('modal-intel-clue-wrap');
+  const clueText = document.getElementById('modal-intel-clue-text');
+  if (misionActual && misionActual.pistaIntel) {
+    if (clueText) clueText.innerHTML = misionActual.pistaIntel;
+    if (clueWrap) clueWrap.classList.remove('hidden');
+  } else {
+    if (clueWrap) clueWrap.classList.add('hidden');
+  }
+
   if (modal) modal.classList.remove('hidden');
 
   if (btnSig) {
@@ -1077,6 +1203,13 @@ async function finalizarEntrenamientoCompleto() {
   if (totalPtsEl) totalPtsEl.textContent = `${state.puntuacionTotal} PTS`;
   if (modalFinal) modalFinal.classList.remove('hidden');
 
+  // Registrar partida como completada y actualizar selector
+  state.partidasCompletadas.add(state.partidaIndex);
+  try {
+    localStorage.setItem('rompecodigos_partidas_completadas', JSON.stringify([...state.partidasCompletadas]));
+  } catch (e) {}
+  renderPartidasSelectOptions();
+
   // Guardar partida en Supabase
   if (state.user) {
     try {
@@ -1087,6 +1220,8 @@ async function finalizarEntrenamientoCompleto() {
         state.puntuacionTotal,
         {
           mode: 'practice',
+          partidaId: PARTIDAS_DATA[state.partidaIndex]?.id,
+          partidaNombre: PARTIDAS_DATA[state.partidaIndex]?.nombre,
           misionesTotal: MISIONES.length,
           misionesSuperadas: state.misionesCompletadas.size,
           timestamp: new Date().toISOString()
@@ -1152,66 +1287,164 @@ function renderCesarSuggestions() {
   });
 }
 
-// ─── Panel de Palabras Cortas ─────────────────────────────────
+// ─── Panel de Palabras Cortas — Criptoanálisis de Sustitución ───
 const PALABRAS_CORTAS_ES = {
-  1: ['A', 'Y', 'O', 'U', 'E'],
-  2: ['DE', 'LA', 'EL', 'EN', 'UN', 'ES', 'AL', 'LO', 'LE', 'SE', 'YA', 'NO'],
-  3: ['LOS', 'LAS', 'DEL', 'CON', 'UNA', 'QUE', 'POR', 'SUS', 'MAS', 'SON'],
-  4: ['PARA', 'COMO', 'ESTE', 'ESTA', 'CUAL', 'PERO', 'TODO', 'CADA']
+  1: [
+    'A', 'Y', 'E', 'O', 'U',
+    'B', 'C', 'D', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Z'
+  ],
+  2: [
+    'LA', 'DE', 'EL', 'EN', 'UN', 'SI', 'ES', 'AL', 'LO', 'LE',
+    'SE', 'SU', 'TE', 'MI', 'YA', 'NO', 'ME', 'TU', 'VA', 'HE',
+    'NI', 'IP', 'SO', 'EX'
+  ],
+  3: [
+    'LOS', 'LAS', 'DEL', 'CON', 'POR', 'UNA', 'RED', 'FUE', 'QUE',
+    'MAS', 'SUS', 'SON', 'SIN', 'VER', 'DOS', 'DAR', 'MUY', 'HAY',
+    'WEB', 'LUZ', 'DIA', 'TCP', 'SUR', 'SOL', 'PAN', 'VOZ', 'LEY'
+  ],
+  4: [
+    'PARA', 'SEIS', 'BUEN', 'COMO', 'ESTE', 'ESTA', 'CUAL', 'PERO',
+    'TODO', 'CADA', 'VIDA', 'DIAS', 'BIEN', 'HORA', 'SOLO', 'DEBE',
+    'UTIL', 'HITO', 'LUNA', 'DIOS', 'CAOS', 'OTRA', 'ERAN', 'AZUL',
+    'OTRO', 'CLIC', 'NAVE', 'MUDA', 'HILO', 'FINO', 'OCHO', 'MIDE',
+    'CASI', 'GIRA', 'SEGA', 'DURO', 'MURO', 'DEJA', 'CAJA', 'ANOS',
+    'TIRA', 'VARA', 'TRES', 'CAPA', 'ROJA'
+  ]
 };
 
 function renderPalabrasCortas() {
   const container = document.getElementById('palabras-cortas-panel');
   if (!container) return;
 
-  // Extraer palabras únicas del texto cifrado (separadas por espacios), longitud 1-4
+  // Extraer palabras únicas del texto cifrado (longitud 1-4)
   const words = [...new Set(
     state.textoCifrado.split(/[^A-Z]+/).filter(w => w.length >= 1 && w.length <= 4)
-  )].sort((a, b) => a.length - b.length);
+  )].sort((a, b) => a.length - b.length || a.localeCompare(b));
 
-  if (!words.length) { container.innerHTML = ''; return; }
+  if (!words.length) {
+    container.innerHTML = '';
+    return;
+  }
 
   container.innerHTML = `
-    <div class="section-title" style="margin-bottom:8px;">🔎 Palabras cortas — punto de ataque</div>
-    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">
-      Las palabras cortas son el mejor punto de partida. Haz clic en un candidato para aplicar esa correspondencia.
+    <div class="section-title" style="margin-bottom:6px;">🔎 Análisis de Palabras Cortas</div>
+    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px; line-height:1.4;">
+      En español, los artículos y conjunciones cortas (A, Y, LA, EL, EN, DE, UN, SI...) son la clave para descifrar sustituciones monoalfabéticas sin conocer la clave. 
+      Los candidatos en <strong style="color:var(--primary);">azul</strong> encajan con tus letras actuales, y los <strong style="color:var(--accent);">verdes (✓)</strong> ya están aplicados.
     </div>
     ${words.map(word => {
       const candidates = PALABRAS_CORTAS_ES[word.length] || [];
+      const decodedArr = word.split('').map(ch => state.tablaSustitucion[ch] || '_');
+      const decodedStr = decodedArr.join('');
+      const hasAnyMapping = decodedArr.some(c => c !== '_');
+      const allMapped = decodedArr.every(c => c !== '_');
+
       return `
-        <div style="margin-bottom:10px; background:rgba(0,0,0,0.2); border:1px solid var(--border); border-radius:6px; padding:8px;">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <span style="font-family:var(--font-mono); font-size:1rem; color:var(--primary); font-weight:700; letter-spacing:0.12em;">${word}</span>
-            <span style="font-size:0.7rem; color:var(--text-muted);">(${word.length} letras)</span>
+        <div style="margin-bottom:10px; background:rgba(15,23,42,0.65); border:1px solid var(--border); border-radius:6px; padding:8px 10px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <span style="font-family:var(--font-mono); font-size:1.05rem; color:var(--primary); font-weight:700; letter-spacing:0.12em;">${word}</span>
+            <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+            <span style="font-family:var(--font-mono); font-size:1.05rem; font-weight:700; letter-spacing:0.14em; color:${allMapped ? 'var(--accent)' : 'var(--text-bright)'};">
+              ${decodedArr.join(' ')}
+            </span>
+            <span style="font-size:0.7rem; color:var(--text-dim);">(${word.length} ${word.length === 1 ? 'letra' : 'letras'})</span>
+            ${hasAnyMapping ? `
+              <button class="btn-clear-word" data-cipher="${word}"
+                      style="margin-left:auto; background:transparent; border:1px solid rgba(255,100,100,0.35);
+                             color:#ff6b81; font-size:0.7rem; padding:2px 7px; border-radius:4px; cursor:pointer;"
+                      title="Quitar correspondencias de esta palabra">
+                ✖ Quitar
+              </button>` : ''}
           </div>
-          <div style="display:flex; flex-wrap:wrap; gap:4px;">
-            ${candidates.map(cand => `
-              <button class="word-cand-btn" data-cipher="${word}" data-plain="${cand}"
-                      style="background:rgba(255,255,255,0.05); border:1px solid var(--border);
-                             color:var(--text-bright); font-family:var(--font-mono); font-size:0.78rem;
-                             padding:3px 8px; border-radius:4px; cursor:pointer; transition:all 0.15s;">
-                ${cand}
-              </button>`).join('')}
+          <div style="display:flex; flex-wrap:wrap; gap:5px;">
+            ${candidates.map(cand => {
+              let isCompatible = true;
+              const isExactMatch = (decodedStr === cand);
+
+              for (let i = 0; i < word.length; i++) {
+                const cCh = word[i];
+                const pCh = cand[i];
+                if (state.tablaSustitucion[cCh] && state.tablaSustitucion[cCh] !== pCh) {
+                  isCompatible = false;
+                  break;
+                }
+                for (const [k, v] of Object.entries(state.tablaSustitucion)) {
+                  if (v === pCh && k !== cCh) {
+                    isCompatible = false;
+                    break;
+                  }
+                }
+                if (!isCompatible) break;
+                for (let j = i + 1; j < word.length; j++) {
+                  if (word[i] === word[j] && cand[i] !== cand[j]) { isCompatible = false; break; }
+                  if (word[i] !== word[j] && cand[i] === cand[j]) { isCompatible = false; break; }
+                }
+                if (!isCompatible) break;
+              }
+
+              let btnStyle = '';
+              let label = cand;
+              if (isExactMatch) {
+                btnStyle = 'background:rgba(0,255,136,0.18); border:1px solid var(--accent); color:var(--accent); font-weight:700;';
+                label = `✓ ${cand}`;
+              } else if (isCompatible) {
+                btnStyle = 'background:rgba(0,229,255,0.12); border:1px solid rgba(0,229,255,0.4); color:var(--primary); font-weight:600;';
+              } else {
+                btnStyle = 'background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:var(--text-dim); opacity:0.35;';
+              }
+
+              return `
+                <button class="word-cand-btn" data-cipher="${word}" data-plain="${cand}"
+                        style="${btnStyle} font-family:var(--font-mono); font-size:0.78rem; padding:3px 8px; border-radius:4px; cursor:pointer; transition:all 0.15s;">
+                  ${label}
+                </button>`;
+            }).join('')}
           </div>
         </div>`;
     }).join('')}
   `;
 
+  // Listener para aplicar candidato
   container.querySelectorAll('.word-cand-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const cipher = btn.dataset.cipher;
       const plain  = btn.dataset.plain;
-      // Aplicar correspondencia letra a letra
       for (let i = 0; i < cipher.length; i++) {
         const cChar = cipher[i];
         const pChar = plain[i];
         state.tablaSustitucion[cChar] = pChar;
         const input = document.querySelector(`.sust-key-input[data-char="${cChar}"]`);
-        if (input) { input.value = pChar; input.classList.add('filled'); }
+        if (input) {
+          input.value = pChar;
+          input.classList.add('filled');
+        }
       }
       renderTextoCifrado();
       renderTextoDescifrado();
+      renderPalabrasCortas();
       showToast(`Aplicado: ${cipher} → ${plain}`, 'success');
+    });
+  });
+
+  // Listener para quitar sustitución individual de palabra
+  container.querySelectorAll('.btn-clear-word').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cipher = btn.dataset.cipher;
+      for (let i = 0; i < cipher.length; i++) {
+        const cChar = cipher[i];
+        delete state.tablaSustitucion[cChar];
+        const input = document.querySelector(`.sust-key-input[data-char="${cChar}"]`);
+        if (input) {
+          input.value = '';
+          input.classList.remove('filled');
+        }
+      }
+      renderTextoCifrado();
+      renderTextoDescifrado();
+      renderPalabrasCortas();
+      showToast(`Sustituciones de ${cipher} eliminadas`, 'info');
     });
   });
 }

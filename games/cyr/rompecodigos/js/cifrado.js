@@ -212,3 +212,162 @@ function knownPlaintextVigenere(cipherText, guessWord) {
   }
   return results;
 }
+
+// ─── Alias directos para cifrado ──────────────────────────────
+function cifrarCesar(texto, desplazamiento) {
+  return Caesar.encrypt(texto, desplazamiento);
+}
+
+function cifrarVigenere(texto, clave) {
+  return Vigenere.encrypt(texto, clave);
+}
+
+// ─── Pool de Mensajes por Defecto ─────────────────────────────
+const MENSAJES_POOL = [
+  // Fácil (César simple)
+  {
+    id: 'facil_1',
+    tematica: 'Misión Secreta',
+    nivelDificultad: 'facil',
+    tipoCifrado: 'caesar',
+    clave: 3,
+    textoOriginal: 'EL CODIGO SECRETO HA SIDO DESCIFRADO CON EXITO',
+    textoCifrado: 'HO FRGLJR VHFUHWR KD VLGR GHVFUIUDGR FRQ HALWR'
+  },
+  {
+    id: 'facil_2',
+    tematica: 'Ciberseguridad',
+    nivelDificultad: 'facil',
+    tipoCifrado: 'caesar',
+    clave: 4,
+    textoOriginal: 'PROTEGE SIEMPRE TUS CONTRASENAS CON CARACTERES SEGUROS',
+    textoCifrado: 'TVSXIKI WMIQTVI XYW GSRXVEWIREW GSR GEVEGXIVIW WIKYVSW'
+  },
+  {
+    id: 'facil_3',
+    tematica: 'Base Espacial',
+    nivelDificultad: 'facil',
+    tipoCifrado: 'caesar',
+    clave: 2,
+    textoOriginal: 'LA ESTACION ESPACIAL RECIBE LA TRANSMISION DE DATOS',
+    textoCifrado: 'NC GUVCEKQP GURCEKCN TGEKDG NC VTCPUOKUKQP FG FCVQU'
+  },
+  {
+    id: 'facil_4',
+    tematica: 'Inteligencia Digital',
+    nivelDificultad: 'facil',
+    tipoCifrado: 'caesar',
+    clave: 5,
+    textoOriginal: 'TODO SISTEMA INFORMATICO REQUIERE COPIAS DE SEGURIDAD',
+    textoCifrado: 'YTIT XNXYJRF NSKTWRFYNHT WJVZNJWJ HUTNFX IJ XJLZWNIPI'
+  },
+  {
+    id: 'facil_5',
+    tematica: 'Redes Seguras',
+    nivelDificultad: 'facil',
+    tipoCifrado: 'caesar',
+    clave: 3,
+    textoOriginal: 'LA INFORMACION VIAJA ENCRIPTADA POR LA FIBRA OPTICA',
+    textoCifrado: 'OD LQIRUPDFLRQ YLDMD HQFULSWDGD SRU OD ILEUD RSWLFD'
+  },
+
+  // Medio (César avanzado)
+  {
+    id: 'medio_1',
+    tematica: 'Protocolo Enigma',
+    nivelDificultad: 'medio',
+    tipoCifrado: 'caesar',
+    clave: 13,
+    textoOriginal: 'EL ALGORITMO ROT13 DIVIDE EL ALFABETO POR LA MITAD',
+    textoCifrado: 'RY NYTBEVGZB EBG13 QVIVQR RY NYSNORGB CBE YN ZVGNY'
+  },
+  {
+    id: 'medio_2',
+    tematica: 'Interceptación Lunar',
+    nivelDificultad: 'medio',
+    tipoCifrado: 'caesar',
+    clave: 7,
+    textoOriginal: 'LA BASE LUNAR NECESITA SUMINISTROS DE ENERGIA DE INMEDIATO',
+    textoCifrado: 'SH IHZL SBUHY ULJLZPAH ZBTPUPZAYVZ KL LULYNPH KL PUTLKPHAV'
+  },
+  {
+    id: 'medio_3',
+    tematica: 'Criptografía Clásica',
+    nivelDificultad: 'medio',
+    tipoCifrado: 'caesar',
+    clave: 11,
+    textoOriginal: 'JULIO CESAR USABA ESTE METODO PARA MENSAJES MILITARES',
+    textoCifrado: 'UFWTZ NPDLC FDLML PDEP XPEZOZ ALCL XPYDNUPD XTWTELCPD'
+  },
+  {
+    id: 'medio_4',
+    tematica: 'Defensa de Redes',
+    nivelDificultad: 'medio',
+    tipoCifrado: 'caesar',
+    clave: 9,
+    textoOriginal: 'EL CORTAFUEGOS DETECTO ACCESOS NO AUTORIZADOS EN EL SERVIDOR',
+    textoCifrado: 'NU LXACJODNPXB MNCNLCX JLLNBXB WX JDCXARIJMXB NW NU BNAERMXA'
+  },
+  {
+    id: 'medio_5',
+    tematica: 'Frecuencias Ocultas',
+    nivelDificultad: 'medio',
+    tipoCifrado: 'caesar',
+    clave: 14,
+    textoOriginal: 'EL ANALISIS DE FRECUENCIAS REVELA LAS VOCALES MAS COMUNES',
+    textoCifrado: 'SZ OBOZWGWG RS TFSQISBQWOG FSJSZO ZOG JCQOZSG TOG QCAIBSE'
+  },
+
+  // Difícil (Vigenère)
+  {
+    id: 'dificil_1',
+    tematica: 'Clave Polialfabética',
+    nivelDificultad: 'dificil',
+    tipoCifrado: 'vigenere',
+    clave: 'ROBOT',
+    textoOriginal: 'LA CLAVE SECRETA ABRE TODAS LAS PUERTAS DEL SISTEMA CENTRAL',
+    textoCifrado: 'CO DZTMS TSVISUO TSFF HHUOT ZT DVSVHVH RSP TKHVOAE DFBYEON'
+  },
+  {
+    id: 'dificil_2',
+    tematica: 'Agente Doble',
+    nivelDificultad: 'dificil',
+    tipoCifrado: 'vigenere',
+    clave: 'ENIGMA',
+    textoOriginal: 'EL AGENTE DOBLE ACTIVA EL PROTOCOLO DE DESCONEXION TOTAL',
+    textoCifrado: 'IY IMQNXR LUNLI NKZUVE RT VDOXUSOYW HR JMGOUZILWUZ ACZOT'
+  },
+  {
+    id: 'dificil_3',
+    tematica: 'Criptoanálisis',
+    nivelDificultad: 'dificil',
+    tipoCifrado: 'vigenere',
+    clave: 'CYBER',
+    textoOriginal: 'UN MENSAJE CIFRADO CON VIGENERE RESISTE LA FUERZA BRUTA SIMPLE',
+    textoCifrado: 'WL NIEUYKI TKDSEUQ APR MKEFRVT IILGJTF NC WYYTCX DTWYC JGNRNX'
+  },
+  {
+    id: 'dificil_4',
+    tematica: 'Redes Globales',
+    nivelDificultad: 'dificil',
+    tipoCifrado: 'vigenere',
+    clave: 'STACK',
+    textoOriginal: 'LOS SERVIDORES PRINCIPALES DE LA NUBE ESTAN RESTRINGIDOS',
+    textoCifrado: 'DHS UOJOIFYJXS RBAGCKZSEEU NW DN VMNW WLVTC JEKLBVQSILOA'
+  },
+  {
+    id: 'dificil_5',
+    tematica: 'Copia de Respaldo',
+    nivelDificultad: 'dificil',
+    tipoCifrado: 'vigenere',
+    clave: 'TOKEN',
+    textoOriginal: 'LA SEGURIDAD EN INTERNET DEPENDE DE BUENOS PROTOCOLOS',
+    textoCifrado: 'EO CITNFSHNW SX MAMSBRRM ROTRGQR HR PNRBFB IKHGHPIZHH'
+  }
+];
+
+if (typeof window !== 'undefined') {
+  window.cifrarCesar = cifrarCesar;
+  window.cifrarVigenere = cifrarVigenere;
+  window.MENSAJES_POOL = MENSAJES_POOL;
+}

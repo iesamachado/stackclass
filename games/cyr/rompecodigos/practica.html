@@ -249,6 +249,14 @@
         <option value="agente">🟡 Agente</option>
         <option value="maestro">🔴 Maestro</option>
       </select>
+      <select id="partida-select" title="Seleccionar Operación / Partida" style="font-family:var(--font-head); font-size:0.78rem; font-weight:700;
+              letter-spacing:0.04em; padding:5px 8px; border-radius:var(--radius-sm); margin-left:8px; max-width:200px;
+              background:var(--bg-surface2); border:1px solid var(--border); color:var(--primary); cursor:pointer;">
+        <!-- Generado por JS con las 20 operaciones -->
+      </select>
+      <button id="btn-partida-aleatoria" class="btn btn-ghost btn-sm" title="Jugar una operación aleatoria" style="padding:4px 8px; margin-left:4px; font-size:0.85rem;">
+        🎲
+      </button>
     </div>
     <div class="hud-center">
       <div class="hud-ronda" id="hud-mision-wrap">
@@ -385,6 +393,15 @@
       <div class="panel-section" id="section-vigenere">
         <div class="section-title">🛡️ Descifrador Vigenère (Polialfabético)</div>
         <div style="background:var(--bg-surface2); border:1px solid var(--border); border-radius:var(--radius-md); padding:0.75rem; display:flex; flex-direction:column; gap:0.5rem;">
+          
+          <!-- Dossier de pistas previas para Vigenère -->
+          <div id="vigenere-intel-dossier" class="tutorial-callout hidden" style="border-left-color: var(--accent); background: rgba(0, 255, 136, 0.08);">
+            <div style="display:flex; align-items:center; gap:6px; font-weight:700; color:var(--accent); font-size:0.85rem; margin-bottom:6px;">
+              <span>📂</span> DOSSIER DE INTELIGENCIA: PISTAS RECOPILADAS
+            </div>
+            <div id="vigenere-intel-clues" style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:var(--text-bright);"></div>
+          </div>
+
           <label class="form-label" style="margin-bottom:2px;">Clave secreta de descifrado:</label>
           <div style="display:flex; gap:8px;">
             <input type="text" id="vigenere-key-input" class="form-input" placeholder="PALABRA CLAVE" style="text-transform:uppercase; font-family:var(--font-mono); letter-spacing:0.1em;" maxlength="15">
@@ -453,7 +470,11 @@
 
       <!-- Selector de Misiones -->
       <div class="panel-section" id="section-misiones-nav">
-        <div class="section-title">🗺️ Misiones de Entrenamiento</div>
+        <div class="section-title-row">
+          <div class="section-title">🗺️ Misiones</div>
+          <span id="partida-active-tag" class="badge badge-accent" style="font-size:0.7rem; font-family:var(--font-head);">Operación 1</span>
+        </div>
+        <div id="partida-desc-small" class="text-muted" style="font-size:0.75rem; margin-bottom:8px; line-height:1.3;"></div>
         <div class="mission-badge-group" id="misiones-nav">
           <!-- Generado por JS -->
         </div>
@@ -675,6 +696,15 @@
         <div class="solucion-label">Mensaje Original Revelado</div>
         <div id="modal-solucion" class="solucion-text"></div>
       </div>
+
+      <!-- Pista de inteligencia obtenida para misiones posteriores -->
+      <div id="modal-intel-clue-wrap" class="hidden" style="margin: 10px 0; padding: 10px 14px; background: rgba(0, 255, 136, 0.1); border: 1px solid var(--accent); border-radius: var(--radius-sm); text-align: left; width: 100%;">
+        <div style="font-weight: 700; color: var(--accent); font-size: 0.82rem; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+          <span>🔍</span> <span>INFORMACIÓN ESTRATÉGICA DESBLOQUEADA</span>
+        </div>
+        <div id="modal-intel-clue-text" style="font-size: 0.85rem; color: var(--text-bright); line-height: 1.4;"></div>
+      </div>
+
       <div id="modal-estrellas" style="font-size:1.8rem; letter-spacing:4px; margin:8px 0; text-align:center;"></div>
 
       <div style="display:flex; justify-content:space-around; width:100%; padding:0.5rem 0; font-family:var(--font-head);">
@@ -708,13 +738,18 @@
         <div id="final-total-pts" class="text-accent" style="font-family:var(--font-head); font-size:2.4rem; font-weight:900;">0 PTS</div>
       </div>
 
-      <div style="display:flex; gap:1rem; width:100%; margin-top:1rem;">
-        <a href="index.html" class="btn btn-ghost btn-lg w-full" style="text-align:center;">
-          🎮 Modos RompeCódigos
-        </a>
-        <a href="../../../index.html" class="btn btn-primary btn-lg w-full" style="text-align:center;">
-          🏠 Salir al Dashboard
-        </a>
+      <div style="display:flex; flex-direction:column; gap:8px; width:100%; margin-top:1rem;">
+        <button id="btn-siguiente-partida" class="btn btn-accent btn-lg w-full">
+          ▶ Jugar Siguiente Operación
+        </button>
+        <div style="display:flex; gap:1rem; width:100%;">
+          <a href="index.html" class="btn btn-ghost btn-sm w-full" style="text-align:center;">
+            🎮 Modos RompeCódigos
+          </a>
+          <a href="../../../index.html" class="btn btn-primary btn-sm w-full" style="text-align:center;">
+            🏠 Salir al Dashboard
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -722,6 +757,6 @@
   <div id="toast-container"></div>
 
   <script src="js/cifrado.js"></script>
-  <script type="module" src="js/practica.js"></script>
+  <script type="module" src="js/practica.js?v=2.0"></script>
 </body>
 </html>

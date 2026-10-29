@@ -204,18 +204,20 @@ function clearMonitor() {
 
 function updateMonitorState() {
   const hasMonitor = document.querySelector('#drop-monitor.filled');
-  const wrapper = document.getElementById('external-monitor-wrapper');
+  const monitorStatus = document.getElementById('monitor-status-text');
   
   if (!hasMonitor) {
-    wrapper.style.display = 'none';
-    monitorTerminal.innerHTML = '<div class="status-line" style="color: #444; text-align: center; margin-top: 50px; font-size: 1.5rem;">NO SIGNAL</div>';
-    monitorLed.style.background = '#ff4444';
+    monitorLed.classList.remove('active');
+    monitorLed.style.background = '#ef4444';
+    if (monitorStatus) monitorStatus.textContent = 'STANDBY · NO SIGNAL';
+    monitorTerminal.innerHTML = '<div class="status-line" style="color: #ef4444; font-weight: bold;">[ NO SIGNAL · SIN SEÑAL DE VÍDEO ]</div><div class="status-line" style="color: #94a3b8; font-size: 0.72rem;">Conecta un Monitor al puerto HDMI del panel I/O (a la izquierda).</div>';
   } else {
-    wrapper.style.display = 'flex';
+    monitorLed.classList.add('active');
+    monitorLed.style.background = '#22c55e';
+    if (monitorStatus) monitorStatus.textContent = 'HDMI-1 ACTIVO · 1080p';
     if (monitorTerminal.textContent.includes('NO SIGNAL')) {
-      monitorTerminal.innerHTML = '';
+      monitorTerminal.innerHTML = '<div class="status-line ok" style="color: #39ff14; font-weight: bold;">[ SEÑAL DETECTADA · HDMI-1 ACTIVO ]</div><div class="status-line" style="color: #cbd5e1; font-size: 0.72rem;">Monitor conectado correctamente. Pulsa "Arrancar Sistema ⚡" cuando completes el montaje.</div>';
     }
-    monitorLed.style.background = '#39ff14';
   }
 }
 
@@ -230,9 +232,137 @@ function updateTotalPrice() {
   updateMonitorState();
 }
 
+function getDropzoneDefaultHTML(zone) {
+  const labels = {
+    'drop-cpu': '<span class="slot-icon">🔲</span><span class="slot-name">SOCKET CPU</span>',
+    'drop-ram1': '<span class="slot-icon">📼</span><span class="slot-name">DIMM 1</span>',
+    'drop-ram2': '<span class="slot-icon">📼</span><span class="slot-name">DIMM 2</span>',
+    'drop-gpu': '<span class="slot-icon">🎮</span><span class="slot-name">RANURA PCIe (GPU)</span>',
+    'drop-hdd1': '<span class="slot-icon">💾</span><span class="slot-name">SATA 1</span>',
+    'drop-hdd2': '<span class="slot-icon">💾</span><span class="slot-name">SATA 2</span>',
+    'drop-psu': '<span class="slot-icon">⚡</span><span class="slot-name">FUENTE ATX</span>',
+    'drop-keyboard': '<span class="slot-icon">⌨️</span><span class="slot-name">TECLADO</span>',
+    'drop-mouse': '<span class="slot-icon">🖱️</span><span class="slot-name">RATÓN</span>',
+    'drop-monitor': '<span class="slot-icon">🖥️</span><span class="slot-name">MONITOR</span>'
+  };
+  return labels[zone.id] || `<span class="slot-name">${zone.dataset.accept.toUpperCase()}</span>`;
+}
+
+function getDropzoneDefaultTitle(zone) {
+  const titles = {
+    'drop-cpu': 'Instalar Procesador (CPU)',
+    'drop-ram1': 'Instalar Módulo RAM 1',
+    'drop-ram2': 'Instalar Módulo RAM 2',
+    'drop-gpu': 'Instalar Tarjeta Gráfica (PCIe)',
+    'drop-hdd1': 'Instalar Disco Principal (SATA 1)',
+    'drop-hdd2': 'Instalar Disco Secundario (SATA 2)',
+    'drop-psu': 'Instalar Fuente de Alimentación (ATX)',
+    'drop-keyboard': 'Conectar Teclado USB',
+    'drop-mouse': 'Conectar Ratón USB',
+    'drop-monitor': 'Conectar Monitor (HDMI/DP)'
+  };
+  return titles[zone.id] || `Instalar ${zone.dataset.accept}`;
+}
+
+function getComponentIcon(type) {
+  const icons = {
+    cpu: '🔲',
+    ram: '📼',
+    gpu: '🎮',
+    hdd: '💾',
+    psu: '⚡',
+    keyboard: '⌨️',
+    mouse: '🖱️',
+    monitor: '🖥️'
+  };
+  return icons[type] || '📦';
+}
+
+// Tooltip flotante al pasar el ratón por encima
+const tooltipHud = document.getElementById('component-tooltip-hud');
+
+function showTooltipForZone(zone, e) {
+  if (!zone.classList.contains('filled') || !zone.dataset.placedId) return;
+  const item = CATALOG.find(c => c.id === zone.dataset.placedId);
+  if (!item || !tooltipHud) return;
+
+  tooltipHud.innerHTML = `
+    <div class="tooltip-hud-header">
+      <span class="tooltip-hud-icon">${getComponentIcon(item.type)}</span>
+      <span class="tooltip-hud-name">${item.name}</span>
+    </div>
+    <div class="tooltip-hud-body">
+      <span class="tooltip-hud-price">${item.price} €</span>
+      <span class="tooltip-hud-action">✕ Clic para extraer</span>
+    </div>
+  `;
+
+  tooltipHud.classList.remove('hidden');
+  positionTooltip(e);
+}
+
+function positionTooltip(e) {
+  if (!tooltipHud || tooltipHud.classList.contains('hidden') || !e) return;
+  const offset = 14;
+  let x = e.clientX + offset;
+  let y = e.clientY + offset;
+
+  const rect = tooltipHud.getBoundingClientRect();
+  if (x + rect.width > window.innerWidth - 10) {
+    x = e.clientX - rect.width - offset;
+  }
+  if (y + rect.height > window.innerHeight - 10) {
+    y = e.clientY - rect.height - offset;
+  }
+
+  tooltipHud.style.left = `${Math.max(10, x)}px`;
+  tooltipHud.style.top = `${Math.max(10, y)}px`;
+}
+
+function hideTooltip() {
+  if (tooltipHud) tooltipHud.classList.add('hidden');
+}
+
+// Aplica el componente visual y semántico a la ranura
+function applyInstalledComponent(zone, item) {
+  zone.classList.add('filled');
+  zone.dataset.placedId = item.id;
+  zone.title = `${item.name} (${item.price} €) - Haz clic para extraer`;
+  
+  zone.innerHTML = `
+    <div class="installed-component">
+      <img src="assets/${item.img}" alt="${item.name}" class="installed-img">
+      <div class="installed-model-badge" title="${item.name}">${item.name}</div>
+    </div>
+  `;
+  updateTotalPrice();
+  printBios(`Instalado: ${item.name}`, 'ok');
+}
+
+function clearInstalledComponent(zone) {
+  zone.classList.remove('filled');
+  delete zone.dataset.placedId;
+  zone.innerHTML = getDropzoneDefaultHTML(zone);
+  zone.title = getDropzoneDefaultTitle(zone);
+}
+
+// INSTALACIÓN DE COMPONENTE (Soporte Clic y Drag)
+function installItem(item) {
+  if (!isPlaying) return false;
+  // Buscar primera ranura libre que acepte este tipo
+  const availableZone = Array.from(dropzones).find(z => z.dataset.accept === item.type && !z.classList.contains('filled'));
+  if (!availableZone) {
+    printBios(`[AVISO] No hay ranuras libres para ${item.name}.`, 'error');
+    return false;
+  }
+  
+  applyInstalledComponent(availableZone, item);
+  return true;
+}
+
 // INVENTARIO
 function renderInventory() {
-  inventoryEl.innerHTML = `<h3 style="font-size: 1rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; margin-bottom: 15px;">📦 Componentes</h3>`;
+  inventoryEl.innerHTML = `<h3 style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; margin: 0 0 6px 0;">📦 Componentes</h3>`;
   
   const categories = {
     cpu: 'Procesadores',
@@ -251,15 +381,15 @@ function renderInventory() {
 
     const details = document.createElement('details');
     details.open = true;
-    details.style.marginBottom = '10px';
+    details.style.marginBottom = '6px';
     
-    details.innerHTML = `<summary style="cursor: pointer; font-weight: bold; margin-bottom: 10px; color: var(--accent); padding: 8px; background: rgba(0,255,136,0.1); border-radius: 4px; border-left: 3px solid var(--accent); list-style: none;">📂 ${title}</summary>`;
+    details.innerHTML = `<summary style="cursor: pointer; font-weight: bold; margin-bottom: 6px; color: var(--accent); padding: 4px 8px; background: rgba(0,255,136,0.1); border-radius: 4px; border-left: 3px solid var(--accent); list-style: none; font-size: 0.8rem;">📂 ${title}</summary>`;
     
     const grid = document.createElement('div');
     grid.style.display = 'grid';
     grid.style.gridTemplateColumns = '1fr 1fr';
-    grid.style.gap = '10px';
-    grid.style.marginBottom = '15px';
+    grid.style.gap = '6px';
+    grid.style.marginBottom = '8px';
     
     items.forEach(item => {
       const el = document.createElement('div');
@@ -267,14 +397,21 @@ function renderInventory() {
       el.draggable = true;
       el.dataset.type = item.type;
       el.dataset.id = item.id;
+      el.title = `Haz clic o arrastra para instalar ${item.name}`;
       el.innerHTML = `
         <img src="assets/${item.img}" alt="${item.name}">
-        <div style="font-size: 0.8rem; margin-top: 5px; line-height: 1.2;">${item.name}</div>
-        <div style="color: var(--success); font-weight: bold; font-size: 0.8rem; margin-top: 3px;">${item.price} €</div>
+        <div style="font-size: 0.75rem; margin-top: 3px; line-height: 1.15; font-weight: 500;">${item.name}</div>
+        <div style="color: var(--success); font-weight: bold; font-size: 0.75rem; margin-top: 2px;">${item.price} €</div>
       `;
       
+      // Doble soporte: Arrastrar y Clic
       el.addEventListener('dragstart', handleDragStart);
       el.addEventListener('dragend', handleDragEnd);
+      el.addEventListener('click', () => {
+        if (!isPlaying) return;
+        installItem(item);
+      });
+
       grid.appendChild(el);
     });
     
@@ -291,8 +428,7 @@ function handleDragStart(e) {
   draggedElement = this;
   draggedData = {
     type: this.dataset.type,
-    id: this.dataset.id,
-    html: this.innerHTML
+    id: this.dataset.id
   };
   e.dataTransfer.setData('text/plain', this.dataset.type);
   this.style.opacity = '0.5';
@@ -307,6 +443,10 @@ function handleDragEnd(e) {
 // DROPZONES
 function initDropzones() {
   dropzones.forEach(zone => {
+    // Inicializar etiquetas y títulos por defecto
+    zone.innerHTML = getDropzoneDefaultHTML(zone);
+    zone.title = getDropzoneDefaultTitle(zone);
+
     zone.addEventListener('dragover', (e) => {
       e.preventDefault();
       if (!zone.classList.contains('filled')) {
@@ -321,46 +461,43 @@ function initDropzones() {
     zone.addEventListener('drop', (e) => {
       e.preventDefault();
       zone.classList.remove('drag-over');
-      if (!isPlaying) return;
+      if (!isPlaying || !draggedData) return;
       
       const typeDropped = e.dataTransfer.getData('text/plain');
       const acceptType = zone.dataset.accept;
       
       if (typeDropped === acceptType && !zone.classList.contains('filled')) {
-        zone.classList.add('filled');
-        zone.innerHTML = draggedData.html;
-        zone.dataset.placedId = draggedData.id;
-        
-        // Remove text to just leave the image
-        const txt = zone.querySelectorAll('div');
-        txt.forEach(t => t.remove());
-        
-        updateTotalPrice();
-        printBios(`Instalado: ${CATALOG.find(c => c.id === draggedData.id).name}`, 'ok');
+        const item = CATALOG.find(c => c.id === draggedData.id);
+        if (item) {
+          applyInstalledComponent(zone, item);
+        }
       } else {
         printBios(`[ERROR] Puerto incompatible.`, 'error');
       }
     });
     
-    // Click to remove
+    // Clic para extraer componente
     zone.addEventListener('click', () => {
       if (!isPlaying || !zone.classList.contains('filled')) return;
-      zone.classList.remove('filled');
-      delete zone.dataset.placedId;
-      zone.innerHTML = zone.dataset.accept.toUpperCase();
+      clearInstalledComponent(zone);
       updateTotalPrice();
       printBios(`Componente extraído.`, '');
+      hideTooltip();
     });
+
+    // Eventos de ratón para mostrar el modelo en el Tooltip HUD
+    zone.addEventListener('mouseenter', (e) => showTooltipForZone(zone, e));
+    zone.addEventListener('mousemove', (e) => positionTooltip(e));
+    zone.addEventListener('mouseleave', hideTooltip);
   });
 }
 
 function resetDropzones() {
   dropzones.forEach(zone => {
-    zone.innerHTML = zone.dataset.accept.toUpperCase(); // Reset text
-    zone.classList.remove('filled');
-    delete zone.dataset.placedId;
+    clearInstalledComponent(zone);
   });
   updateTotalPrice();
+  hideTooltip();
 }
 
 // Inicializar de una vez

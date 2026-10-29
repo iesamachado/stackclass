@@ -37,16 +37,126 @@ body {
 .score-board { color: #66fcf1; }
 
 #radar {
-  margin: 30px 0;
-  padding: 20px;
+  margin: 25px auto;
+  padding: 16px 20px;
   background: #1f2833;
   border: 2px dashed #45a29e;
-  border-radius: 10px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.4);
 }
 
 .target-label {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
+  font-weight: bold;
+  letter-spacing: 1.5px;
   color: #c5c6c7;
+  margin-bottom: 6px;
+}
+
+.hex-grid-container {
+  display: inline-grid;
+  grid-template-columns: auto minmax(65px, 85px) minmax(65px, 85px) minmax(65px, 85px);
+  column-gap: 12px;
+  row-gap: 6px;
+  align-items: center;
+  justify-content: center;
+  margin: 4px auto;
+}
+
+.hex-cell {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 3.4rem;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1;
+  letter-spacing: 2px;
+}
+
+.hex-cell-hash {
+  color: #64748b;
+  font-size: 2.8rem;
+  padding-right: 2px;
+}
+
+.hex-cell-r {
+  color: #ff6b6b;
+  text-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
+}
+
+.hex-cell-g {
+  color: #4ade80;
+  text-shadow: 0 0 14px rgba(34, 197, 94, 0.45);
+}
+
+.hex-cell-b {
+  color: #60a5fa;
+  text-shadow: 0 0 14px rgba(59, 130, 246, 0.45);
+}
+
+.rgb-bar-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rgb-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+}
+
+.bar-r {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.bar-g {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.bar-b {
+  background: #3b82f6;
+  box-shadow: 0 0 8px #3b82f6;
+}
+
+.rgb-badge-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rgb-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 3px 0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.badge-r {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+
+.badge-g {
+  background: rgba(34, 197, 94, 0.18);
+  border: 1px solid #22c55e;
+  color: #86efac;
+}
+
+.badge-b {
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid #3b82f6;
+  color: #93c5fd;
 }
 
 #target-hex {
@@ -86,14 +196,13 @@ body {
 
 .alien {
   width: 80px;
-  height: 80px;
-  border-radius: 20%;
+  height: 60px;
   cursor: crosshair;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  background: transparent;
   position: absolute;
   top: -80px; /* Empieza fuera */
   transition: transform 0.1s;
@@ -101,7 +210,16 @@ body {
 }
 
 .alien:hover {
-  transform: scale(1.1);
+  transform: scale(1.12);
+}
+
+.alien svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
 }
 
 .hidden {

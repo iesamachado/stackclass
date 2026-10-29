@@ -208,6 +208,33 @@ body {
   color: #e0e7ff;
 }
 
+.threat-stealth {
+  background: #090d16;
+  border-color: #64748b;
+  color: #f8fafc;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(100, 116, 139, 0.2);
+  position: relative;
+}
+
+.threat-stealth::after {
+  content: '🕵️ SIGILO';
+  position: absolute;
+  top: -8px;
+  right: 10px;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  border: 1px solid #475569;
+}
+
+.threat-stealth .threat-tag {
+  color: #94a3b8;
+}
+
 /* Controles de Defensa */
 .controls {
   display: flex;
@@ -592,6 +619,15 @@ body {
   color: #38bdf8;
   display: block;
   font-size: 0.95rem;
+}
+
+.stat-pill-stealth {
+  border: 1px solid #64748b;
+  background: rgba(100, 116, 139, 0.2);
+}
+
+.stat-pill-stealth span {
+  color: #f8fafc;
 }
 
 .tip-card {

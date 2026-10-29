@@ -623,10 +623,10 @@ El vídeo debe tener una duración mínima de 20 segundos, constar de al menos 5
 - Un breve párrafo (3-4 líneas) respondiendo: ¿Qué riesgos para la privacidad crees que tiene enviar fotos originales por Internet sin borrar los metadatos?`
   },
   {
-    id: '34', title: 'Juego: Asimov.IO', block: '5', crit: '1.2',
-    description: `🎮 **Asimov.IO** es un simulador de ética artificial basado en la toma de decisiones.
+    id: '34', title: 'Juego: Asimov: Moral Machine', block: '5', crit: '1.2',
+    description: `🎮 **Asimov: Moral Machine** es un simulador de dilemas éticos para vehículos autónomos (inspirado en el proyecto *Moral Machine* del MIT).
 
-En este juego tomas el papel de la IA central de una ciudad inteligente. Se te presentarán dilemas morales y sociales (como la privacidad vs seguridad, o eficiencia vs empleo humano). Tu objetivo es tomar decisiones deslizando a izquierda o derecha, intentando sobrevivir el máximo de días posibles sin que la Felicidad, la Eficiencia o la Ética lleguen a 0 (ni a 100).`
+En este juego programas el núcleo de decisión de un coche autónomo que sufre un fallo crítico e inevitable de frenos. En cada uno de los 10 escenarios deberás analizar las consecuencias de cada trayectoria para minimizar el daño global y preservar el mayor número de vidas humanas posibles, aplicando la 1ª Ley de la Robótica de Isaac Asimov.`
   },
   {
     id: '35', title: 'Test Creative Commons', block: '6', crit: '6.3',

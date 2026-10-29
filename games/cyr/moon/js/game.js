@@ -221,22 +221,25 @@ function triggerVictory() {
 
 async function triggerGameOver() {
   state.gameOver = true;
-  if (state.targets.length > 0) {
-    $("gameover-bits").textContent = bin(state.targets[state.targets.length - 1]);
-  } else {
-    $("gameover-bits").textContent = "----";
+  const goBits = $("gameover-bits");
+  if (goBits) {
+    goBits.textContent = state.targets.length > 0 ? bin(state.targets[state.targets.length - 1]) : "----";
   }
   
-  $("gameover-score-val").textContent = state.score;
+  const scoreVal = $("gameover-score-val");
+  if (scoreVal) scoreVal.textContent = state.score;
+
   const msg = $("gameover-score-msg");
-  if (state.score === 0) {
-    msg.textContent = "¡Ánimo! Seguro que en la próxima partida logras completar algún objetivo.";
-  } else if (state.score <= 2) {
-    msg.textContent = "¡Buen trabajo! Has resuelto algunos objetivos.";
-  } else if (state.score <= 5) {
-    msg.textContent = "¡Genial! Tienes buena lógica de programación 👏";
-  } else {
-    msg.textContent = "¡IMPRESIONANTE! Eres un Hacker de Nivel Dios 🚀🔥";
+  if (msg) {
+    if (state.score === 0) {
+      msg.textContent = "¡Ánimo! Seguro que en la próxima partida logras completar algún objetivo.";
+    } else if (state.score <= 2) {
+      msg.textContent = "¡Buen trabajo! Has resuelto algunos objetivos.";
+    } else if (state.score <= 5) {
+      msg.textContent = "¡Genial! Tienes buena lógica de programación 👏";
+    } else {
+      msg.textContent = "¡IMPRESIONANTE! Eres un Hacker de Nivel Dios 🚀🔥";
+    }
   }
 
   if (currentUser) {
@@ -253,7 +256,7 @@ async function triggerGameOver() {
     }
   }
 
-  $("gameover-overlay").classList.remove("hidden");
+  $("gameover-overlay")?.classList.remove("hidden");
 }
 
 function flashNoEnergy() {

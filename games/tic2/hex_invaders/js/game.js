@@ -80,6 +80,45 @@ function startGame() {
   nextRound();
 }
 
+function createAlienSprite(color, idSuffix = 0) {
+  const filterId = `alien-filter-${idSuffix}-${Math.floor(Math.random() * 100000)}`;
+  return `
+    <svg class="alien-sprite" viewBox="-1 -1 13 10" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="${filterId}" x="-20%" y="-20%" width="140%" height="140%">
+          <feMorphology in="SourceAlpha" result="dilated" operator="dilate" radius="0.25"/>
+          <feFlood flood-color="#ffffff" result="white"/>
+          <feComposite in="white" in2="dilated" operator="in" result="outline"/>
+          <feMerge>
+            <feMergeNode in="outline"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#${filterId})" fill="${color}">
+        <rect x="2" y="0" width="1" height="1"/>
+        <rect x="8" y="0" width="1" height="1"/>
+        <rect x="3" y="1" width="1" height="1"/>
+        <rect x="7" y="1" width="1" height="1"/>
+        <rect x="2" y="2" width="7" height="1"/>
+        <rect x="1" y="3" width="2" height="1"/>
+        <rect x="4" y="3" width="3" height="1"/>
+        <rect x="8" y="3" width="2" height="1"/>
+        <rect x="0" y="4" width="11" height="1"/>
+        <rect x="0" y="5" width="1" height="1"/>
+        <rect x="2" y="5" width="7" height="1"/>
+        <rect x="10" y="5" width="1" height="1"/>
+        <rect x="0" y="6" width="1" height="1"/>
+        <rect x="2" y="6" width="1" height="1"/>
+        <rect x="8" y="6" width="1" height="1"/>
+        <rect x="10" y="6" width="1" height="1"/>
+        <rect x="3" y="7" width="2" height="1"/>
+        <rect x="6" y="7" width="2" height="1"/>
+      </g>
+    </svg>
+  `;
+}
+
 function nextRound() {
   if (!isPlaying) return;
   ui.alienZone.innerHTML = '';
@@ -93,7 +132,15 @@ function nextRound() {
   }
   
   targetHex = correctColor;
-  ui.targetHex.innerText = targetHex;
+  if (ui.targetHex) ui.targetHex.innerText = targetHex;
+
+  const cleanHex = targetHex.replace('#', '');
+  const elR = document.getElementById('hex-digits-r');
+  const elG = document.getElementById('hex-digits-g');
+  const elB = document.getElementById('hex-digits-b');
+  if (elR) elR.innerText = cleanHex.substring(0, 2);
+  if (elG) elG.innerText = cleanHex.substring(2, 4);
+  if (elB) elB.innerText = cleanHex.substring(4, 6);
 
   // Generar opciones falsas
   let options = [correctColor];
@@ -114,15 +161,10 @@ function nextRound() {
   options.forEach((color, index) => {
     const alien = document.createElement('div');
     alien.className = 'alien';
-    alien.style.backgroundColor = color;
     alien.style.left = positions[index];
-    alien.innerText = "👾";
     alien.dataset.top = -80; // Empieza fuera de pantalla
     alien.dataset.color = color;
-    
-    if (color === "#000000") {
-      alien.style.border = "2px solid #fff";
-    }
+    alien.innerHTML = createAlienSprite(color, index);
 
     alien.onclick = (e) => shootAlien(alien, color === correctColor, e);
     ui.alienZone.appendChild(alien);

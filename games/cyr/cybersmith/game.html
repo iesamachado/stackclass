@@ -12,92 +12,170 @@
   <link rel="stylesheet" href="css/cybersmith.css">
 </head>
 <body class="page">
-  <header class="main-header" style="background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
-    <div style="font-family: var(--font-mono); font-size: 1.5rem; color: var(--primary);">
+  <header class="main-header" style="background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); padding: 6px 16px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="font-family: var(--font-mono); font-size: 1.25rem; color: var(--primary);">
       🛠️ CyberSmith OS v1.0
     </div>
     <div style="display: flex; gap: 8px;">
-      <a href="index.html" class="btn btn-outline" style="font-size: 0.9rem;">Menú</a>
-      <a href="../../../index.html" class="btn btn-secondary" style="font-size: 0.9rem;">🏠 Salir al Dashboard</a>
+      <a href="index.html" class="btn btn-outline" style="font-size: 0.85rem; padding: 4px 10px;">Menú</a>
+      <a href="../../../index.html" class="btn btn-secondary" style="font-size: 0.85rem; padding: 4px 10px;">🏠 Salir al Dashboard</a>
     </div>
   </header>
 
-  <main class="page-content" style="width: 100%; max-width: 1400px; margin: 0 auto; padding-top: 20px;">
+  <main class="page-content" style="width: 100%; max-width: 1400px; margin: 0 auto; padding: 8px 12px;">
     
     <!-- HEADER DEL JUEGO ARCADE -->
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;">
+    <div class="arcade-top-bar">
       <!-- TICKET -->
-      <div class="card" style="flex: 1; border-left: 4px solid var(--accent); background: #fffde7; color: #333;">
-        <div style="font-family: var(--font-mono); font-weight: bold; border-bottom: 1px dashed #ccc; margin-bottom: 10px; padding-bottom: 5px;">🎫 TICKET DE CLIENTE #<span id="ticket-id">001</span></div>
-        <div id="ticket-text" style="font-family: 'Kalam', cursive; font-size: 1.1rem; line-height: 1.4;">
+      <div class="ticket-card">
+        <div class="ticket-header">
+          <span class="ticket-badge">🎫 TICKET DE CLIENTE #<span id="ticket-id">001</span></span>
+        </div>
+        <div id="ticket-text" class="ticket-text">
           Cargando pedido...
         </div>
       </div>
       
       <!-- STATS -->
-      <div class="card" style="display: flex; gap: 30px; font-family: var(--font-mono); font-size: 1.5rem; background: var(--bg-card);">
-        <div>⏱️ Tiempo: <span id="timer-display" style="color: var(--accent);">05:00</span></div>
-        <div>🏆 PCs: <span id="score-display" style="color: var(--success);">0</span></div>
-        <button id="btn-start-arcade" class="btn btn-primary" style="font-size: 1rem;">Iniciar Turno</button>
+      <div class="stats-card">
+        <div class="stat-item">⏱️ Tiempo: <span id="timer-display" class="stat-val-timer">05:00</span></div>
+        <div class="stat-item">🏆 PCs: <span id="score-display" class="stat-val-score">0</span></div>
+        <button id="btn-start-arcade" class="btn btn-primary btn-start-turn">Iniciar Turno</button>
       </div>
     </div>
 
     <div class="taller-layout" id="game-area" style="opacity: 0.5; pointer-events: none;">
       <!-- INVENTARIO -->
       <aside class="inventario" id="inventory">
-        <h3 style="font-size: 1rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">📦 Componentes</h3>
+        <h3 style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; margin: 0 0 6px 0;">📦 Componentes</h3>
         <!-- Se inyectarán desde JS -->
       </aside>
 
-      <!-- PLACA BASE Y MONITOR FÍSICO -->
+      <!-- PLACA BASE Y MONITOR DE PRUEBAS -->
       <section class="mesa-trabajo">
         
-        <!-- MONITOR FÍSICO (Oculto por defecto) -->
-        <div id="external-monitor-wrapper" style="display: none; flex-direction: column; align-items: center; width: 70%; max-height: 40%; margin-top: 15px; margin-bottom: 15px;">
-          <!-- Pantalla -->
-          <div style="width: 100%; flex-grow: 1; min-height: 200px; background: #222; border-radius: 10px; border: 15px solid #111; border-bottom-width: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); display: flex; flex-direction: column; position: relative;">
-            <div class="monitor" id="monitor-terminal" style="flex-grow: 1; border-radius: 0; border: none; background: #050505; position: relative; overflow-y: auto;">
-              <div id="monitor-content" style="padding: 10px;">
-                <!-- Logs will go here -->
-              </div>
-            </div>
-            <!-- LED -->
-            <div style="position: absolute; bottom: -18px; right: 20px; width: 8px; height: 8px; background: #39ff14; border-radius: 50%;" id="monitor-led"></div>
-            <div style="position: absolute; bottom: -22px; width: 100%; text-align: center; font-size: 0.6rem; color: #555; font-family: sans-serif; letter-spacing: 2px;">CYBERSMITH</div>
+        <!-- MONITOR DE PRUEBAS DEL TALLER (Fijo en cabecera) -->
+        <div id="external-monitor-wrapper" class="bench-monitor">
+          <div class="bench-monitor-header">
+            <span class="monitor-led" id="monitor-led"></span>
+            <span class="bench-monitor-title">CYBERSMITH TEST DISPLAY · HDMI-1</span>
+            <span id="monitor-status-text" class="bench-monitor-status">STANDBY · NO SIGNAL</span>
           </div>
-          <!-- Peana / Soporte -->
-          <div style="width: 50px; height: 25px; background: #222; border-left: 2px solid #111; border-right: 2px solid #111;"></div>
-          <div style="width: 150px; height: 10px; background: #333; border-radius: 5px 5px 0 0;"></div>
+          <div class="monitor bench-monitor-screen" id="monitor-terminal">
+            <div id="monitor-content">
+              <div class="status-line" style="color: #ef4444; font-weight: bold;">[ NO SIGNAL · SIN SEÑAL DE VÍDEO ]</div>
+              <div class="status-line" style="color: #94a3b8; font-size: 0.72rem;">Conecta un Monitor al puerto HDMI del panel I/O (a la izquierda).</div>
+            </div>
+          </div>
         </div>
 
-        <div class="motherboard-bg">
-          <div class="dropzone" id="drop-cpu" data-accept="cpu">SOCKET CPU</div>
-          <div class="dropzone" id="drop-ram1" data-accept="ram">DIMM 1</div>
-          <div class="dropzone" id="drop-ram2" data-accept="ram">DIMM 2</div>
-          <div class="dropzone" id="drop-gpu" data-accept="gpu">PCIe</div>
-          <div class="dropzone" id="drop-hdd1" data-accept="hdd">SATA 1</div>
-          <div class="dropzone" id="drop-hdd2" data-accept="hdd">SATA 2</div>
-          <div class="dropzone" id="drop-psu" data-accept="psu">ATX PWR</div>
-          
-          <div class="dropzone" id="drop-keyboard" data-accept="keyboard" style="font-size: 0.7rem; text-align: center;">Teclado</div>
-          <div class="dropzone" id="drop-mouse" data-accept="mouse" style="font-size: 0.7rem; text-align: center;">Ratón</div>
-          <div class="dropzone" id="drop-monitor" data-accept="monitor" style="font-size: 0.7rem; text-align: center;">Monitor</div>
+        <!-- MESA ANTIESTÁTICA Y PLACA BASE -->
+        <div class="workbench-mat">
+          <div class="mat-header">
+            <span>MESA ANTIESTÁTICA ESD · TALLER DE ENSAMBLAJE</span>
+            <span>PLACA BASE ATX B650</span>
+          </div>
+
+          <div class="motherboard-board">
+            <!-- PANEL I/O TRASERO -->
+            <div class="io-shield">
+              <div class="io-title">PANEL I/O</div>
+              <div class="dropzone dropzone-io" id="drop-keyboard" data-accept="keyboard" title="Conectar Teclado USB">
+                <span class="slot-icon">⌨️</span>
+                <span class="slot-name">TECLADO</span>
+              </div>
+              <div class="dropzone dropzone-io" id="drop-mouse" data-accept="mouse" title="Conectar Ratón USB">
+                <span class="slot-icon">🖱️</span>
+                <span class="slot-name">RATÓN</span>
+              </div>
+              <div class="dropzone dropzone-io" id="drop-monitor" data-accept="monitor" title="Conectar Monitor (HDMI/DP)">
+                <span class="slot-icon">🖥️</span>
+                <span class="slot-name">MONITOR</span>
+              </div>
+            </div>
+
+            <!-- SUPERFICIE DE LA PLACA BASE -->
+            <div class="pcb-surface">
+              <!-- FILA SUPERIOR: CPU + RAM + PSU -->
+              <div class="pcb-row-top">
+                <!-- SOCKET CPU -->
+                <div class="slot-box box-cpu">
+                  <div class="slot-box-title">SOCKET CPU</div>
+                  <div class="dropzone dropzone-cpu" id="drop-cpu" data-accept="cpu" title="Instalar Procesador">
+                    <span class="slot-icon">🔲</span>
+                    <span class="slot-name">SOCKET CPU</span>
+                  </div>
+                </div>
+
+                <!-- MEMORIA RAM -->
+                <div class="slot-box box-ram">
+                  <div class="slot-box-title">RAM DUAL CHANNEL</div>
+                  <div class="ram-slots-group">
+                    <div class="dropzone dropzone-ram" id="drop-ram1" data-accept="ram" title="Instalar Módulo RAM 1">
+                      <span class="slot-icon">📼</span>
+                      <span class="slot-name">DIMM 1</span>
+                    </div>
+                    <div class="dropzone dropzone-ram" id="drop-ram2" data-accept="ram" title="Instalar Módulo RAM 2">
+                      <span class="slot-icon">📼</span>
+                      <span class="slot-name">DIMM 2</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- FUENTE DE ALIMENTACIÓN -->
+                <div class="slot-box box-psu">
+                  <div class="slot-box-title">ALIMENTACIÓN ATX (FUENTE)</div>
+                  <div class="dropzone dropzone-psu" id="drop-psu" data-accept="psu" title="Instalar Fuente de Alimentación">
+                    <span class="slot-icon">⚡</span>
+                    <span class="slot-name">FUENTE ATX</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- FILA INFERIOR: PCIe GPU + ALMACENAMIENTO -->
+              <div class="pcb-row-bottom">
+                <!-- RANURA PCIe (GPU) -->
+                <div class="slot-box box-gpu">
+                  <div class="slot-box-title">RANURA PCIe 4.0 x16 (TARJETA GRÁFICA)</div>
+                  <div class="dropzone dropzone-gpu" id="drop-gpu" data-accept="gpu" title="Instalar Tarjeta Gráfica">
+                    <span class="slot-icon">🎮</span>
+                    <span class="slot-name">RANURA PCIe (GPU)</span>
+                  </div>
+                </div>
+
+                <!-- BAHÍAS DE ALMACENAMIENTO SATA -->
+                <div class="slot-box box-storage">
+                  <div class="slot-box-title">ALMACENAMIENTO (SATA / NVMe)</div>
+                  <div class="storage-slots-group">
+                    <div class="dropzone dropzone-sata" id="drop-hdd1" data-accept="hdd" title="Instalar Disco Principal 1">
+                      <span class="slot-icon">💾</span>
+                      <span class="slot-name">SATA 1</span>
+                    </div>
+                    <div class="dropzone dropzone-sata" id="drop-hdd2" data-accept="hdd" title="Instalar Disco Secundario 2">
+                      <span class="slot-icon">💾</span>
+                      <span class="slot-name">SATA 2</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- DIAGNOSTICO Y MONITOR -->
-      <aside class="diagnostico" style="display: flex; flex-direction: column; gap: 15px;">
+      <aside class="diagnostico">
         
-        <div style="background: var(--bg-card); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-          <h3 style="font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase;">💰 Coste del Equipo</h3>
-          <div style="font-size: 2rem; font-family: var(--font-mono); color: var(--accent); margin-top: 5px;">
+        <div class="diag-cost-card">
+          <h3 style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; margin: 0;">💰 Coste del Equipo</h3>
+          <div style="font-size: 1.6rem; font-family: var(--font-mono); color: var(--accent); margin-top: 3px; font-weight: bold;">
             <span id="price-display">0</span> €
           </div>
         </div>
 
-        <div style="background: var(--bg-card); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); flex-grow: 1; display: flex; flex-direction: column;">
-          <h3 style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 5px;">📟 BIOS Debug (Placa Base)</h3>
-          <div class="monitor" id="bios-terminal" style="flex-grow: 1; font-size: 0.8rem; padding: 10px;">
+        <div class="diag-bios-card">
+          <h3 style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin: 0 0 4px 0;">📟 BIOS Debug (Placa Base)</h3>
+          <div class="monitor" id="bios-terminal" style="flex-grow: 1; font-size: 0.75rem; padding: 8px; overflow-y: auto;">
             <div id="bios-content">
               <div class="status-line">Standby...</div>
             </div>
@@ -121,6 +199,9 @@
       <a href="../../../privacidad.html" class="footer-link">Privacidad y Condiciones de uso</a>
     </div>
   </footer>
+
+  <!-- Tooltip flotante de información de componente al pasar el ratón -->
+  <div id="component-tooltip-hud" class="component-tooltip-hud hidden"></div>
 
   <script type="module" src="js/game.js"></script>
 </body>
