@@ -155,12 +155,29 @@ function getToastContainer() {
   return _toastContainer;
 }
 
-export function showToast(title, message = '', type = 'info', duration = 3500) {
+export function showToast(title, message = '', type = 'info', duration = 2500) {
+  const validTypes = ['info', 'success', 'error', 'warning'];
+  
+  // Soporte para firma flexible: showToast(title, type, duration)
+  if (validTypes.includes(message)) {
+    if (typeof type === 'number') {
+      duration = type;
+    }
+    type = message;
+    message = '';
+  }
+
   const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
   const container = getToastContainer();
 
+  // Limitar la cantidad de toasts simultáneos a un máximo de 3 para no saturar la pantalla
+  while (container.children.length >= 3) {
+    const oldest = container.firstElementChild;
+    oldest.remove();
+  }
+
   const toast = document.createElement('div');
-  toast.className = `toast toast--${type}`;
+  toast.className = `toast toast--${type} ${type}`;
   toast.innerHTML = `
     <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
     <div class="toast-body">
@@ -173,11 +190,30 @@ export function showToast(title, message = '', type = 'info', duration = 3500) {
   // Animación entrada
   requestAnimationFrame(() => toast.classList.add('toast--visible'));
 
+  let isClosed = false;
   const close = () => {
+    if (isClosed) return;
+    isClosed = true;
     toast.classList.remove('toast--visible');
-    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+    toast.classList.add('toast--closing');
+    let removed = false;
+    const cleanup = () => {
+      if (!removed) {
+        removed = true;
+        toast.remove();
+      }
+    };
+    toast.addEventListener('transitionend', cleanup, { once: true });
+    setTimeout(cleanup, 300); // Fallback garantizado para eliminar siempre el elemento
   };
-  toast.querySelector('.toast-close').addEventListener('click', close);
+
+  toast.querySelector('.toast-close')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    close();
+  });
+  // Cerrar también al hacer clic directamente en el toast
+  toast.addEventListener('click', close);
+
   setTimeout(close, duration);
 }
 

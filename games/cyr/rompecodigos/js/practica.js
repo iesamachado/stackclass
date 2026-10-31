@@ -67,9 +67,23 @@ async function initApp() {
   const initialPartidaIdx = initPartidasSelector() || 0;
   cargarPartida(initialPartidaIdx);
 
-  document.getElementById('difficulty-select')?.addEventListener('change', () => {
-    cargarMision(state.misionIndex);
-  });
+  const diffSelect = document.getElementById('difficulty-select');
+  if (diffSelect) {
+    const savedDiff = localStorage.getItem('rompecodigos_difficulty');
+    if (savedDiff && ['recluta', 'agente', 'maestro'].includes(savedDiff)) {
+      diffSelect.value = savedDiff;
+      state.difficulty = savedDiff;
+    } else {
+      state.difficulty = diffSelect.value || 'recluta';
+    }
+    diffSelect.addEventListener('change', (e) => {
+      state.difficulty = e.target.value;
+      localStorage.setItem('rompecodigos_difficulty', state.difficulty);
+      cargarMision(state.misionIndex);
+      const diffName = diffSelect.options[diffSelect.selectedIndex]?.text || state.difficulty;
+      showToast(`Dificultad: ${diffName}`, 'info');
+    });
+  }
 }
 
 async function cargarPartidasDesdeSupabase() {
@@ -643,7 +657,33 @@ function cargarMision(idx) {
 
   resetSustInputs();
 
-  // Renderizar vistas
+  // En modos accesibles (Recluta: 3 letras frecuentes, Agente: 1 letra), precargar letras como ayuda
+  if (mision.tipo === 'substitution' && mision.substMap) {
+    const numLetrasAyuda = state.difficulty === 'recluta' ? 3 : (state.difficulty === 'agente' ? 1 : 0);
+    if (numLetrasAyuda > 0) {
+      const charCounts = {};
+      for (const ch of mision.textoOriginal.toUpperCase()) {
+        if (ALPHABET.includes(ch)) {
+          charCounts[ch] = (charCounts[ch] || 0) + 1;
+        }
+      }
+      const sortedPlainChars = Object.keys(charCounts).sort((a, b) => charCounts[b] - charCounts[a]);
+      let aplicadas = 0;
+      for (const pChar of sortedPlainChars) {
+        if (aplicadas >= numLetrasAyuda) break;
+        const cChar = mision.substMap[pChar];
+        if (cChar) {
+          state.tablaSustitucion[cChar] = pChar;
+          const input = document.querySelector(`.sust-key-input[data-char="${cChar}"]`);
+          if (input) {
+            input.value = pChar;
+            input.classList.add('filled');
+          }
+          aplicadas++;
+        }
+      }
+    }
+  }
   renderTextoCifrado();
   renderTextoDescifrado();
   renderPistas();
@@ -761,30 +801,122 @@ function buildSustKeyboard() {
     });
   }
 
+  const btnRevelar = document.getElementById('btn-revelar-letra');
+  if (btnRevelar) {
+    btnRevelar.addEventListener('click', () => {
+      revelarLetraAyuda();
+    });
+  }
+
   const btnSugerir = document.getElementById('btn-sugerir');
   if (btnSugerir) {
     btnSugerir.addEventListener('click', () => {
-      const sugerencias = FrequencyAnalyzer.suggestSubstitutions(state.textoCifrado);
-      state.tablaSustitucion = { ...sugerencias };
-      
-      document.querySelectorAll('.sust-key-input').forEach(input => {
-        const ch = input.dataset.char;
-        if (state.tablaSustitucion[ch]) {
-          input.value = state.tablaSustitucion[ch];
-          input.classList.add('filled');
-        } else {
-          input.value = '';
-          input.classList.remove('filled');
+      const mision = MISIONES[state.misionIndex];
+      if (mision && mision.tipo === 'substitution' && mision.substMap) {
+        // En misiones guiadas de sustitución, sugerir vocales y letras clave frecuentes
+        // sin sobrescribir las letras que el usuario ya haya colocado
+        const frecuentesEsp = ['E', 'A', 'O', 'S', 'R', 'N', 'I', 'D', 'L'];
+        let aplicadas = 0;
+        for (const plain of frecuentesEsp) {
+          const cipher = mision.substMap[plain];
+          if (cipher && !state.tablaSustitucion[cipher]) {
+            state.tablaSustitucion[cipher] = plain;
+            aplicadas++;
+            if (aplicadas >= 3) break;
+          }
         }
-      });
 
+        document.querySelectorAll('.sust-key-input').forEach(input => {
+          const ch = input.dataset.char;
+          if (state.tablaSustitucion[ch]) {
+            input.value = state.tablaSustitucion[ch];
+            input.classList.add('filled');
+          }
+        });
+
+        renderTextoCifrado();
+        renderTextoDescifrado();
+        renderPalabrasCortas();
+        showToast(aplicadas > 0 ? 'Sugerencias de frecuencias aplicadas' : 'No hay más sugerencias pendientes', 'success');
+      } else {
+        const sugerencias = FrequencyAnalyzer.suggestSubstitutions(state.textoCifrado);
+        state.tablaSustitucion = { ...state.tablaSustitucion, ...sugerencias };
+
+        document.querySelectorAll('.sust-key-input').forEach(input => {
+          const ch = input.dataset.char;
+          if (state.tablaSustitucion[ch]) {
+            input.value = state.tablaSustitucion[ch];
+            input.classList.add('filled');
+          }
+        });
+
+        renderTextoCifrado();
+        renderTextoDescifrado();
+        if (MISIONES[state.misionIndex]?.tipo === 'substitution') {
+          renderPalabrasCortas();
+        }
+        showToast('Sugerencia de frecuencias aplicada', 'success');
+      }
+    });
+  }
+}
+
+function revelarLetraAyuda() {
+  const mision = MISIONES[state.misionIndex];
+  if (!mision) return;
+
+  if (mision.tipo === 'substitution' && mision.substMap) {
+    // Buscar letras del texto original que aún no estén en state.tablaSustitucion o estén incorrectas
+    const charCounts = {};
+    for (const ch of mision.textoOriginal.toUpperCase()) {
+      if (ALPHABET.includes(ch)) {
+        charCounts[ch] = (charCounts[ch] || 0) + 1;
+      }
+    }
+    const sortedPlainChars = Object.keys(charCounts).sort((a, b) => charCounts[b] - charCounts[a]);
+
+    let revealed = null;
+    for (const pChar of sortedPlainChars) {
+      const cChar = mision.substMap[pChar];
+      if (cChar && state.tablaSustitucion[cChar] !== pChar) {
+        state.tablaSustitucion[cChar] = pChar;
+        const input = document.querySelector(`.sust-key-input[data-char="${cChar}"]`);
+        if (input) {
+          input.value = pChar;
+          input.classList.add('filled');
+        }
+        revealed = { cipher: cChar, plain: pChar };
+        break;
+      }
+    }
+
+    if (revealed) {
       renderTextoCifrado();
       renderTextoDescifrado();
-      if (MISIONES[state.misionIndex]?.tipo === 'substitution') {
-        renderPalabrasCortas();
-      }
-      showToast('Sugerencia de frecuencias aplicada', 'success');
-    });
+      renderPalabrasCortas();
+      showToast(`Letra revelada: ${revealed.cipher} = ${revealed.plain}`, 'success');
+    } else {
+      showToast('¡Todas las letras del mensaje ya están descifradas!', 'info');
+    }
+  } else if (mision.tipo === 'caesar') {
+    const slider = document.getElementById('cesar-slider');
+    if (slider) {
+      slider.value = mision.shift;
+      updateCesarValue(mision.shift);
+      applyCesarShift(mision.shift);
+    }
+    showToast(`Desplazamiento César revelado: +${mision.shift}`, 'success');
+  } else if (mision.tipo === 'vigenere') {
+    const inputKey = document.getElementById('vigenere-key-input');
+    if (inputKey) {
+      inputKey.value = mision.key;
+    }
+    const descifrado = Vigenere.decrypt(state.textoCifrado, mision.key);
+    const descContainer = document.getElementById('texto-descifrado');
+    if (descContainer) descContainer.textContent = descifrado;
+    showToast(`Clave Vigenère revelada: "${mision.key}"`, 'success');
+  } else {
+    showToast('En el modo libre puedes experimentar con tus propios textos', 'info');
   }
 }
 
@@ -1006,8 +1138,10 @@ function renderPistas() {
   if (!list) return;
   list.innerHTML = '';
 
+  const costText = state.difficulty === 'recluta' ? 'Gratis en modo Recluta' : (state.difficulty === 'agente' ? '-50 pts' : '-100 pts');
+
   if (state.pistasUsadas === 0) {
-    list.innerHTML = '<div class="text-muted" style="font-size:0.8rem">Pulsa en "Pista" si necesitas ayuda (-100 pts).</div>';
+    list.innerHTML = `<div class="text-muted" style="font-size:0.8rem">Pulsa en "Pista" si necesitas ayuda (${costText}).</div>`;
     return;
   }
 
@@ -1028,7 +1162,8 @@ document.getElementById('btn-pedir-pista')?.addEventListener('click', () => {
   if (state.pistasUsadas < mision.pistas.length) {
     state.pistasUsadas++;
     renderPistas();
-    showToast('Nueva pista desbloqueada (-100 pts)', 'info');
+    const costText = state.difficulty === 'recluta' ? 'Gratis en Recluta' : (state.difficulty === 'agente' ? '-50 pts' : '-100 pts');
+    showToast(`Nueva pista desbloqueada (${costText})`, 'info');
   } else {
     showToast('No quedan más pistas para esta misión', 'warning');
   }
@@ -1105,7 +1240,8 @@ function verificarSolucion() {
     // Cálculo de puntuación
     const basePuntos = 1000;
     const tiempoPenalizacion = Math.min(400, tiempoSegundos * 2);
-    const pistasPenalizacion = state.pistasUsadas * 100;
+    const costePista = state.difficulty === 'recluta' ? 0 : (state.difficulty === 'agente' ? 50 : 100);
+    const pistasPenalizacion = state.pistasUsadas * costePista;
     const puntosRonda = Math.max(200, basePuntos - tiempoPenalizacion - pistasPenalizacion);
 
     state.puntuacionTotal += puntosRonda;
