@@ -218,18 +218,38 @@ CREATE TRIGGER arena_bots_updated_at BEFORE UPDATE ON arena_bots FOR EACH ROW EX
 CREATE TABLE IF NOT EXISTS offline_tasks (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   class_id TEXT NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-  title TEXT NOT NULL, description TEXT, rubric JSONB, max_score NUMERIC(5,2) DEFAULT 10,
-  created_at TIMESTAMPTZ DEFAULT now()
+  task_id TEXT,
+  title TEXT,
+  description TEXT,
+  rubric JSONB,
+  max_score NUMERIC(5,2) DEFAULT 10,
+  is_active BOOLEAN DEFAULT false,
+  rubric_published BOOLEAN DEFAULT false,
+  grades_published BOOLEAN DEFAULT false,
+  due_date TEXT DEFAULT '',
+  custom_title TEXT,
+  custom_description TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (class_id, task_id)
 );
+CREATE TRIGGER offline_tasks_updated_at BEFORE UPDATE ON offline_tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 CREATE TABLE IF NOT EXISTS offline_grades (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  task_id TEXT NOT NULL REFERENCES offline_tasks(id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL,
   student_id TEXT NOT NULL REFERENCES users(id),
   class_id TEXT NOT NULL REFERENCES classes(id),
-  score NUMERIC(5,2), feedback TEXT, graded_by TEXT REFERENCES users(id),
+  score NUMERIC(5,2),
+  feedback TEXT,
+  rubric_scores JSONB,
+  graded_by TEXT REFERENCES users(id),
   graded_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE (task_id, student_id)
 );
+CREATE TRIGGER offline_grades_updated_at BEFORE UPDATE ON offline_grades FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- 19. PARTIDAS DE ENTRENAMIENTO ROMPECODIGOS
 CREATE TABLE IF NOT EXISTS rompecodigos_partidas (
@@ -260,6 +280,10 @@ CREATE INDEX IF NOT EXISTS idx_topics_subject         ON topics(subject_id);
 CREATE INDEX IF NOT EXISTS idx_game_results_subject   ON game_results(subject_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_class      ON assignments(class_id);
 CREATE INDEX IF NOT EXISTS idx_arena_bots_owner       ON arena_bots(owner_id);
+CREATE INDEX IF NOT EXISTS idx_offline_grades_student ON offline_grades(student_id);
+CREATE INDEX IF NOT EXISTS idx_offline_grades_class   ON offline_grades(class_id);
+CREATE INDEX IF NOT EXISTS idx_offline_grades_task    ON offline_grades(task_id);
+CREATE INDEX IF NOT EXISTS idx_offline_tasks_class    ON offline_tasks(class_id);
 
 -- FUNCIONES RLS
 CREATE OR REPLACE FUNCTION is_admin() RETURNS BOOLEAN LANGUAGE SQL SECURITY DEFINER STABLE AS $$

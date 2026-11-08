@@ -1743,20 +1743,31 @@ export async function saveOfflineGradeRubric(classId, taskId, studentId, rubricS
   const { data: existing } = await supabase.from('offline_grades')
     .select('id').eq('class_id', classId).eq('task_id', taskId).eq('student_id', studentId).maybeSingle();
 
+  const now = new Date().toISOString();
   const record = {
     class_id: classId,
     task_id: taskId,
     student_id: studentId,
     score: finalGrade,
     feedback: teacherFeedback,
-    rubric_scores: rubricScores
+    rubric_scores: rubricScores,
+    updated_at: now
   };
+
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData?.user?.id) record.graded_by = authData.user.id;
+  } catch (_) {
+    // Si no está disponible la sesión auth, omitir graded_by
+  }
 
   if (existing) {
     const { error } = await supabase.from('offline_grades').update(record).eq('id', existing.id);
     if (error) throw error;
     return existing.id;
   } else {
+    record.graded_at = now;
+    record.created_at = now;
     const { data: row, error } = await supabase.from('offline_grades').insert(record).select('id').single();
     if (error) throw error;
     return row.id;
