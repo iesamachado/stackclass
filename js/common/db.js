@@ -12,7 +12,7 @@
 
 import { supabase } from './supabase-config.js';
 import { LOCAL_TOPICS } from './topics_data.js';
-import { CLASSROOM_TASKS_BY_SUBJECT, OFFLINE_RUBRIC } from './tasks.js';
+import { CLASSROOM_TASKS, CLASSROOM_TASKS_BY_SUBJECT, OFFLINE_RUBRIC } from './tasks.js';
 export { supabase };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1750,8 +1750,16 @@ export async function upsertOfflineTaskConfig(classId, taskId, updates) {
   if ('rubricPublished' in updates) dbUpdates.rubric_published = updates.rubricPublished;
   if ('gradesPublished' in updates) dbUpdates.grades_published = updates.gradesPublished;
   if ('dueDate' in updates) dbUpdates.due_date = updates.dueDate;
-  if ('customTitle' in updates) dbUpdates.custom_title = updates.customTitle;
-  if ('customDescription' in updates) dbUpdates.custom_description = updates.customDescription;
+  if ('customTitle' in updates) {
+    dbUpdates.custom_title = updates.customTitle;
+    if (!('title' in updates)) dbUpdates.title = updates.customTitle;
+  }
+  if ('title' in updates) dbUpdates.title = updates.title;
+  if ('customDescription' in updates) {
+    dbUpdates.custom_description = updates.customDescription;
+    if (!('description' in updates)) dbUpdates.description = updates.customDescription;
+  }
+  if ('description' in updates) dbUpdates.description = updates.description;
   if ('rubric' in updates) dbUpdates.rubric = updates.rubric;
   if ('customRubric' in updates) dbUpdates.rubric = updates.customRubric;
 
@@ -1763,15 +1771,28 @@ export async function upsertOfflineTaskConfig(classId, taskId, updates) {
     if (error) throw error;
     return { id: existing.id, taskId, classId, ...updates, rubric: dbUpdates.rubric, customRubric: dbUpdates.rubric };
   } else {
+    // Si la tabla original en PostgreSQL tiene restricción NOT NULL en 'title', asegurar que nunca sea null
+    let defaultTitle = updates.title || updates.customTitle;
+    let defaultDesc = updates.description || updates.customDescription || '';
+    if (!defaultTitle) {
+      const found = CLASSROOM_TASKS.find(t => t.id === taskId);
+      defaultTitle = found ? found.title : `Tarea ${taskId}`;
+      if (!defaultDesc && found) defaultDesc = found.description || '';
+    }
+
     const insertData = {
       class_id: classId,
       task_id: taskId,
+      title: defaultTitle || `Tarea ${taskId}`,
+      description: defaultDesc,
       is_active: false,
       rubric_published: false,
       grades_published: false,
       due_date: '',
       ...dbUpdates
     };
+    if (!insertData.title) insertData.title = defaultTitle || `Tarea ${taskId}`;
+
     const { data: row, error } = await supabase.from('offline_tasks').insert(insertData).select().single();
     if (error) throw error;
     return {

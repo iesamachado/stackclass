@@ -2117,7 +2117,10 @@ async function loadOfflineTasksTab() {
       const value = e.target.checked;
       
       try {
-        const res = await upsertOfflineTaskConfig(classData.id, taskId, { [field]: value });
+        const task = (currentClassroomTasks || []).find(t => t.id === taskId);
+        const title = offlineTasksConfig[taskId]?.customTitle || offlineTasksConfig[taskId]?.title || task?.title || `Tarea ${taskId}`;
+        const description = offlineTasksConfig[taskId]?.customDescription || offlineTasksConfig[taskId]?.description || task?.description || '';
+        const res = await upsertOfflineTaskConfig(classData.id, taskId, { [field]: value, title, description });
         offlineTasksConfig[taskId] = { ...(offlineTasksConfig[taskId] || {}), ...res, [field]: value };
         showToast('Guardado', 'Configuración actualizada', 'success', 1500);
       } catch(err) {
@@ -2134,7 +2137,10 @@ async function loadOfflineTasksTab() {
       const value = e.target.value;
       
       try {
-        const res = await upsertOfflineTaskConfig(classData.id, taskId, { dueDate: value });
+        const task = (currentClassroomTasks || []).find(t => t.id === taskId);
+        const title = offlineTasksConfig[taskId]?.customTitle || offlineTasksConfig[taskId]?.title || task?.title || `Tarea ${taskId}`;
+        const description = offlineTasksConfig[taskId]?.customDescription || offlineTasksConfig[taskId]?.description || task?.description || '';
+        const res = await upsertOfflineTaskConfig(classData.id, taskId, { dueDate: value, title, description });
         offlineTasksConfig[taskId] = { ...(offlineTasksConfig[taskId] || {}), ...res, dueDate: value };
         showToast('Guardado', 'Fecha de entrega actualizada', 'success', 1500);
       } catch(err) {
@@ -2470,7 +2476,12 @@ if ($('btn-close-edit-task')) {
     if (!taskId) return;
     
     try {
-      const updates = { customTitle, customDescription };
+      const updates = {
+        customTitle,
+        customDescription,
+        title: customTitle,
+        description: customDescription
+      };
       if (editingTaskRubric) {
         updates.rubric = editingTaskRubric;
       }
