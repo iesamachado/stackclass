@@ -646,9 +646,9 @@
 
   <!-- Modal Edit Task -->
   <div id="modal-edit-task" class="modal-backdrop" aria-hidden="true" role="dialog">
-    <div class="modal-box" style="max-width: 600px; width: 95%;">
+    <div class="modal-box" style="max-width: 750px; width: 95%; max-height: 90vh; overflow-y: auto;">
       <div class="modal-header">
-        <h3>Personalizar Tarea</h3>
+        <h3>Personalizar Tarea y Rúbrica</h3>
         <button class="modal-close" id="btn-close-edit-task">✕</button>
       </div>
       <div class="modal-body">
@@ -660,9 +660,43 @@
           </div>
           <div class="form-group" style="margin-top:15px;">
             <label class="form-label">Descripción</label>
-            <textarea id="edit-task-desc" class="form-input" rows="8" style="width:100%; resize:vertical;" required></textarea>
+            <textarea id="edit-task-desc" class="form-input" rows="6" style="width:100%; resize:vertical;" required></textarea>
           </div>
-          <div class="modal-footer" style="padding:0; margin-top:20px; border:none;">
+
+          <!-- Sección de Rúbrica de la Tarea -->
+          <div class="form-group" style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <label class="form-label" style="margin:0; font-weight:bold; display:flex; align-items:center; gap:6px;">
+                  📊 Rúbrica de Evaluación
+                  <span id="edit-task-rubric-badge" class="badge" style="background:#e0e7ff; color:var(--primary); font-size:0.75rem;"></span>
+                </label>
+                <div id="edit-task-rubric-source" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;"></div>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="file" id="input-rubric-csv-file" accept=".csv" style="display:none;">
+                <button type="button" class="btn btn-ghost btn--sm" id="btn-import-rubric-csv" style="font-size:0.8rem; padding:4px 8px;" title="Importar rúbrica desde archivo CSV de Google Classroom">📥 Importar CSV</button>
+                <button type="button" class="btn btn-ghost btn--sm" id="btn-toggle-rubric-json" style="font-size:0.8rem; padding:4px 8px;" title="Ver o editar rúbrica en formato JSON">📝 JSON</button>
+                <button type="button" class="btn btn-ghost btn--sm" id="btn-reset-rubric" style="font-size:0.8rem; padding:4px 8px; color:var(--text-muted);" title="Restaurar rúbrica por defecto de la base de datos">↺ Restaurar</button>
+              </div>
+            </div>
+
+            <!-- Preview visual de criterios -->
+            <div id="edit-task-rubric-preview" style="max-height: 220px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; padding:10px; background:#f8fafc; font-size:0.85rem;">
+              <!-- Se rellena dinámicamente -->
+            </div>
+
+            <!-- Editor JSON colapsable -->
+            <div id="edit-task-rubric-json-wrap" style="display:none; margin-top:10px;">
+              <label class="form-label" style="font-size:0.8rem; color:var(--text-muted);">Editor JSON de criterios (avanzado):</label>
+              <textarea id="edit-task-rubric-json" class="form-input" rows="6" style="width:100%; font-family:monospace; font-size:0.78rem;"></textarea>
+              <div style="margin-top:4px; text-align:right;">
+                <button type="button" class="btn btn-ghost btn--sm" id="btn-apply-rubric-json" style="font-size:0.75rem;">Aplicar JSON</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer" style="padding:0; margin-top:20px; border:none; display:flex; justify-content:flex-end; gap:10px;">
             <button type="button" class="btn btn-ghost" id="btn-cancel-edit-task">Cancelar</button>
             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
           </div>

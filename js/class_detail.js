@@ -6,9 +6,10 @@ import {
   getClassRanking, addStudentsToClass, removeStudentFromClass, getStudentResultsInClass,
   getStudentBestScore, getUserProfile, getLegacyStudentIds,
   listenToExamsByClass, updateExam, deleteExam,
-  getOfflineTasksConfig, upsertOfflineTaskConfig, getClassOfflineGrades,
+  getClassroomTasks, getOfflineTasksConfig, upsertOfflineTaskConfig, getClassOfflineGrades,
   saveOfflineGradeRubric, getStudentOfflineGrade, deleteStudentTopicResults
 } from './common/db.js';
+import { getActiveRubric, parseClassroomRubricCSV, calculateRubricGrade } from './common/rubric.js';
 import { createClassroomAssignment, syncClassroomGrades } from './common/classroom.js';
 import { renderHeader, showToast, showLoading, hideLoading, renderPodium, renderRankingTable } from './common/ui.js';
 import { GAMES, TOPICS, COURSES, $, $$, escapeHtml, formatDate, getUrlParams, copyToClipboard } from './common/utils.js';
@@ -1840,6 +1841,56 @@ window._deleteStudentTests = async (uid, topicId, studentName) => {
 // ══════════════════════════════════════════════════════════════
 
 let offlineTasksConfig = {};
+let currentClassroomTasks = [];
+let editingTaskRubric = null;
+let editingTaskOriginalRubric = null;
+
+function renderModalRubricPreview(rubric, isCustomized) {
+  const preview = $('edit-task-rubric-preview');
+  const badge = $('edit-task-rubric-badge');
+  const source = $('edit-task-rubric-source');
+  const jsonText = $('edit-task-rubric-json');
+  if (!preview) return;
+
+  if (!Array.isArray(rubric) || rubric.length === 0) {
+    preview.innerHTML = '<span style="color:var(--text-muted);">Sin rúbrica definida.</span>';
+    if (badge) badge.textContent = '0 criterios';
+    if (source) source.textContent = '';
+    return;
+  }
+
+  const maxPoints = rubric.reduce((acc, crit) => acc + Math.max(...(crit.levels || []).map(l => l.points || 0), 0), 0);
+  if (badge) badge.textContent = `${rubric.length} criterios | Max: ${maxPoints} pts`;
+  if (source) {
+    source.textContent = isCustomized ? '⚙️ Rúbrica personalizada para esta clase' : '🏛️ Rúbrica estándar de la base de datos';
+  }
+  if (jsonText) {
+    jsonText.value = JSON.stringify(rubric, null, 2);
+  }
+
+  let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+  rubric.forEach((crit, i) => {
+    const critMax = Math.max(...(crit.levels || []).map(l => l.points || 0), 0);
+    html += `
+      <div style="background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:6px 10px;">
+        <div style="font-weight:bold; color:var(--text-primary); display:flex; justify-content:space-between;">
+          <span>${i + 1}. ${escapeHtml(crit.title)}</span>
+          <span style="font-weight:normal; color:var(--primary); font-size:0.75rem;">${critMax} pts</span>
+        </div>
+        ${crit.desc ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">${escapeHtml(crit.desc)}</div>` : ''}
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+          ${(crit.levels || []).map(l => `
+            <span style="background:#f1f5f9; padding:2px 6px; border-radius:3px; font-size:0.7rem; color:#475569;">
+              <strong>${l.points}p</strong>: ${escapeHtml(l.desc || '')}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  preview.innerHTML = html;
+}
 
 async function loadOfflineTasksTab() {
   const container = $('offline-tasks-container');
@@ -1864,9 +1915,20 @@ async function loadOfflineTasksTab() {
     offlineGrades[data.taskId][data.studentId] = data;
   });
 
+  const getStudentName = (m) => (m.displayNameAnonymized || m.displayName || m.display_name_anon || m.display_name || m.name || (m.email ? m.email.split('@')[0] : 'Alumno')).trim();
+  const sortedMembers = [...members].sort((a, b) => {
+    return getStudentName(a).localeCompare(getStudentName(b), 'es', { sensitivity: 'base' });
+  });
+
+  const classSubject = classData?.subject_id || classData?.subjectId;
+  currentClassroomTasks = await getClassroomTasks(classSubject);
+  const tasksToDisplay = currentClassroomTasks;
+
   let html = `<div class="accordion-list">`;
-  CLASSROOM_TASKS.forEach((task, index) => {
+  tasksToDisplay.forEach((task, index) => {
     const config = offlineTasksConfig[task.id] || { isActive: false, rubricPublished: false, gradesPublished: false, dueDate: '' };
+    const taskRubric = getActiveRubric(task, config, OFFLINE_RUBRIC);
+    const rubricCount = taskRubric.length;
     
     const displayTitle = config.customTitle || task.title;
     const displayDesc = config.customDescription || task.description;
@@ -1876,11 +1938,12 @@ async function loadOfflineTasksTab() {
         <!-- Cabecera Tarea -->
         <div class="task-accordion-header" style="display:flex; justify-content:space-between; align-items:center; padding: 15px; cursor:pointer; background:#f8fafc;" data-task="${task.id}">
           <div style="flex:1;">
-            <h3 style="margin:0; color:var(--primary); font-size:1.1rem; display:flex; align-items:center; gap:10px;">
+            <h3 style="margin:0; color:var(--primary); font-size:1.1rem; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
               <span class="task-expand-icon">▶️</span>
               ${index + 1}. ${escapeHtml(displayTitle)}
-              <button class="btn-ghost btn-edit-task" data-task="${task.id}" style="font-size:0.9rem; padding:4px; margin-left:5px;" title="Personalizar tarea" onclick="event.stopPropagation()">✏️</button>
+              <button class="btn-ghost btn-edit-task" data-task="${task.id}" style="font-size:0.9rem; padding:4px; margin-left:5px;" title="Personalizar tarea y rúbrica" onclick="event.stopPropagation()">✏️</button>
               <span class="badge" style="background:#e2e8f0; color:#475569; font-size:0.75rem;">Bloque ${task.block} | Crit ${task.crit}</span>
+              <span class="badge" style="background:#e0e7ff; color:var(--primary); font-size:0.75rem;" title="${rubricCount} criterios de evaluación">📊 ${rubricCount} crit</span>
             </h3>
           </div>
           <!-- Toggle Activo -->
@@ -1923,12 +1986,12 @@ async function loadOfflineTasksTab() {
           <div style="display:flex; flex-direction:column; gap:5px;">
     `;
     
-    members.forEach(member => {
+    sortedMembers.forEach(member => {
       const mUid = member.uid || member.id || member.student_id;
       const grade = offlineGrades[task.id] && (offlineGrades[task.id][mUid] || offlineGrades[task.id][member.uid] || offlineGrades[task.id][member.id]);
       const hasGrade = grade && typeof grade.finalGrade === 'number';
       const gradeColor = !hasGrade ? 'var(--text-muted)' : (grade.finalGrade >= 5 ? 'var(--success)' : 'var(--danger)');
-      const mName = member.displayNameAnonymized || member.displayName || member.display_name_anon || member.display_name || (member.email ? member.email.split('@')[0] : 'Alumno');
+      const mName = getStudentName(member);
       
       html += `
             <div style="border:1px solid #e2e8f0; border-radius:6px; overflow:hidden;">
@@ -2013,12 +2076,19 @@ async function loadOfflineTasksTab() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const taskId = btn.dataset.task;
-      const task = CLASSROOM_TASKS.find(t => t.id === taskId);
+      const task = currentClassroomTasks.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
       const config = offlineTasksConfig[taskId] || {};
       
       $('edit-task-id').value = taskId;
       $('edit-task-title').value = config.customTitle || task.title;
       $('edit-task-desc').value = config.customDescription || task.description;
+
+      const activeRubric = getActiveRubric(task, config, OFFLINE_RUBRIC);
+      editingTaskRubric = JSON.parse(JSON.stringify(activeRubric));
+      editingTaskOriginalRubric = JSON.parse(JSON.stringify(task.rubric || task.customRubric || OFFLINE_RUBRIC));
+      const isCustom = !!(config.rubric && Array.isArray(config.rubric) && config.rubric.length > 0);
+      renderModalRubricPreview(editingTaskRubric, isCustom);
+
       $('modal-edit-task').setAttribute('aria-hidden', 'false');
     });
   });
@@ -2052,7 +2122,9 @@ async function loadOfflineTasksTab() {
 }
 
 async function renderInlineRubric(taskId, uid, container) {
-  const task = CLASSROOM_TASKS.find(t => t.id === taskId);
+  const classSubject = classData?.subject_id || classData?.subjectId;
+  const taskList = currentClassroomTasks.length > 0 ? currentClassroomTasks : await getClassroomTasks(classSubject);
+  const task = taskList.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
   
   let gradeData = null;
   try {
@@ -2066,7 +2138,8 @@ async function renderInlineRubric(taskId, uid, container) {
   
   let html = `<div class="inline-rubric-form" data-task="${taskId}" data-uid="${uid}" data-gradeid="${gradeData ? gradeData.id : ''}">`;
   
-  const activeRubric = task.customRubric || OFFLINE_RUBRIC;
+  const activeRubric = getActiveRubric(task, offlineTasksConfig[taskId], OFFLINE_RUBRIC);
+  const maxRubricScore = activeRubric.reduce((acc, crit) => acc + Math.max(...crit.levels.map(l => l.points || 0), 0), 0);
   
   activeRubric.forEach(crit => {
     html += `
@@ -2114,7 +2187,12 @@ async function renderInlineRubric(taskId, uid, container) {
         sum += parseFloat(checked.value);
       }
     });
-    gradeSpan.textContent = sum.toFixed(2);
+    const finalGrade = maxRubricScore > 0 ? (sum / maxRubricScore) * 10 : sum;
+    if (maxRubricScore !== 10 && maxRubricScore > 0) {
+      gradeSpan.textContent = `${finalGrade.toFixed(2)} (${sum.toFixed(2)}/${maxRubricScore} pts)`;
+    } else {
+      gradeSpan.textContent = finalGrade.toFixed(2);
+    }
     
     // Highlight
     form.querySelectorAll('label').forEach(lbl => {
@@ -2151,7 +2229,7 @@ async function renderInlineRubric(taskId, uid, container) {
       return;
     }
     
-    const finalGrade = sum;
+    const finalGrade = maxRubricScore > 0 ? Number(((sum / maxRubricScore) * 10).toFixed(2)) : sum;
     const fb = form.querySelector('.rubric-feedback-input').value.trim();
     
     try {
@@ -2177,23 +2255,31 @@ async function renderInlineRubric(taskId, uid, container) {
 }
 
 function exportToSeneca(offlineGrades) {
+  const classSubject = classData?.subject_id || classData?.subjectId;
+  const taskList = currentClassroomTasks.length > 0 ? currentClassroomTasks : (classSubject === 'tic2' ? TIC2_CLASSROOM_TASKS : (classSubject === 'cyr' ? CYR_CLASSROOM_TASKS : CLASSROOM_TASKS));
   let csv = "Apellidos y Nombre;";
-  CLASSROOM_TASKS.forEach(t => {
+  taskList.forEach(t => {
     csv += `"${t.title.replace(/"/g, '""')}";`;
   });
   csv += "\n";
   
-  members.forEach(m => {
+  const sortedMembers = [...members].sort((a, b) => {
+    const na = (a.displayName || a.displayNameAnonymized || a.name || a.email || '').trim();
+    const nb = (b.displayName || b.displayNameAnonymized || b.name || b.email || '').trim();
+    return na.localeCompare(nb, 'es', { sensitivity: 'base' });
+  });
+
+  sortedMembers.forEach(m => {
     let nameToPrint = m.displayName || m.displayNameAnonymized || m.name || m.email;
     csv += `"${nameToPrint}";`;
     
-    CLASSROOM_TASKS.forEach(t => {
+    taskList.forEach(t => {
       const sid = m.uid || m.id || m.student_id;
       const grade = offlineGrades[t.id] && (offlineGrades[t.id][sid] || offlineGrades[t.id][m.uid] || offlineGrades[t.id][m.id]);
       if (grade && typeof grade.finalGrade === 'number') {
         csv += `"${grade.finalGrade.toFixed(2).replace('.', ',')}";`;
       } else {
-        csv += `;"`;
+        csv += `\"\";`;
       }
     });
     csv += "\n";
@@ -2217,6 +2303,73 @@ if ($('btn-close-edit-task')) {
     if (e.target === $('modal-edit-task')) $('modal-edit-task').setAttribute('aria-hidden', 'true');
   });
 
+  // Botón Importar Rúbrica CSV
+  if ($('btn-import-rubric-csv')) {
+    $('btn-import-rubric-csv').addEventListener('click', () => {
+      $('input-rubric-csv-file').click();
+    });
+    $('input-rubric-csv-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = parseClassroomRubricCSV(text);
+        if (parsed && parsed.length > 0) {
+          editingTaskRubric = parsed;
+          renderModalRubricPreview(editingTaskRubric, true);
+          showToast('Rúbrica importada', `Se han cargado ${parsed.length} criterios del CSV`, 'success');
+        }
+      } catch (err) {
+        showToast('Error CSV', err.message, 'error');
+      }
+      e.target.value = '';
+    });
+  }
+
+  // Botón Toggle JSON
+  if ($('btn-toggle-rubric-json')) {
+    $('btn-toggle-rubric-json').addEventListener('click', () => {
+      const wrap = $('edit-task-rubric-json-wrap');
+      if (wrap) {
+        const isHidden = wrap.style.display === 'none';
+        wrap.style.display = isHidden ? 'block' : 'none';
+        if (isHidden && editingTaskRubric) {
+          $('edit-task-rubric-json').value = JSON.stringify(editingTaskRubric, null, 2);
+        }
+      }
+    });
+  }
+
+  // Botón Aplicar JSON
+  if ($('btn-apply-rubric-json')) {
+    $('btn-apply-rubric-json').addEventListener('click', () => {
+      try {
+        const raw = $('edit-task-rubric-json').value.trim();
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          editingTaskRubric = parsed;
+          renderModalRubricPreview(editingTaskRubric, true);
+          showToast('JSON Aplicado', `${parsed.length} criterios actualizados`, 'success');
+        } else {
+          showToast('Error', 'El JSON debe ser un array de criterios válido', 'error');
+        }
+      } catch (err) {
+        showToast('Error JSON', err.message, 'error');
+      }
+    });
+  }
+
+  // Botón Restaurar Rúbrica
+  if ($('btn-reset-rubric')) {
+    $('btn-reset-rubric').addEventListener('click', () => {
+      if (editingTaskOriginalRubric) {
+        editingTaskRubric = JSON.parse(JSON.stringify(editingTaskOriginalRubric));
+        renderModalRubricPreview(editingTaskRubric, false);
+        showToast('Restaurado', 'Rúbrica restablecida a los valores por defecto', 'info');
+      }
+    });
+  }
+
   $('form-edit-task').addEventListener('submit', async (e) => {
     e.preventDefault();
     const taskId = $('edit-task-id').value;
@@ -2226,32 +2379,49 @@ if ($('btn-close-edit-task')) {
     if (!taskId) return;
     
     try {
-      const res = await upsertOfflineTaskConfig(classData.id, taskId, { customTitle, customDescription });
-      offlineTasksConfig[taskId] = { ...(offlineTasksConfig[taskId] || {}), ...res, customTitle, customDescription };
+      const updates = { customTitle, customDescription };
+      if (editingTaskRubric) {
+        updates.rubric = editingTaskRubric;
+      }
+      const res = await upsertOfflineTaskConfig(classData.id, taskId, updates);
+      offlineTasksConfig[taskId] = {
+        ...(offlineTasksConfig[taskId] || {}),
+        ...res,
+        customTitle,
+        customDescription,
+        rubric: editingTaskRubric,
+        customRubric: editingTaskRubric
+      };
       $('modal-edit-task').setAttribute('aria-hidden', 'true');
-      showToast('Guardado', 'Tarea actualizada', 'success', 1500);
+      showToast('Guardado', 'Tarea y rúbrica actualizadas en la base de datos', 'success', 1500);
       
-      // Actualizar el DOM sin recargar la página (al menos el título)
+      // Actualizar el DOM sin recargar la página (al menos el título y badges)
       const headerTitle = document.querySelector(`.task-accordion-header[data-task="${taskId}"] h3`);
       if (headerTitle) {
-        // Encontrar el task original para mantener el bloque/criterio
-        const task = CLASSROOM_TASKS.find(t => t.id === taskId);
-        const index = CLASSROOM_TASKS.findIndex(t => t.id === taskId);
+        const task = currentClassroomTasks.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
+        const index = currentClassroomTasks.findIndex(t => t.id === taskId);
+        const rubricCount = (editingTaskRubric || []).length;
         headerTitle.innerHTML = `
           <span class="task-expand-icon">▶️</span>
-          ${index + 1}. ${escapeHtml(customTitle)}
-          <button class="btn-ghost btn-edit-task" data-task="${taskId}" style="font-size:0.9rem; padding:4px; margin-left:5px;" title="Personalizar tarea" onclick="event.stopPropagation()">✏️</button>
-          <span class="badge" style="background:#e2e8f0; color:#475569; font-size:0.75rem;">Bloque ${task.block} | Crit ${task.crit}</span>
+          ${(index >= 0 ? index : 0) + 1}. ${escapeHtml(customTitle)}
+          <button class="btn-ghost btn-edit-task" data-task="${taskId}" style="font-size:0.9rem; padding:4px; margin-left:5px;" title="Personalizar tarea y rúbrica" onclick="event.stopPropagation()">✏️</button>
+          <span class="badge" style="background:#e2e8f0; color:#475569; font-size:0.75rem;">Bloque ${task ? task.block : ''} | Crit ${task ? task.crit : ''}</span>
+          <span class="badge" style="background:#e0e7ff; color:var(--primary); font-size:0.75rem;" title="${rubricCount} criterios de evaluación">📊 ${rubricCount} crit</span>
         `;
         
         // Update edit button listener again since we replaced HTML
         const newEditBtn = headerTitle.querySelector('.btn-edit-task');
         if (newEditBtn) {
-          newEditBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
+          newEditBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
             $('edit-task-id').value = taskId;
-            $('edit-task-title').value = offlineTasksConfig[taskId].customTitle || task.title;
-            $('edit-task-desc').value = offlineTasksConfig[taskId].customDescription || task.description;
+            $('edit-task-title').value = offlineTasksConfig[taskId].customTitle || (task ? task.title : '');
+            $('edit-task-desc').value = offlineTasksConfig[taskId].customDescription || (task ? task.description : '');
+            const activeRubric = getActiveRubric(task, offlineTasksConfig[taskId], OFFLINE_RUBRIC);
+            editingTaskRubric = JSON.parse(JSON.stringify(activeRubric));
+            editingTaskOriginalRubric = JSON.parse(JSON.stringify(task ? (task.rubric || task.customRubric || OFFLINE_RUBRIC) : OFFLINE_RUBRIC));
+            const isCustom = !!(offlineTasksConfig[taskId]?.rubric && Array.isArray(offlineTasksConfig[taskId]?.rubric) && offlineTasksConfig[taskId]?.rubric.length > 0);
+            renderModalRubricPreview(editingTaskRubric, isCustom);
             $('modal-edit-task').setAttribute('aria-hidden', 'false');
           });
         }

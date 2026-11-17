@@ -214,7 +214,25 @@ CREATE TABLE IF NOT EXISTS arena_bots (
 );
 CREATE TRIGGER arena_bots_updated_at BEFORE UPDATE ON arena_bots FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- 18. TAREAS OFFLINE
+-- 18. TAREAS BASE (CATÁLOGO Y RÚBRICAS)
+CREATE TABLE IF NOT EXISTS classroom_tasks (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  subject_id TEXT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  block TEXT DEFAULT '',
+  crit TEXT DEFAULT '',
+  rubric JSONB,
+  max_score NUMERIC(5,2) DEFAULT 10,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (subject_id, task_id)
+);
+CREATE TRIGGER classroom_tasks_updated_at BEFORE UPDATE ON classroom_tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- 19. TAREAS OFFLINE (CONFIGURACIÓN POR CLASE)
 CREATE TABLE IF NOT EXISTS offline_tasks (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   class_id TEXT NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
@@ -284,6 +302,8 @@ CREATE INDEX IF NOT EXISTS idx_offline_grades_student ON offline_grades(student_
 CREATE INDEX IF NOT EXISTS idx_offline_grades_class   ON offline_grades(class_id);
 CREATE INDEX IF NOT EXISTS idx_offline_grades_task    ON offline_grades(task_id);
 CREATE INDEX IF NOT EXISTS idx_offline_tasks_class    ON offline_tasks(class_id);
+CREATE INDEX IF NOT EXISTS idx_classroom_tasks_subject ON classroom_tasks(subject_id);
+CREATE INDEX IF NOT EXISTS idx_classroom_tasks_task_id ON classroom_tasks(task_id);
 
 -- FUNCIONES RLS
 CREATE OR REPLACE FUNCTION is_admin() RETURNS BOOLEAN LANGUAGE SQL SECURITY DEFINER STABLE AS $$
@@ -566,6 +586,7 @@ ALTER TABLE live_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE live_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mecanoclass_texts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE arena_bots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE classroom_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offline_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offline_grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE allowed_teachers ENABLE ROW LEVEL SECURITY;
@@ -641,6 +662,9 @@ CREATE POLICY "bots_read"   ON arena_bots FOR SELECT USING (auth.uid() IS NOT NU
 CREATE POLICY "bots_insert" ON arena_bots FOR INSERT WITH CHECK (owner_id = auth.uid()::text);
 CREATE POLICY "bots_update" ON arena_bots FOR UPDATE USING (owner_id = auth.uid()::text OR is_admin());
 CREATE POLICY "bots_delete" ON arena_bots FOR DELETE USING (owner_id = auth.uid()::text OR is_admin());
+
+CREATE POLICY "classroom_tasks_read"  ON classroom_tasks FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "classroom_tasks_write" ON classroom_tasks FOR ALL    USING (is_teacher());
 
 CREATE POLICY "offline_tasks_read"   ON offline_tasks  FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "offline_tasks_write"  ON offline_tasks  FOR ALL    USING (is_teacher());

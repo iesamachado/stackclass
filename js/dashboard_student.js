@@ -3,11 +3,12 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { requireAuth, currentUser, currentProfile } from './common/auth.js';
-import { getStudentClasses, joinClassByPin, getStudentResults, getClassAssignments } from './common/db.js';
+import { getStudentClasses, joinClassByPin, getStudentResults, getClassAssignments, getClassroomTasks } from './common/db.js';
 import { supabase } from './common/supabase-config.js';
 import { renderHeader, showToast, showLoading, hideLoading } from './common/ui.js';
 import { GAMES, TOPICS, $, $$, escapeHtml, formatDate, getUrlParams } from './common/utils.js';
 import { CLASSROOM_TASKS, OFFLINE_RUBRIC } from './common/tasks.js';
+import { getActiveRubric } from './common/rubric.js';
 
 let myClasses = [];
 
@@ -512,6 +513,9 @@ async function loadOfflineTasks(user) {
         <h3 style="margin-bottom:15px; color:var(--text-secondary); font-size:1.1rem; border-bottom:1px solid var(--border); padding-bottom:5px;">🏫 ${escapeHtml(c.name)}</h3>
         <div class="accordion-list">`;
         
+      const classSubject = c.subject_id || c.subjectId || 'general';
+      const classTasks = await getClassroomTasks(classSubject);
+
       // Ordenamos las configs por ID de tarea para mantener el mismo orden
       const configs = configData.map(d => ({
         ...d,
@@ -522,14 +526,16 @@ async function loadOfflineTasks(user) {
         gradesPublished: d.grades_published,
         dueDate: d.due_date,
         customTitle: d.custom_title,
-        customDescription: d.custom_description
+        customDescription: d.custom_description,
+        rubric: d.rubric,
+        customRubric: d.rubric
       }));
       configs.sort((a,b) => parseInt(a.taskId) - parseInt(b.taskId));
         
       configs.forEach(config => {
-        const taskIndex = CLASSROOM_TASKS.findIndex(t => t.id === config.taskId);
+        const taskIndex = classTasks.findIndex(t => t.id === config.taskId);
         if (taskIndex === -1) return;
-        const task = CLASSROOM_TASKS[taskIndex];
+        const task = classTasks[taskIndex];
         
         const displayTitle = config.customTitle || task.title;
         const displayDesc = config.customDescription || task.description;
@@ -559,7 +565,7 @@ async function loadOfflineTasks(user) {
         let rubricHtml = '';
         if (config.rubricPublished) {
            rubricHtml = `<h5 style="margin:20px 0 10px 0; font-size:1rem; border-bottom:1px solid var(--border); padding-bottom:5px;">📊 Rúbrica de Evaluación</h5>`;
-           const activeRubric = task.customRubric || OFFLINE_RUBRIC;
+           const activeRubric = getActiveRubric(task, config, OFFLINE_RUBRIC);
            const scores = gradeInfo ? (gradeInfo.rubricScores || {}) : {};
            
            activeRubric.forEach(crit => {

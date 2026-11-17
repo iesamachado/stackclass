@@ -13,7 +13,7 @@ export const TASK_1_DEFAULT_RUBRIC = [
   },
   {
     id: "crit_2",
-    title: "Se puede acceder a la web",
+    title: "Uso avanzado del tablero kanban",
     desc: "",
     levels: [
       { points: 1.0, desc: "Muy Bien" },
@@ -73,7 +73,7 @@ export const TASK_1_DEFAULT_RUBRIC = [
   },
   {
     id: "crit_7",
-    title: "Tareas correctas",
+    title: "Documentación entregada",
     desc: "",
     levels: [
       { points: 1.0, desc: "Muy Bien" },
@@ -85,7 +85,7 @@ export const TASK_1_DEFAULT_RUBRIC = [
   },
   {
     id: "crit_8",
-    title: "Uso avanzado del tablero kanban",
+    title: "Explicación del porque ese tablero y no otro",
     desc: "",
     levels: [
       { points: 1.0, desc: "Muy Bien" },
@@ -97,7 +97,7 @@ export const TASK_1_DEFAULT_RUBRIC = [
   },
   {
     id: "crit_9",
-    title: "Facil de usar o explicación correcta para usarlo",
+    title: "Preguntas sobre el tablero correctas",
     desc: "",
     levels: [
       { points: 1.0, desc: "Muy Bien" },
@@ -116,11 +116,13 @@ export const TASK_1_DEFAULT_RUBRIC = [
  * 3. Rúbrica general offline (OFFLINE_RUBRIC)
  */
 export function getActiveRubric(task, config, fallback = null) {
-  if (config && Array.isArray(config.customRubric) && config.customRubric.length > 0) {
-    return config.customRubric;
+  if (config) {
+    if (Array.isArray(config.rubric) && config.rubric.length > 0) return config.rubric;
+    if (Array.isArray(config.customRubric) && config.customRubric.length > 0) return config.customRubric;
   }
-  if (task && Array.isArray(task.customRubric) && task.customRubric.length > 0) {
-    return task.customRubric;
+  if (task) {
+    if (Array.isArray(task.rubric) && task.rubric.length > 0) return task.rubric;
+    if (Array.isArray(task.customRubric) && task.customRubric.length > 0) return task.customRubric;
   }
   return fallback;
 }

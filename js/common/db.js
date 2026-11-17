@@ -12,6 +12,7 @@
 
 import { supabase } from './supabase-config.js';
 import { LOCAL_TOPICS } from './topics_data.js';
+import { CLASSROOM_TASKS_BY_SUBJECT, OFFLINE_RUBRIC } from './tasks.js';
 export { supabase };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1672,8 +1673,50 @@ export async function getExamResultsByExam(examId) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  TAREAS OFFLINE CONFIG (offline_tasks como tabla de config)
+//  TAREAS BASE (classroom_tasks) Y TAREAS OFFLINE CONFIG
 // ══════════════════════════════════════════════════════════════════
+
+export async function getClassroomTasks(subjectId) {
+  try {
+    let query = supabase.from('classroom_tasks').select('*');
+    if (subjectId) {
+      query = query.eq('subject_id', subjectId);
+    }
+    const { data, error } = await query.order('sort_order', { ascending: true }).order('task_id', { ascending: true });
+    if (!error && Array.isArray(data) && data.length > 0) {
+      return data.map(d => ({
+        id: d.task_id,
+        taskId: d.task_id,
+        subjectId: d.subject_id,
+        title: d.title,
+        description: d.description,
+        block: d.block,
+        crit: d.crit,
+        rubric: d.rubric,
+        customRubric: d.rubric,
+        maxScore: d.max_score ? parseFloat(d.max_score) : 10,
+        sortOrder: d.sort_order
+      }));
+    }
+  } catch (err) {
+    console.warn('Error fetching classroom_tasks from Supabase, falling back to local tasks:', err);
+  }
+
+  // Fallback to static catalog in tasks.js
+  const fallbackList = subjectId ? (CLASSROOM_TASKS_BY_SUBJECT[subjectId] || []) : [
+    ...(CLASSROOM_TASKS_BY_SUBJECT.tic2 || []).map(t => ({ ...t, subjectId: 'tic2' })),
+    ...(CLASSROOM_TASKS_BY_SUBJECT.cyr || []).map(t => ({ ...t, subjectId: 'cyr' }))
+  ];
+  return fallbackList.map((t, idx) => ({
+    ...t,
+    taskId: t.id,
+    subjectId: t.subjectId || subjectId || 'general',
+    rubric: t.customRubric || OFFLINE_RUBRIC,
+    customRubric: t.customRubric || OFFLINE_RUBRIC,
+    maxScore: (t.customRubric || OFFLINE_RUBRIC).reduce((acc, crit) => acc + Math.max(...crit.levels.map(l => l.points || 0), 0), 0) || 10,
+    sortOrder: idx
+  }));
+}
 
 export async function getOfflineTasksConfig(classId) {
   const { data, error } = await supabase.from('offline_tasks').select('*').eq('class_id', classId);
@@ -1687,7 +1730,9 @@ export async function getOfflineTasksConfig(classId) {
     gradesPublished: d.grades_published,
     dueDate: d.due_date,
     customTitle: d.custom_title,
-    customDescription: d.custom_description
+    customDescription: d.custom_description,
+    rubric: d.rubric,
+    customRubric: d.rubric
   }));
 }
 
@@ -1700,6 +1745,8 @@ export async function upsertOfflineTaskConfig(classId, taskId, updates) {
   if ('dueDate' in updates) dbUpdates.due_date = updates.dueDate;
   if ('customTitle' in updates) dbUpdates.custom_title = updates.customTitle;
   if ('customDescription' in updates) dbUpdates.custom_description = updates.customDescription;
+  if ('rubric' in updates) dbUpdates.rubric = updates.rubric;
+  if ('customRubric' in updates) dbUpdates.rubric = updates.customRubric;
 
   const { data: existing } = await supabase.from('offline_tasks')
     .select('id').eq('class_id', classId).eq('task_id', taskId).maybeSingle();
@@ -1707,7 +1754,7 @@ export async function upsertOfflineTaskConfig(classId, taskId, updates) {
   if (existing) {
     const { error } = await supabase.from('offline_tasks').update(dbUpdates).eq('id', existing.id);
     if (error) throw error;
-    return { id: existing.id, taskId, classId, ...updates };
+    return { id: existing.id, taskId, classId, ...updates, rubric: dbUpdates.rubric, customRubric: dbUpdates.rubric };
   } else {
     const insertData = {
       class_id: classId,
@@ -1720,7 +1767,19 @@ export async function upsertOfflineTaskConfig(classId, taskId, updates) {
     };
     const { data: row, error } = await supabase.from('offline_tasks').insert(insertData).select().single();
     if (error) throw error;
-    return { id: row.id, taskId, classId, isActive: row.is_active, rubricPublished: row.rubric_published, gradesPublished: row.grades_published, dueDate: row.due_date, customTitle: row.custom_title, customDescription: row.custom_description };
+    return {
+      id: row.id,
+      taskId,
+      classId,
+      isActive: row.is_active,
+      rubricPublished: row.rubric_published,
+      gradesPublished: row.grades_published,
+      dueDate: row.due_date,
+      customTitle: row.custom_title,
+      customDescription: row.custom_description,
+      rubric: row.rubric,
+      customRubric: row.rubric
+    };
   }
 }
 
