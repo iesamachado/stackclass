@@ -399,8 +399,10 @@ async function doImportClassroom(token) {
 
       // 1. Crear clase en base de datos
       const nameLower = name.toLowerCase();
-      const detectedSubject = (nameLower.includes('tic') || nameLower.includes('bach') || nameLower.includes('bachillerato')) ? 'tic2' : 'cyr';
-      const detectedLevel = detectedSubject === 'tic2' ? '2' : '1';
+      const isEso = nameLower.includes('eso') || /\b(1|2|3)\b/.test(nameLower) || nameLower.includes('primero') || nameLower.includes('segundo') || nameLower.includes('tercero') || nameLower.includes('computación') || nameLower.includes('computacion') || nameLower.includes('robótica') || nameLower.includes('robotica');
+      const isBach = nameLower.includes('bach') || nameLower.includes('bachillerato');
+      const detectedSubject = (!isEso && (isBach || /\b(tic|tic2|ticii|tic-2)\b/i.test(nameLower))) ? 'tic2' : 'cyr';
+      const detectedLevel = detectedSubject === 'tic2' ? '2' : (nameLower.includes('2') ? '2' : (nameLower.includes('3') ? '3' : '1'));
       const cls = await createClass(currentUser.uid, detectedSubject, name, detectedLevel, { classroomCourseId: courseId });
       
       // 2. Traer alumnos de Classroom

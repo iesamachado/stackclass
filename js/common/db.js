@@ -414,11 +414,14 @@ export async function createClass(teacherId, arg1, arg2, arg3, arg4) {
     }
     const nameLower = String(name || '').toLowerCase();
     const levelStr = String(level || '').toLowerCase();
-    const isTic2 = levelStr.includes('bach') ||
+    const isEso = levelStr.includes('eso') || nameLower.includes('eso') || levelStr === '1' || levelStr === '3';
+    const isTic2 = !isEso && (
+      levelStr.includes('bach') ||
       nameLower.includes('bachillerato') ||
       nameLower.includes('bach') ||
       /\b(tic|tic2|ticii|tic-2)\b/i.test(nameLower) ||
-      nameLower.includes('tecnologías de la información');
+      nameLower.includes('tecnologías de la información')
+    );
     subjectId = isTic2 ? 'tic2' : 'cyr';
   }
 
@@ -521,6 +524,10 @@ export async function updateClass(classId, updates) {
   if ('classroomCourseId' in formatted) {
     formatted.classroom_id = formatted.classroomCourseId;
     delete formatted.classroomCourseId;
+  }
+  if ('subjectId' in formatted) {
+    formatted.subject_id = formatted.subjectId;
+    delete formatted.subjectId;
   }
   delete formatted.members;
   delete formatted.class_members;
@@ -1677,12 +1684,15 @@ export async function getExamResultsByExam(examId) {
 // ══════════════════════════════════════════════════════════════════
 
 export async function getClassroomTasks(subjectId) {
+  const targetSubject = (subjectId === 'tic2') ? 'tic2' : 'cyr';
   try {
-    let query = supabase.from('classroom_tasks').select('*');
-    if (subjectId) {
-      query = query.eq('subject_id', subjectId);
-    }
-    const { data, error } = await query.order('sort_order', { ascending: true }).order('task_id', { ascending: true });
+    const { data, error } = await supabase
+      .from('classroom_tasks')
+      .select('*')
+      .eq('subject_id', targetSubject)
+      .order('sort_order', { ascending: true })
+      .order('task_id', { ascending: true });
+
     if (!error && Array.isArray(data) && data.length > 0) {
       return data.map(d => ({
         id: d.task_id,
@@ -1702,15 +1712,12 @@ export async function getClassroomTasks(subjectId) {
     console.warn('Error fetching classroom_tasks from Supabase, falling back to local tasks:', err);
   }
 
-  // Fallback to static catalog in tasks.js
-  const fallbackList = subjectId ? (CLASSROOM_TASKS_BY_SUBJECT[subjectId] || []) : [
-    ...(CLASSROOM_TASKS_BY_SUBJECT.tic2 || []).map(t => ({ ...t, subjectId: 'tic2' })),
-    ...(CLASSROOM_TASKS_BY_SUBJECT.cyr || []).map(t => ({ ...t, subjectId: 'cyr' }))
-  ];
+  // Fallback to static catalog in tasks.js strictly for the target subject
+  const fallbackList = CLASSROOM_TASKS_BY_SUBJECT[targetSubject] || [];
   return fallbackList.map((t, idx) => ({
     ...t,
     taskId: t.id,
-    subjectId: t.subjectId || subjectId || 'general',
+    subjectId: targetSubject,
     rubric: t.customRubric || OFFLINE_RUBRIC,
     customRubric: t.customRubric || OFFLINE_RUBRIC,
     maxScore: (t.customRubric || OFFLINE_RUBRIC).reduce((acc, crit) => acc + Math.max(...crit.levels.map(l => l.points || 0), 0), 0) || 10,

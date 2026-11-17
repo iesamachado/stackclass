@@ -39,6 +39,30 @@ let activeGameFilter = '';
 let studentsSortOrder = 'alpha';
 let rankingInterval = null;
 
+export function resolveClassSubject(cls) {
+  if (!cls) return 'cyr';
+  const nameLower = String(cls.name || '').toLowerCase();
+  const levelStr = String(cls.level || '').toLowerCase();
+
+  // 1. Si el nombre o nivel indican claramente ESO (1º ESO, 2º ESO, etc.), es CyR
+  if (levelStr.includes('eso') || levelStr === '1' || levelStr === '3' || nameLower.includes('eso') || nameLower.includes('computación') || nameLower.includes('computacion') || nameLower.includes('robótica') || nameLower.includes('robotica')) {
+    if (!levelStr.includes('bach') && !nameLower.includes('bach')) {
+      return 'cyr';
+    }
+  }
+
+  // 2. Si el nombre o nivel indican Bachillerato, es TIC2
+  if (levelStr.includes('bach') || nameLower.includes('bach') || nameLower.includes('bachillerato') || /\b(tic2|ticii|tic-2)\b/i.test(nameLower)) {
+    return 'tic2';
+  }
+
+  // 3. Si tiene subject_id o subjectId explícito válido
+  if (cls.subject_id === 'tic2' || cls.subjectId === 'tic2') return 'tic2';
+  if (cls.subject_id === 'cyr' || cls.subjectId === 'cyr') return 'cyr';
+
+  return 'cyr';
+}
+
 // ── Guard ───────────────────────────────────────────────────────
 requireAuth({
   allowedRoles: ['teacher'],
@@ -86,16 +110,27 @@ function initPage(user, profile) {
     $('classroom-link-meta')?.style && ($('classroom-link-meta').style.display = 'flex');
   }
 
-  const classSubj = classData.subject_id || classData.subjectId || 'cyr';
+  const classSubj = resolveClassSubject(classData);
+  // Auto-saneado: si la clase tenía subject_id erróneo en la base de datos (por ejemplo, 'tic2' en 1º ESO), corregirlo
+  if (classData.subject_id !== classSubj) {
+    console.info(`[StackClass] Saneando subject_id de clase ${classData.id}: '${classData.subject_id}' -> '${classSubj}'`);
+    classData.subject_id = classSubj;
+    updateClass(classData.id, { subject_id: classSubj }).catch(err => console.warn('Error auto-saneando clase:', err));
+  }
+
   const course = COURSES[classSubj];
   const subjectBadge = $('class-subject-badge');
+  const btnChangeSubject = $('btn-change-subject');
   if (subjectBadge && course) {
     const levelText = classData.level ? (classSubj === 'tic2' && String(classData.level) === '2' ? '2º Bach' : `${classData.level}º ESO`) : course.level;
     subjectBadge.textContent = `${course.icon} ${course.shortName} (${levelText})`;
     subjectBadge.style.background = `${course.color}20`;
     subjectBadge.style.color = course.colorDark || course.color;
     subjectBadge.style.display = 'inline-flex';
+    if (btnChangeSubject) btnChangeSubject.style.display = 'inline-flex';
   }
+
+  initChangeSubjectModal();
 
   const evalBtn = $('btn-eval-class');
   if (evalBtn && classSubj) {
@@ -145,6 +180,59 @@ function initPage(user, profile) {
   setupModals(user);
 }
 
+function initChangeSubjectModal() {
+  const modal = $('modal-change-subject');
+  const openBtn = $('btn-change-subject');
+  const badge = $('class-subject-badge');
+  const closeBtn = $('btn-close-change-subject');
+  const cancelBtn = $('btn-cancel-change-subject');
+  const saveBtn = $('btn-save-change-subject');
+  const select = $('select-change-subject');
+  if (!modal || !saveBtn || !select) return;
+
+  const openModal = () => {
+    const classSubj = resolveClassSubject(classData);
+    const level = classData.level || (classSubj === 'tic2' ? '2' : '1');
+    const combinedVal = `${classSubj}_${level}`;
+    if (select.querySelector(`option[value="${combinedVal}"]`)) {
+      select.value = combinedVal;
+    } else {
+      select.value = classSubj === 'tic2' ? 'tic2_2' : 'cyr_1';
+    }
+    modal.classList.add('modal-backdrop--visible');
+    modal.setAttribute('aria-hidden', 'false');
+  };
+
+  const closeModal = () => {
+    modal.classList.remove('modal-backdrop--visible');
+    modal.setAttribute('aria-hidden', 'true');
+  };
+
+  openBtn?.addEventListener('click', openModal);
+  badge?.addEventListener('click', openModal);
+  closeBtn?.addEventListener('click', closeModal);
+  cancelBtn?.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+  saveBtn.addEventListener('click', async () => {
+    const val = select.value;
+    const [newSubj, newLevel] = val.split('_');
+    try {
+      showLoading('Actualizando materia y curso...');
+      await updateClass(classData.id, { subject_id: newSubj, level: newLevel });
+      classData.subject_id = newSubj;
+      classData.level = newLevel;
+      showToast('Actualizado', `Clase configurada como ${newSubj === 'tic2' ? 'TIC II (2º Bach)' : `Computación y Robótica (${newLevel}º ESO)`}`, 'success');
+      closeModal();
+      setTimeout(() => window.location.reload(), 600);
+    } catch (err) {
+      showToast('Error', err.message, 'error');
+    } finally {
+      hideLoading();
+    }
+  });
+}
+
 // ══════════════════════════════════════════════════════════════
 //  TAB: JUEGOS
 // ══════════════════════════════════════════════════════════════
@@ -154,7 +242,7 @@ async function loadGamesTab() {
   if (!list) return;
 
   const enabled = classData.enabledGames || [];
-  const classSubject = classData.subject_id || classData.subjectId;
+  const classSubject = resolveClassSubject(classData);
   const allGames = Object.values(GAMES);
 
   const subjectGames = classSubject ? allGames.filter(g => g.subjectId === classSubject) : allGames;
@@ -261,7 +349,7 @@ async function loadTopicsTab() {
   if (!list) return;
 
   const enabled = classData.enabledTopics || [];
-  const classSubject = classData.subject_id || classData.subjectId;
+  const classSubject = resolveClassSubject(classData);
   const filteredTopics = Object.values(TOPICS).filter(t => !classSubject || t.subjectId === classSubject);
 
   if (filteredTopics.length === 0) {
@@ -625,9 +713,9 @@ async function showStudentHistory(studentId, studentName) {
       .in('student_id', studentIds).order('updated_at', { ascending: true });
     (offlineData || []).forEach(r => {
       if (r.score === null || r.score === undefined) return;
-      let xp = Math.round(r.score * 15);
-      
-      const taskObj = CLASSROOM_TASKS.find(t => t.id === r.task_id);
+      const classSubject = resolveClassSubject(classData);
+      const subjectCatalog = classSubject === 'tic2' ? TIC2_CLASSROOM_TASKS : CYR_CLASSROOM_TASKS;
+      const taskObj = (currentClassroomTasks || []).find(t => t.id === r.task_id) || subjectCatalog.find(t => t.id === r.task_id) || CLASSROOM_TASKS.find(t => t.id === r.task_id);
       const taskName = taskObj ? taskObj.title : r.task_id;
       
       timeline.push({
@@ -1920,9 +2008,9 @@ async function loadOfflineTasksTab() {
     return getStudentName(a).localeCompare(getStudentName(b), 'es', { sensitivity: 'base' });
   });
 
-  const classSubject = classData?.subject_id || classData?.subjectId;
+  const classSubject = resolveClassSubject(classData);
   currentClassroomTasks = await getClassroomTasks(classSubject);
-  const tasksToDisplay = currentClassroomTasks;
+  const tasksToDisplay = currentClassroomTasks.filter(t => !t.subjectId || t.subjectId === classSubject);
 
   let html = `<div class="accordion-list">`;
   tasksToDisplay.forEach((task, index) => {
@@ -2076,7 +2164,9 @@ async function loadOfflineTasksTab() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const taskId = btn.dataset.task;
-      const task = currentClassroomTasks.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
+      const classSubject = resolveClassSubject(classData);
+      const subjectCatalog = classSubject === 'tic2' ? TIC2_CLASSROOM_TASKS : CYR_CLASSROOM_TASKS;
+      const task = currentClassroomTasks.find(t => t.id === taskId) || subjectCatalog.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
       const config = offlineTasksConfig[taskId] || {};
       
       $('edit-task-id').value = taskId;
@@ -2122,9 +2212,10 @@ async function loadOfflineTasksTab() {
 }
 
 async function renderInlineRubric(taskId, uid, container) {
-  const classSubject = classData?.subject_id || classData?.subjectId;
+  const classSubject = resolveClassSubject(classData);
   const taskList = currentClassroomTasks.length > 0 ? currentClassroomTasks : await getClassroomTasks(classSubject);
-  const task = taskList.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
+  const subjectCatalog = classSubject === 'tic2' ? TIC2_CLASSROOM_TASKS : CYR_CLASSROOM_TASKS;
+  const task = taskList.find(t => t.id === taskId) || subjectCatalog.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
   
   let gradeData = null;
   try {
@@ -2255,8 +2346,8 @@ async function renderInlineRubric(taskId, uid, container) {
 }
 
 function exportToSeneca(offlineGrades) {
-  const classSubject = classData?.subject_id || classData?.subjectId;
-  const taskList = currentClassroomTasks.length > 0 ? currentClassroomTasks : (classSubject === 'tic2' ? TIC2_CLASSROOM_TASKS : (classSubject === 'cyr' ? CYR_CLASSROOM_TASKS : CLASSROOM_TASKS));
+  const classSubject = resolveClassSubject(classData);
+  const taskList = currentClassroomTasks.length > 0 ? currentClassroomTasks : (classSubject === 'tic2' ? TIC2_CLASSROOM_TASKS : CYR_CLASSROOM_TASKS);
   let csv = "Apellidos y Nombre;";
   taskList.forEach(t => {
     csv += `"${t.title.replace(/"/g, '""')}";`;
@@ -2398,7 +2489,9 @@ if ($('btn-close-edit-task')) {
       // Actualizar el DOM sin recargar la página (al menos el título y badges)
       const headerTitle = document.querySelector(`.task-accordion-header[data-task="${taskId}"] h3`);
       if (headerTitle) {
-        const task = currentClassroomTasks.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
+        const classSubject = resolveClassSubject(classData);
+        const subjectCatalog = classSubject === 'tic2' ? TIC2_CLASSROOM_TASKS : CYR_CLASSROOM_TASKS;
+        const task = currentClassroomTasks.find(t => t.id === taskId) || subjectCatalog.find(t => t.id === taskId) || CLASSROOM_TASKS.find(t => t.id === taskId);
         const index = currentClassroomTasks.findIndex(t => t.id === taskId);
         const rubricCount = (editingTaskRubric || []).length;
         headerTitle.innerHTML = `
@@ -2449,7 +2542,7 @@ async function loadCurriculumMatrixTab() {
   const container = $('curriculum-matrix-table-container');
   if (!container || !classData) return;
 
-  const classSubject = classData.subject_id || classData.subjectId || 'cyr';
+  const classSubject = resolveClassSubject(classData);
   const classLevel = classSubject === 'tic2'
     ? '2'
     : ((classData.level && classData.level.includes('2')) ? '2' : (classData.level && classData.level.includes('3')) ? '3' : '1');
@@ -2817,7 +2910,7 @@ async function loadGradebookTab() {
       members = await getClassMembers(classData.id);
     }
 
-    const classSubject = classData.subject_id || classData.subjectId || 'cyr';
+    const classSubject = resolveClassSubject(classData);
     const classLevel = classSubject === 'tic2'
       ? '2'
       : ((classData.level && String(classData.level).includes('2')) ? '2' : (classData.level && String(classData.level).includes('3')) ? '3' : '1');

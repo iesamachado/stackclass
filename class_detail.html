@@ -27,7 +27,8 @@
           <div>
             <h2 id="class-name" style="margin:0; font-size:1.8rem;">Cargando...</h2>
             <div style="display:flex; gap:var(--space-4); margin-top:var(--space-2); color:var(--text-muted); font-size:0.9rem; flex-wrap:wrap; align-items:center;">
-              <span id="class-subject-badge" class="badge" style="display:none; font-weight:600;"></span>
+              <span id="class-subject-badge" class="badge" style="display:none; font-weight:600; cursor:pointer;" title="Materia de la clase (clic para cambiar)"></span>
+              <button id="btn-change-subject" class="btn btn-ghost btn--sm" style="display:none; font-size:0.75rem; padding:2px 8px; border:1px solid var(--border);" title="Cambiar materia o curso">✏️ Cambiar curso</button>
               <span id="class-pin" class="badge badge--primary" style="cursor:pointer;" title="Copiar PIN">📋 ---</span>
               <span id="classroom-link-meta" style="display:none; align-items:center; gap:var(--space-2);">
                 <span class="badge badge--accent">🔗 Vinculada a Classroom</span>
@@ -793,6 +794,34 @@
           ℹ️ Los juegos solo se evalúan si tienen una tarea asignada en la matriz curricular.
         </span>
         <button type="button" class="btn btn-primary btn--sm" id="btn-close-evolution-modal-footer">Cerrar Ficha</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cambiar Materia / Curso -->
+  <div class="modal-backdrop" id="modal-change-subject" aria-hidden="true">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Materia y Curso de la Clase</h3>
+        <button class="modal-close" id="btn-close-change-subject" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="form-hint" style="margin-bottom:var(--space-4);">
+          Ajusta la materia y curso asignados a esta clase. Las tareas offline, temario y juegos se adaptarán automáticamente.
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="select-change-subject">Materia / Nivel *</label>
+          <select id="select-change-subject" class="input">
+            <option value="cyr_1">🤖 Computación y Robótica (1º ESO)</option>
+            <option value="cyr_2">🤖 Computación y Robótica (2º ESO)</option>
+            <option value="cyr_3">🤖 Computación y Robótica (3º ESO)</option>
+            <option value="tic2_2">💻 TIC II (2º Bachillerato)</option>
+          </select>
+        </div>
+        <div class="modal-footer" style="padding:0; margin-top:var(--space-6); border:none; display:flex; justify-content:flex-end; gap:var(--space-2);">
+          <button type="button" class="btn btn-ghost" id="btn-cancel-change-subject">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-save-change-subject">Guardar Cambios</button>
+        </div>
       </div>
     </div>
   </div>

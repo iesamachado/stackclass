@@ -513,7 +513,7 @@ async function loadOfflineTasks(user) {
         <h3 style="margin-bottom:15px; color:var(--text-secondary); font-size:1.1rem; border-bottom:1px solid var(--border); padding-bottom:5px;">🏫 ${escapeHtml(c.name)}</h3>
         <div class="accordion-list">`;
         
-      const classSubject = c.subject_id || c.subjectId || 'general';
+      const classSubject = (c.subject_id === 'tic2' || c.subjectId === 'tic2' || String(c.level || '').includes('bach') || String(c.name || '').toLowerCase().includes('bach')) ? 'tic2' : 'cyr';
       const classTasks = await getClassroomTasks(classSubject);
 
       // Ordenamos las configs por ID de tarea para mantener el mismo orden
